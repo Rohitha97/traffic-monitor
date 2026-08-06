@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360" role="img" aria-label="Stopped vehicle on the hard shoulder at night">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#10141a"/><stop offset="1" stop-color="#1a1f26"/>
+    </linearGradient>
+    <linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#23282f"/><stop offset="1" stop-color="#31373f"/>
+    </linearGradient>
+    <radialGradient id="lamp" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffd9a0" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ffd9a0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="640" height="360" fill="url(#sky)"/>
+  <path d="M0 360 L232 132 L408 132 L640 360 Z" fill="url(#road)"/>
+
+  <!-- carriageway edge lines -->
+  <path d="M0 360 L232 132" stroke="#5d646d" stroke-width="2" fill="none"/>
+  <path d="M640 360 L408 132" stroke="#5d646d" stroke-width="2" fill="none"/>
+  <!-- lane dashes, two lanes -->
+  <path d="M213 360 L290 132" stroke="#767d86" stroke-width="2" stroke-dasharray="16 26" fill="none"/>
+  <path d="M427 360 L350 132" stroke="#767d86" stroke-width="2" stroke-dasharray="16 26" fill="none"/>
+
+  <!-- gantry -->
+  <rect x="196" y="112" width="248" height="7" fill="#2a2f36"/>
+  <rect x="196" y="112" width="7" height="34" fill="#2a2f36"/>
+  <rect x="437" y="112" width="7" height="34" fill="#2a2f36"/>
+  <circle cx="252" cy="128" r="42" fill="url(#lamp)"/>
+  <circle cx="392" cy="128" r="42" fill="url(#lamp)"/>
+
+  <g>
+  <rect x="38" y="268" width="92" height="57.04" rx="3" fill="#4f565f"/>
+  <rect x="50.88" y="249.6" width="66.24" height="23.92" rx="3" fill="#4f565f" opacity="0.85"/>
+  <rect x="44" y="316" width="14" height="7" rx="2" fill="#ff5b4a" opacity="0.85"/><rect x="110" y="316" width="14" height="7" rx="2" fill="#ff5b4a" opacity="0.85"/></g>
+     <path d="M0 360 L232 132" stroke="#8a929b" stroke-width="3" fill="none" opacity="0.5"/>
+
+  <rect width="640" height="360" fill="#0d0f12" opacity="0.18"/>
+</svg>

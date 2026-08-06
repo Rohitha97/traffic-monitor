@@ -7,6 +7,11 @@ docs
 *.md
 !README.md
 
+# The dashboard image needs neither. detector-sim builds from its own context,
+# and the seed script runs on the host against a running dashboard.
+services
+scripts
+
 .env*.local
 
 playwright-report

@@ -1,10 +1,9 @@
 # The reviewer's quick start: `docker compose up`, and nothing else.
 #
-# Phase 1 ships the dashboard alone. The `detector-sim` service — the ~60-line
-# Node script that POSTs generated events to /api/events/ingest — lands in
-# phase 3 alongside the ingest route it talks to. Adding it now would mean a
-# compose file that cannot come up, which would defeat the point of proving
-# this one works before any feature is written.
+# Two services, because splitting them makes the architecture legible. The
+# boundary the brief describes — between the detection system and the people —
+# is a network hop here rather than a function call, so it shows up in
+# `docker compose ps` instead of only in prose.
 
 services:
   dashboard:
@@ -15,12 +14,27 @@ services:
       - '3000:3000'
     environment:
       NODE_ENV: production
-    # 127.0.0.1 rather than localhost — see the note on HEALTHCHECK in the
-    # Dockerfile. Against localhost this silently never goes healthy.
+      # The detector is its own service, so the in-process simulator stands down.
+      SIM_MODE: external
+    # 127.0.0.1 rather than localhost: the image's /etc/hosts maps localhost to
+    # both 127.0.0.1 and ::1, busybox wget tries ::1 first, and Next's
+    # standalone server binds IPv4 only. Against localhost this never goes
+    # healthy, and detector-sim below would wait on it forever.
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/api/health']
       interval: 15s
       timeout: 3s
       retries: 3
       start_period: 10s
+    restart: unless-stopped
+
+  detector-sim:
+    build:
+      context: ./services/detector-sim
+    environment:
+      DASHBOARD_URL: 'http://dashboard:3000'
+      SIM_INTERVAL_MS: '20000'
+    depends_on:
+      dashboard:
+        condition: service_healthy
     restart: unless-stopped

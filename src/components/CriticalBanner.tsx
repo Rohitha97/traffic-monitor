@@ -30,11 +30,24 @@ export function CriticalBanner({
   return (
     <div
       role="alert"
-      className={`flex-none overflow-hidden border-b-2 border-critical bg-raised transition-all ease-banner duration-(--duration-banner) ${
-        present ? 'h-13 opacity-100' : 'h-0 opacity-0'
+      /*
+       * The bottom border is conditional, not just the height: at h-0 a 2px
+       * critical rule would still paint, leaving a permanent red line under the
+       * status bar on a quiet shift — the opposite of "zero-height when nothing
+       * is critical", and a standing false alarm.
+       */
+      className={`flex-none overflow-hidden bg-raised transition-all ease-banner duration-(--duration-banner) ${
+        present
+          ? 'h-13 border-b-2 border-critical opacity-100'
+          : 'h-0 opacity-0'
       }`}
     >
-      <div className="flex h-13 items-center gap-3.5 px-4">
+      {/*
+       * Collapsed, the banner's buttons are invisible but would still be in the
+       * tab order — a keyboard trap on an empty queue. `inert` removes them
+       * from focus and from the accessibility tree together.
+       */}
+      <div className="flex h-13 items-center gap-3.5 px-4" inert={!present}>
         <PriorityGlyph priority="critical" size="lg" decorative />
 
         <span className="flex min-w-0 flex-col gap-0.5">

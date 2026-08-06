@@ -33,17 +33,46 @@ Requires Node 22+. Both paths are verified from a clean clone.
 
 ## Project status
 
-Built in phases. **Phases 0–2 are complete.**
+Built in phases. **Phases 0–3 are complete.**
 
 | Phase                   | State | What it covers                                                                                    |
 | ----------------------- | ----- | ------------------------------------------------------------------------------------------------- |
 | 0 · Design import       | ✅    | Design read and inventoried; source exported to `docs/design/`                                    |
 | 1 · Scaffold            | ✅    | Next 15 + TS strict + Tailwind v4, token layer, adherence lint, Docker, health route, layout grid |
 | 2 · Design system layer | ✅    | 17 components, every Pass C state, verified at `/dev/states`                                      |
-| 3 · Data and transport  | —     | Zod schema, `derivePriority` + tests, SSE, Zustand store, `detector-sim`                          |
+| 3 · Data and transport  | ✅    | Zod schema, `derivePriority` + 20 tests, SSE, Zustand store, `detector-sim`                       |
 | 4 · Queue and detail    | —     | Filters, keyboard navigation, buffered arrivals, evidence panel, the three actions                |
 | 5 · Real-time layer     | —     | Critical banner choreography, sound, tab badging, degradation states                              |
 | 6 · Polish and proof    | —     | Playwright journey, full README, AI log, a11y and Lighthouse passes                               |
+
+## How to see it work
+
+Three ways to get events on screen, because different people reach for different ones.
+
+**1. Ambient background stream.** `docker compose up` starts `detector-sim`, which posts an
+observation to the dashboard every ~20 seconds on a Poisson-ish interval — clusters and lulls
+rather than a metronome, so the next event is never predictable. Roughly 60% low/medium, 30% high,
+10% critical: a demo where everything is critical teaches you nothing about triage.
+
+Running locally with `pnpm dev` instead, the same simulator runs in-process (`SIM_MODE=internal`).
+
+**2. A seeded scenario.** A deterministic 90 seconds — quiet, a debris call, a stopped vehicle
+escalating to critical, then a wrong-way driver:
+
+```bash
+pnpm seed
+```
+
+**3. Post an observation yourself.** The ingest route is the boundary a real detection pipeline
+would use. An empty body means "make something up":
+
+```bash
+curl -X POST -H 'Content-Type: application/json' -d '{}' http://localhost:3000/api/events/ingest
+```
+
+Note what comes back: an id and a **priority the dashboard decided**. The detector posts what the
+camera saw — type, lane position, confidence — and never a priority. That is the whole point of
+the boundary, and it is why the triage rules stay auditable.
 
 ## Seeing the components
 
