@@ -57,8 +57,14 @@ export function ConnectionIndicator({
           {feeds.online} / {feeds.total} feeds live
         </span>
       )}
-      {/* The dot is decorative; this is what carries the state to a screen reader. */}
-      <span className="sr-only">Feed connection {label.toLowerCase()}</span>
+      {/*
+       * The dot is decorative, so the state needs a text equivalent — but only
+       * when it is not already visible, or a screen reader reads "OFFLINE,
+       * feed connection offline".
+       */}
+      {!showLabel && (
+        <span className="sr-only">Feed connection {label.toLowerCase()}</span>
+      )}
     </div>
   );
 }

@@ -33,7 +33,7 @@ Requires Node 22+. Both paths are verified from a clean clone.
 
 ## Project status
 
-Built in phases. **Phases 0–4 are complete.**
+Built in phases. **Phases 0–5 are complete.**
 
 | Phase                   | State | What it covers                                                                                    |
 | ----------------------- | ----- | ------------------------------------------------------------------------------------------------- |
@@ -42,7 +42,7 @@ Built in phases. **Phases 0–4 are complete.**
 | 2 · Design system layer | ✅    | 17 components, every Pass C state, verified at `/dev/states`                                      |
 | 3 · Data and transport  | ✅    | Zod schema, `derivePriority` + tests, SSE, Zustand store, `detector-sim`                          |
 | 4 · Queue and detail    | ✅    | Filters, keyboard navigation, buffered arrivals, the three actions with undo · 42 tests           |
-| 5 · Real-time layer     | —     | Critical banner choreography, sound, tab badging, degradation states                              |
+| 5 · Real-time layer     | ✅    | Banner choreography, alert tone, tab and favicon badging, reduced motion · 47 tests               |
 | 6 · Polish and proof    | —     | Playwright journey, full README, AI log, a11y and Lighthouse passes                               |
 
 ## How to see it work
@@ -95,6 +95,25 @@ from, so it cannot drift from what actually works.
 Note `Enter` **acknowledges** rather than opens. That is Pass A's state machine: `↑↓` already
 previews, so opening is not an action that needs a key. It is one of eleven places the design and
 the build brief disagree, all enumerated in `DESIGN_INVENTORY.md` §6.
+
+## When a critical arrives
+
+Four channels carry the same alert, because an operator on a three-monitor position may not be
+looking at this window — and because none of them is allowed to be the only one.
+
+- **The pinned band** expands from zero to 52px and pushes the app down. It never overlays what is
+  being read, and it **never auto-dismisses**. A critical left unacknowledged for 20 seconds
+  re-fires it and writes `Unacknowledged 20s — banner re-fired, pushed to supervisor` into the
+  audit trail.
+- **A two-note tone**, under 400ms on a soft envelope. Muted by default and the choice persists —
+  `M` toggles it. Deliberately not startling: this plays hundreds of times a shift, and a resented
+  alert gets muted permanently.
+- **The tab title** becomes `(1) CRITICAL · Incident Monitor`.
+- **The favicon** swaps its live-green dot for the critical triangle, drawn from the same tokens
+  the interface uses.
+
+Motion is gated on `prefers-reduced-motion` in both layers — CSS transitions retarget their
+duration variables, and Motion's animations drop the transform for a plain opacity swap.
 
 ## Seeing the components
 

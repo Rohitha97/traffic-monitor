@@ -338,6 +338,71 @@ describe('derived state', () => {
   });
 });
 
+describe('auto-escalation', () => {
+  const overdue = (secondsAgo: number) =>
+    event({
+      priority: 'critical',
+      status: 'new',
+      receivedAt: new Date(Date.now() - secondsAgo * 1000).toISOString(),
+    });
+
+  it('re-fires an unacknowledged critical past 20s, and writes why', () => {
+    const incident = overdue(25);
+    useEventStore.getState().ingest(incident);
+
+    useEventStore.getState().escalateOverdue(Date.now());
+
+    const after = useEventStore.getState().events[0]!;
+    expect(useEventStore.getState().escalations).toBe(1);
+    expect(after.history.at(-1)).toMatchObject({
+      actor: 'system',
+      action: 'Unacknowledged 20s — banner re-fired, pushed to supervisor',
+    });
+  });
+
+  it('escalates each incident only once, however often the tick runs', () => {
+    // The audit entry *is* the record of having escalated, so there is no
+    // parallel flag that could fall out of sync with it.
+    useEventStore.getState().ingest(overdue(25));
+
+    for (let i = 0; i < 5; i += 1) {
+      useEventStore.getState().escalateOverdue(Date.now());
+    }
+
+    expect(useEventStore.getState().escalations).toBe(1);
+  });
+
+  it('leaves a critical alone before the threshold', () => {
+    useEventStore.getState().ingest(overdue(10));
+    useEventStore.getState().escalateOverdue(Date.now());
+    expect(useEventStore.getState().escalations).toBe(0);
+  });
+
+  it('does not escalate once acknowledged — someone owns it', () => {
+    const incident = overdue(25);
+    useEventStore.getState().ingest(incident);
+    useEventStore.getState().acknowledge(incident.id);
+
+    useEventStore.getState().escalateOverdue(Date.now());
+
+    expect(useEventStore.getState().escalations).toBe(0);
+  });
+
+  it('does not escalate lower priorities on the critical threshold', () => {
+    useEventStore.getState().ingest(
+      event({
+        priority: 'high',
+        status: 'new',
+        receivedAt: new Date(Date.now() - 30_000).toISOString(),
+      }),
+    );
+
+    useEventStore.getState().escalateOverdue(Date.now());
+
+    expect(useEventStore.getState().escalations).toBe(0);
+  });
+});
+
 describe('filters', () => {
   it('narrows the queue and clears back to everything', () => {
     useEventStore.getState().ingest(event({ priority: 'low' }));

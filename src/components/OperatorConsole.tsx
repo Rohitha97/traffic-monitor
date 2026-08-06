@@ -5,34 +5,30 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { BufferedEventsBar } from '@/components/BufferedEventsBar';
 import { CriticalBanner } from '@/components/CriticalBanner';
-import { DismissedStrip } from '@/components/DismissedStrip';
 import { DispatchConfirm } from '@/components/DispatchConfirm';
 import { EmptyQueue } from '@/components/EmptyQueue';
 import { IncidentDetail } from '@/components/IncidentDetail';
-import { IncidentRow } from '@/components/IncidentRow';
 import { OfflineNotice } from '@/components/OfflineNotice';
+import { QueueList } from '@/components/QueueList';
 import { ShortcutOverlay } from '@/components/ShortcutOverlay';
 import { StatusBar } from '@/components/StatusBar';
+import { useAlertSound } from '@/hooks/useAlertSound';
 import { useEventStream } from '@/hooks/useEventStream';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useLiveClock } from '@/hooks/useLiveClock';
+import { useTabAlert } from '@/hooks/useTabAlert';
 import { FEED_COUNT } from '@/lib/cameras';
 import { formatClock, formatClockUtc, formatTimestamp } from '@/lib/format';
-import {
-  preloadSnapshot,
-  summaryOf,
-  toDetailView,
-  toRowView,
-} from '@/lib/incident';
+import { preloadSnapshot, summaryOf, toDetailView } from '@/lib/incident';
 import { PRIORITY } from '@/lib/priority';
 import {
-  isBreachingSla,
   selectBufferedCritical,
   selectCriticalAlert,
   selectLeavingEvents,
   selectOpenCounts,
   selectQueueEvents,
   selectSelected,
+  selectUnacknowledgedCriticals,
   useEventStore,
 } from '@/store/useEventStore';
 
@@ -77,6 +73,20 @@ export function OperatorConsole() {
   const selected = useEventStore(selectSelected);
   const bufferedCritical = useEventStore(selectBufferedCritical);
   const criticalAlert = useEventStore(selectCriticalAlert);
+  const unacknowledgedCriticals = useEventStore(selectUnacknowledgedCriticals);
+  const escalations = useEventStore((state) => state.escalations);
+  const escalateOverdue = useEventStore((state) => state.escalateOverdue);
+
+  const { play } = useAlertSound();
+
+  /*
+   * The tab title and favicon are the alert channels that survive the operator
+   * looking at another monitor. (Pass C frame 2)
+   */
+  useTabAlert({
+    criticalCount: unacknowledgedCriticals,
+    summary: criticalAlert ? summaryOf(criticalAlert) : undefined,
+  });
 
   const [dispatchOpen, setDispatchOpen] = useState(false);
   const [dismissOpen, setDismissOpen] = useState(false);
@@ -87,6 +97,30 @@ export function OperatorConsole() {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => setNow(Date.now()), [tick]);
   const clock = now ?? 0;
+
+  // Auto-escalation runs off the same tick, so an overdue critical re-fires
+  // without any incident holding a timer of its own.
+  useEffect(() => {
+    if (clock > 0) escalateOverdue(clock);
+  }, [clock, escalateOverdue]);
+
+  /*
+   * The tone fires on a new critical arriving and again on each escalation.
+   * Both are watched as state changes rather than triggered from the actions
+   * that cause them, so the alert cannot be forgotten at a new call site.
+   */
+  const alertKey = criticalAlert?.id ?? null;
+  const previousAlertRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (alertKey && alertKey !== previousAlertRef.current) play();
+    previousAlertRef.current = alertKey;
+  }, [alertKey, play]);
+
+  const previousEscalationsRef = useRef(0);
+  useEffect(() => {
+    if (escalations > previousEscalationsRef.current) play();
+    previousEscalationsRef.current = escalations;
+  }, [escalations, play]);
 
   /*
    * Subscribe to the raw list and derive the leaving set outside the selector.
@@ -232,37 +266,14 @@ export function OperatorConsole() {
                 <EmptyQueue feeds={{ online: FEED_COUNT, total: FEED_COUNT }} />
               </div>
             ) : (
-              <div role="listbox" aria-label="Open incidents">
-                {queue.map((event) => (
-                  <div key={event.id} data-event-id={event.id}>
-                    <IncidentRow
-                      {...toRowView(event, clock)}
-                      selected={event.id === selectedId}
-                      slaBreached={isBreachingSla(event, clock)}
-                      arriving={
-                        event.priority === 'critical' && event.status === 'new'
-                      }
-                      onSelect={() => select(event.id)}
-                    />
-                  </div>
-                ))}
-
-                {/*
-                 * Incidents on their way out keep their place for the undo
-                 * window rather than vanishing — a row that disappears on click
-                 * gives no chance to notice a mis-click.
-                 */}
-                {leaving.map((event) =>
-                  event.status === 'dismissed' && event.dismissal ? (
-                    <DismissedStrip
-                      key={event.id}
-                      camera={event.camera.id}
-                      reason={event.dismissal.reason.toLowerCase()}
-                      onUndo={() => undoDismiss(event.id)}
-                    />
-                  ) : null,
-                )}
-              </div>
+              <QueueList
+                events={queue}
+                leaving={leaving}
+                selectedId={selectedId}
+                now={clock}
+                onSelect={select}
+                onUndoDismiss={undoDismiss}
+              />
             )}
           </div>
         </section>

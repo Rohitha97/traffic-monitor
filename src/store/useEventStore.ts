@@ -61,6 +61,12 @@ export interface EventStoreState {
   muted: boolean;
   /** True once the operator has scrolled off the top of the queue. */
   scrolledAway: boolean;
+  /**
+   * Bumped every time an unacknowledged critical crosses its 20-second
+   * threshold. The console watches it to re-fire the tone — the alert is a
+   * consequence of state rather than something an action remembers to trigger.
+   */
+  escalations: number;
 
   ingest: (event: DetectionEvent) => void;
   flushBuffered: () => void;
@@ -76,8 +82,14 @@ export interface EventStoreState {
   toggleFilter: (priority: Priority) => void;
   clearFilters: () => void;
   toggleMute: () => void;
+  setMuted: (muted: boolean) => void;
+  escalateOverdue: (now: number) => void;
   advanceTick: () => void;
 }
+
+/** The audit line Pass C's frame 3 shows verbatim for an auto-escalation. */
+const ESCALATION_ACTION =
+  'Unacknowledged 20s — banner re-fired, pushed to supervisor';
 
 function withHistory(
   event: DetectionEvent,
@@ -112,6 +124,7 @@ export const useEventStore = create<EventStoreState>()((set) => ({
   filters: new Set<Priority>(),
   muted: true,
   scrolledAway: false,
+  escalations: 0,
 
   /*
    * The updater form is load-bearing, not style.
@@ -286,6 +299,42 @@ export const useEventStore = create<EventStoreState>()((set) => ({
 
   toggleMute: () => set((state) => ({ muted: !state.muted })),
 
+  setMuted: (muted) => set({ muted }),
+
+  /**
+   * "A new critical unacknowledged for 20s re-fires its banner and pushes to
+   * the supervisor position. Nothing auto-dismisses, ever." (Pass A)
+   *
+   * Driven from the shared tick rather than a timer per incident, and made
+   * idempotent by checking the audit trail itself — the record of having
+   * escalated *is* the escalation, so there is no parallel flag to keep in
+   * sync with it.
+   */
+  escalateOverdue: (now) =>
+    set((state) => {
+      let escalated = 0;
+
+      const events = state.events.map((event) => {
+        if (event.priority !== 'critical' || event.status !== 'new') {
+          return event;
+        }
+        if (
+          ageInSeconds(event.receivedAt, now) < PRIORITY.critical.slaSeconds
+        ) {
+          return event;
+        }
+        if (event.history.some((entry) => entry.action === ESCALATION_ACTION)) {
+          return event;
+        }
+        escalated += 1;
+        return withHistory(event, 'system', ESCALATION_ACTION);
+      });
+
+      return escalated === 0
+        ? {}
+        : { events, escalations: state.escalations + escalated };
+    }),
+
   advanceTick: () => set((state) => ({ tick: state.tick + 1 })),
 }));
 
@@ -362,6 +411,13 @@ export function selectCriticalAlert(
   return state.events.find(
     (event) => event.priority === 'critical' && event.status === 'new',
   );
+}
+
+/** How many criticals are still unacknowledged — the tab title's count. */
+export function selectUnacknowledgedCriticals(state: EventStoreState): number {
+  return state.events.filter(
+    (event) => event.priority === 'critical' && event.status === 'new',
+  ).length;
 }
 
 /**
