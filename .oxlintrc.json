@@ -1,0 +1,116 @@
+{
+  "plugins": ["react", "import"],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": []
+      }
+    ],
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Public Sans|IBM Plex Mono|Inter))/i]",
+        "message": "Font not provided by the design system. Available: Public Sans, IBM Plex Mono."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["**/index.js"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {},
+    "tokens": [
+      "--color-ground",
+      "--color-panel",
+      "--color-raised",
+      "--color-well",
+      "--color-text-primary",
+      "--color-text-body",
+      "--color-text-secondary",
+      "--color-text-tertiary",
+      "--color-border-hairline",
+      "--color-border-component",
+      "--color-critical",
+      "--color-high",
+      "--color-medium",
+      "--color-low",
+      "--color-critical-tint",
+      "--color-osd-plate",
+      "--color-live",
+      "--color-reconnecting",
+      "--color-offline",
+      "--font-ui",
+      "--font-mono",
+      "--text-micro",
+      "--text-kicker",
+      "--text-caption",
+      "--text-ui",
+      "--text-body",
+      "--text-title",
+      "--text-panel",
+      "--text-dialog",
+      "--text-mono-micro",
+      "--text-mono-meta",
+      "--text-mono-age",
+      "--text-mono-hero",
+      "--spacing",
+      "--radius-panel",
+      "--radius-control",
+      "--radius-chip",
+      "--ease-row",
+      "--ease-banner",
+      "--duration-row",
+      "--duration-banner",
+      "--duration-state",
+      "--animate-pulse-status"
+    ],
+    "tokenKinds": {
+      "--color-ground": "color",
+      "--color-panel": "color",
+      "--color-raised": "color",
+      "--color-well": "color",
+      "--color-text-primary": "font",
+      "--color-text-body": "font",
+      "--color-text-secondary": "font",
+      "--color-text-tertiary": "font",
+      "--color-border-hairline": "color",
+      "--color-border-component": "color",
+      "--color-critical": "color",
+      "--color-high": "color",
+      "--color-medium": "color",
+      "--color-low": "color",
+      "--color-critical-tint": "color",
+      "--color-osd-plate": "color",
+      "--color-live": "color",
+      "--color-reconnecting": "color",
+      "--color-offline": "color",
+      "--font-ui": "font",
+      "--font-mono": "font",
+      "--spacing": "spacing",
+      "--radius-panel": "radius",
+      "--radius-control": "radius",
+      "--radius-chip": "radius"
+    },
+    "fontFamilies": ["Public Sans", "IBM Plex Mono"]
+  }
+}

@@ -1,0 +1,8 @@
+# LF everywhere. The Dockerfile and the shell commands in the compose files
+# are executed inside Linux containers, where CRLF is a syntax error.
+* text=auto eol=lf
+
+# The design export is committed as a byte-exact copy of the Claude Design
+# project — DESIGN_INVENTORY.md's traceability claims rest on that. Excluding
+# it from text normalisation keeps the bytes identical on a Windows clone.
+docs/design/** -text

@@ -1,0 +1,23 @@
+# Hot-reload development against the same image base as production:
+#   docker compose -f compose.dev.yml up
+#
+# The two anonymous volumes are the detail that trips people up. The bind
+# mount at /app shadows everything the image already installed, so without
+# them the container would see the host's (possibly absent, possibly
+# wrong-platform) node_modules instead of the ones `deps` installed — and
+# would fight the host over .next as well.
+
+services:
+  dashboard:
+    build:
+      context: .
+      target: deps
+    command: sh -c "pnpm install && pnpm dev"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: development

@@ -1,0 +1,93 @@
+@import 'tailwindcss';
+@import './theme.css';
+
+/*
+ * Motion durations live here rather than in @theme so that the single
+ * prefers-reduced-motion block below can retarget every one of them at
+ * once. Components reference them as duration-(--duration-row), so no
+ * component ever branches on the preference in JavaScript.
+ * (Pass B §05, DESIGN_INVENTORY.md §3.4)
+ */
+:root {
+  --duration-row: 180ms; /* row insertion                                */
+  --duration-banner: 220ms; /* banner entry                              */
+  --duration-state: 120ms; /* state transition — crossfade, no layout    */
+}
+
+/*
+ * "Every duration collapses to 0–100ms and drops its transform in favour
+ * of a plain opacity swap; anything that loops stops looping and becomes a
+ * static state plus its label. No token relies on motion to carry
+ * information that colour, icon and text don't already carry." (Pass B §05)
+ *
+ * Transforms are dropped at the call site with Tailwind's motion-safe:
+ * variant, which is the declarative half of the same rule.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-row: 100ms;
+    --duration-banner: 100ms;
+    --duration-state: 100ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 100ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer base {
+  html {
+    background-color: var(--color-ground);
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-ground);
+    color: var(--color-text-primary);
+    font-family: var(--font-ui);
+    font-size: var(--text-ui);
+    line-height: var(--text-ui--line-height);
+    font-weight: var(--text-ui--font-weight);
+  }
+
+  /*
+   * Every live number sets in tabular-lining figures so a counter that
+   * ticks once a second never shifts the pixels beside it. (Pass B §03)
+   */
+  .font-mono,
+  code,
+  kbd,
+  samp {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /*
+   * Focus is neutral, never the priority colour — so a focused row can
+   * never be mistaken for a more severe one. (Pass C frame 4)
+   * Rows override this with an inset ring; controls take the outline.
+   */
+  :focus {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-text-primary);
+    outline-offset: 2px;
+  }
+
+  /* Carried forward from the nocturne conventions (DESIGN_INVENTORY §1.1). */
+  [disabled],
+  [aria-disabled='true'] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-text-primary) 25%, transparent);
+  }
+}

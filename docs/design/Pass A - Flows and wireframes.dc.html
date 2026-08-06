@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-ce7bd6a7-39e4-4917-bbec-e38bf6d4ee6c/styles.css">
+<script src="_ds/nocturne-ce7bd6a7-39e4-4917-bbec-e38bf6d4ee6c/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; }
+  .gb-row { display: flex; align-items: center; gap: 8px; padding: 0 10px; height: 40px; border-bottom: 1px solid #292b31; }
+  .bar { background: #3f424d; border-radius: 2px; height: 8px; }
+  .bar-lt { background: #595d6c; border-radius: 2px; height: 8px; }
+  .pin { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: #e9e9ed; color: #161826; font: 600 12px/22px Inter, sans-serif; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.6); }
+</style>
+</helmet>
+
+<div style="background:#161826;color:#e9e9ed;font-family:Inter,sans-serif;padding:64px 48px 120px;display:flex;flex-direction:column;align-items:center;gap:72px">
+
+  <header style="width:1344px;display:flex;flex-direction:column;gap:20px">
+    <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">Pass A · flows and wireframes</div>
+    <h1 style="font-size:44px;margin:0;letter-spacing:-.02em;max-width:900px;text-wrap:pretty">Traffic incident operations dashboard</h1>
+    <p style="margin:0;max-width:760px;color:#b2b6ca;font-size:15px;line-height:1.6">Greybox only — no colour, no type styling. Everything here is judged against two clocks: <strong style="color:#e9e9ed;font-weight:600">time to awareness</strong> (event created → operator notices) and <strong style="color:#e9e9ed;font-weight:600">time to decision</strong> (notices → dispatch or dismiss).</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:12px 16px;min-width:250px">
+        <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:8px">Target · time to awareness</div>
+        <div style="font-size:26px;font-variant-numeric:tabular-lining;font-feature-settings:'tnum' 1">≤ 2 s</div>
+      </div>
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:12px 16px;min-width:250px">
+        <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:8px">Target · time to decision, critical</div>
+        <div style="font-size:26px;font-variant-numeric:tabular-lining;font-feature-settings:'tnum' 1">≤ 15 s</div>
+      </div>
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:12px 16px;min-width:250px">
+        <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:8px">Operator</div>
+        <div style="font-size:15px;color:#cfd3e5;line-height:1.4">12-hour shift · dim room · 1440px+ · keyboard-first · hundreds of events</div>
+      </div>
+    </div>
+  </header>
+
+  <section style="width:1344px;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">01</div>
+      <h2 style="margin:0;font-size:28px">Journey map — one critical event, detection to dispatch</h2>
+      <div style="margin-left:auto;font-size:13px;color:#75798c">Wrong-way driver, M6 northbound, 02:14 local</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">
+      <sc-for list="{{ journey }}" as="j" hint-placeholder-count="7">
+        <div style="display:flex;flex-direction:column;background:#1b1d2c;border-top:2px solid #3f424d">
+          <div style="padding:12px 12px 10px;border-bottom:1px solid #292b31">
+            <div style="font:600 10px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#75798c">{{ j.stage }}</div>
+            <div style="font-size:14px;font-weight:600;margin-top:8px;line-height:1.3">{{ j.what }}</div>
+          </div>
+          <div style="padding:12px;border-bottom:1px solid #292b31;flex:1">
+            <div style="font:600 10px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#75798c;margin-bottom:6px">State</div>
+            <div style="font-size:12.5px;color:#cfd3e5;line-height:1.45">{{ j.state }}</div>
+          </div>
+          <div style="padding:12px;border-bottom:1px solid #292b31;flex:1">
+            <div style="font:600 10px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#75798c;margin-bottom:6px">Failure mode</div>
+            <div style="font-size:12.5px;color:#9397ab;line-height:1.45">{{ j.fail }}</div>
+          </div>
+          <div style="padding:10px 12px;display:flex;align-items:center;gap:8px">
+            <div style="height:6px;flex:1;background:#292b31;border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:{{ j.lossPct }};background:#968ae0"></div>
+            </div>
+            <div style="font:600 12px/1 Inter,sans-serif;font-variant-numeric:tabular-lining;color:#d2cefd;min-width:38px;text-align:right">{{ j.loss }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center;font-size:13px;color:#9397ab">
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:24px;height:6px;background:#968ae0;border-radius:3px"></div>Seconds lost at this step, worst realistic case</div>
+      <div>Total worst case, detection → dispatch: <strong style="color:#e9e9ed;font-variant-numeric:tabular-lining">96 s</strong>. Of that, <strong style="color:#e9e9ed">62 s</strong> sits in noticing and orienting — the two steps the design owns outright.</div>
+    </div>
+  </section>
+
+  <section style="width:1344px;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">02</div>
+      <h2 style="margin:0;font-size:28px">Incident state diagram</h2>
+      <div style="margin-left:auto;font-size:13px;color:#75798c">Transitions are operator actions unless marked otherwise</div>
+    </div>
+
+    <div style="display:flex;align-items:stretch;gap:0;width:100%">
+      <sc-for list="{{ states }}" as="s" hint-placeholder-count="4">
+        <div style="display:flex;align-items:stretch;flex:1;min-width:0">
+          <div style="flex:1;min-width:0;border:1px solid #3f424d;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;background:#1b1d2c">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:8px;height:8px;border-radius:2px;background:#75798c"></div>
+              <div style="font:600 13px/1 Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase">{{ s.name }}</div>
+            </div>
+            <div style="font-size:12.5px;color:#9397ab;line-height:1.45">{{ s.enter }}</div>
+            <div style="border-top:1px solid #292b31;padding-top:10px;font-size:12.5px;color:#cfd3e5;line-height:1.45"><span style="color:#75798c">Operator sees ·</span> {{ s.sees }}</div>
+          </div>
+          <div style="width:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:none">
+            <div style="font:600 10px/1.3 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#968ae0;text-align:center">{{ s.edge }}</div>
+            <div style="width:52px;height:1px;background:#595d6c;position:relative">
+              <div style="position:absolute;right:0;top:-3px;width:0;height:0;border-left:6px solid #595d6c;border-top:3.5px solid transparent;border-bottom:3.5px solid transparent"></div>
+            </div>
+            <div style="font:600 10px/1 Inter,sans-serif;font-variant-numeric:tabular-lining;color:#75798c">{{ s.key }}</div>
+          </div>
+        </div>
+      </sc-for>
+      <div style="flex:1;min-width:0;border:1px solid #3f424d;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;background:#1b1d2c">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:8px;height:8px;border-radius:2px;background:#75798c"></div>
+          <div style="font:600 13px/1 Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase">Resolved</div>
+        </div>
+        <div style="font-size:12.5px;color:#9397ab;line-height:1.45">Response team clears the scene, or the detector's condition stops holding for 60 s.</div>
+        <div style="border-top:1px solid #292b31;padding-top:10px;font-size:12.5px;color:#cfd3e5;line-height:1.45"><span style="color:#75798c">Operator sees ·</span> Row leaves the queue with a 3 s fade and lands in the shift log. Open count drops.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:16px;align-items:stretch;padding-left:0">
+      <div style="width:340px;flex:none;border:1px dashed #595d6c;border-radius:8px;padding:14px;background:#1b1d2c">
+        <div style="font:600 13px/1 Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Dismissed — false positive</div>
+        <div style="font-size:12.5px;color:#9397ab;line-height:1.45;margin-bottom:10px">Reachable from <em>new</em> or <em>acknowledged</em>, never from <em>dispatched</em>. Requires a one-tap reason: shadow, spray, parked on hard shoulder, camera artefact, already known.</div>
+        <div style="border-top:1px solid #292b31;padding-top:10px;font-size:12.5px;color:#cfd3e5;line-height:1.45"><span style="color:#75798c">Operator sees ·</span> Row collapses to a 20px strip for 8 s with an undo, then leaves. The reason feeds detector tuning and is shown in the audit trail.</div>
+      </div>
+      <div style="flex:1;border:1px solid #292b31;border-radius:8px;padding:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+        <div>
+          <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:8px">Auto-escalation</div>
+          <div style="font-size:12.5px;color:#cfd3e5;line-height:1.45">A <em>new</em> critical unacknowledged for 20 s re-fires its banner and pushes to the supervisor position. Nothing auto-dismisses, ever.</div>
+        </div>
+        <div>
+          <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:8px">Reopen</div>
+          <div style="font-size:12.5px;color:#cfd3e5;line-height:1.45">A dismissed incident that re-detects within 3 min returns as <em>new</em>, tagged "seen before", with the earlier dismissal reason on the row.</div>
+        </div>
+        <div>
+          <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:8px">Ownership</div>
+          <div style="font-size:12.5px;color:#cfd3e5;line-height:1.45">Acknowledge takes the lock. Other positions see the row greyed with the owner's initials — two operators never dispatch the same call.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="width:1344px;display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">03</div>
+      <h2 style="margin:0;font-size:28px">Low-fidelity wireframes</h2>
+      <div style="margin-left:auto;font-size:13px;color:#75798c">1440 × 900, shown at 90% · greybox only</div>
+    </div>
+
+    <!-- Frame 1 -->
+    <div style="display:flex;gap:28px;align-items:flex-start">
+      <div style="flex:none;position:relative">
+        <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:10px">Frame 1 · default monitoring</div>
+        <div style="width:1296px;height:810px;background:#1b1d2c;border:1px solid #3f424d;border-radius:8px;position:relative;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:44px;flex:none;border-bottom:1px solid #3f424d;display:flex;align-items:center;gap:14px;padding:0 14px;background:#20222f">
+            <div class="bar-lt" style="width:96px"></div>
+            <div class="bar" style="width:60px"></div>
+            <div class="bar" style="width:60px"></div>
+            <div class="bar" style="width:60px"></div>
+            <div class="bar" style="width:60px"></div>
+            <div style="flex:1"></div>
+            <div class="bar-lt" style="width:130px"></div>
+            <div style="width:28px;height:16px;border:1px solid #595d6c;border-radius:3px"></div>
+          </div>
+          <div style="flex:1;display:flex;min-height:0">
+            <div style="width:432px;flex:none;border-right:1px solid #3f424d;display:flex;flex-direction:column">
+              <div style="height:38px;flex:none;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid #3f424d">
+                <div class="bar" style="width:70px"></div><div class="bar" style="width:44px"></div><div class="bar" style="width:44px"></div><div style="flex:1"></div><div class="bar" style="width:52px"></div>
+              </div>
+              <div style="flex:1;overflow:hidden">
+                <sc-for list="{{ rows12 }}" as="r" hint-placeholder-count="12">
+                  <div class="gb-row">
+                    <div style="width:4px;height:26px;background:#595d6c;border-radius:1px;flex:none"></div>
+                    <div style="width:44px;height:26px;background:#292b31;border-radius:2px;flex:none"></div>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:5px;min-width:0">
+                      <div class="bar-lt" style="width:{{ r.a }}"></div>
+                      <div class="bar" style="width:{{ r.b }};height:6px"></div>
+                    </div>
+                    <div class="bar" style="width:34px;flex:none"></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="height:34px;flex:none;border-top:1px solid #3f424d;display:flex;align-items:center;padding:0 12px;gap:10px">
+                <div class="bar" style="width:110px"></div><div style="flex:1"></div><div class="bar" style="width:56px"></div>
+              </div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+              <div style="padding:14px;display:flex;flex-direction:column;gap:12px;flex:1">
+                <div style="display:flex;gap:10px;align-items:center">
+                  <div style="width:6px;height:30px;background:#595d6c;border-radius:1px"></div>
+                  <div style="display:flex;flex-direction:column;gap:6px;flex:1">
+                    <div class="bar-lt" style="width:280px;height:12px"></div>
+                    <div class="bar" style="width:180px"></div>
+                  </div>
+                  <div style="width:120px;height:22px;background:#292b31;border-radius:3px"></div>
+                </div>
+                <div style="flex:1;display:flex;gap:12px;min-height:0">
+                  <div style="flex:1.6;background:#20222f;border:1px solid #3f424d;border-radius:4px;position:relative;display:flex;align-items:center;justify-content:center">
+                    <div style="width:64px;height:64px;border:2px solid #3f424d;border-radius:50%"></div>
+                    <div style="position:absolute;top:8px;left:8px;display:flex;gap:6px"><div class="bar" style="width:70px;height:7px"></div><div class="bar" style="width:52px;height:7px"></div></div>
+                    <div style="position:absolute;bottom:8px;right:8px" class="bar"><div style="width:96px;height:7px"></div></div>
+                  </div>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+                    <div style="border:1px solid #3f424d;border-radius:4px;padding:10px;display:flex;flex-direction:column;gap:8px">
+                      <sc-for list="{{ facts }}" as="f" hint-placeholder-count="6">
+                        <div style="display:flex;gap:10px;align-items:center">
+                          <div class="bar" style="width:{{ f.k }};height:7px"></div>
+                          <div style="flex:1"></div>
+                          <div class="bar-lt" style="width:{{ f.v }};height:7px"></div>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div style="flex:1;border:1px solid #3f424d;border-radius:4px;background:#20222f"></div>
+                  </div>
+                </div>
+                <div style="height:56px;flex:none;border-top:1px solid #3f424d;display:flex;align-items:center;gap:10px;padding-top:12px">
+                  <div style="width:180px;height:34px;border:1px solid #75798c;border-radius:4px"></div>
+                  <div style="width:150px;height:34px;border:1px solid #3f424d;border-radius:4px"></div>
+                  <div style="width:150px;height:34px;border:1px solid #3f424d;border-radius:4px"></div>
+                  <div style="flex:1"></div>
+                  <div class="bar" style="width:130px"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <sc-if value="{{ showPins }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div class="pin" style="left:14px;top:56px">1</div>
+              <div class="pin" style="left:396px;top:10px">2</div>
+              <div class="pin" style="left:452px;top:120px">3</div>
+              <div class="pin" style="left:452px;top:722px">4</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:14px;padding-top:34px">
+        <sc-for list="{{ notes1 }}" as="n" hint-placeholder-count="5">
+          <div style="display:flex;gap:10px">
+            <div style="width:20px;height:20px;border-radius:50%;border:1px solid #75798c;font:600 11px/19px Inter,sans-serif;text-align:center;color:#cfd3e5;flex:none">{{ n.n }}</div>
+            <div style="font-size:12.5px;line-height:1.5;color:#9397ab"><strong style="color:#e9e9ed;font-weight:600">{{ n.t }}</strong> — {{ n.d }}</div>
+          </div>
+        </sc-for>
+        <div style="border-top:1px solid #292b31;padding-top:12px;font-size:12.5px;color:#9397ab;line-height:1.5">
+          <strong style="color:#e9e9ed;font-weight:600">Eye path.</strong> Queue head first (1 → 2), because that is where change appears; detail pane second (3); action bar third (4). The status bar is deliberately outside the path — it is glanced at, never read.
+        </div>
+      </div>
+    </div>
+
+    <!-- Frame 2 -->
+    <div style="display:flex;gap:28px;align-items:flex-start">
+      <div style="flex:none">
+        <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:10px">Frame 2 · critical event arrives</div>
+        <div style="width:1296px;height:520px;background:#1b1d2c;border:1px solid #3f424d;border-radius:8px;position:relative;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:44px;flex:none;border-bottom:1px solid #3f424d;display:flex;align-items:center;gap:14px;padding:0 14px;background:#20222f">
+            <div class="bar-lt" style="width:96px"></div><div class="bar" style="width:60px"></div><div class="bar" style="width:60px"></div><div style="flex:1"></div><div class="bar-lt" style="width:130px"></div>
+          </div>
+          <div style="height:64px;flex:none;border-bottom:2px solid #9397ab;background:#292b31;display:flex;align-items:center;gap:14px;padding:0 16px">
+            <div style="width:8px;height:36px;background:#b2b6ca;border-radius:1px"></div>
+            <div style="width:28px;height:28px;border:2px solid #b2b6ca;border-radius:3px"></div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div class="bar-lt" style="width:300px;height:11px"></div>
+              <div class="bar" style="width:220px"></div>
+            </div>
+            <div style="flex:1"></div>
+            <div style="width:150px;height:30px;border:1px solid #b2b6ca;border-radius:4px"></div>
+            <div style="width:110px;height:30px;border:1px solid #595d6c;border-radius:4px"></div>
+          </div>
+          <div style="flex:1;display:flex;min-height:0">
+            <div style="width:432px;flex:none;border-right:1px solid #3f424d">
+              <div style="height:38px;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid #3f424d"><div class="bar" style="width:70px"></div><div style="flex:1"></div><div class="bar-lt" style="width:120px"></div></div>
+              <div class="gb-row" style="background:#292b31;border-left:6px solid #cfd3e5;padding-left:6px">
+                <div style="width:44px;height:26px;background:#3f424d;border-radius:2px;flex:none"></div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:5px"><div class="bar-lt" style="width:70%;height:9px"></div><div class="bar" style="width:50%;height:6px"></div></div>
+                <div class="bar-lt" style="width:34px;flex:none"></div>
+              </div>
+              <sc-for list="{{ rows6 }}" as="r" hint-placeholder-count="6">
+                <div class="gb-row">
+                  <div style="width:4px;height:26px;background:#595d6c;border-radius:1px;flex:none"></div>
+                  <div style="width:44px;height:26px;background:#292b31;border-radius:2px;flex:none"></div>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:5px"><div class="bar-lt" style="width:{{ r.a }}"></div><div class="bar" style="width:{{ r.b }};height:6px"></div></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="flex:1;padding:14px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;gap:10px;align-items:center"><div style="width:6px;height:26px;background:#595d6c"></div><div class="bar" style="width:240px"></div><div style="flex:1"></div><div class="bar" style="width:90px"></div></div>
+              <div style="flex:1;border:1px dashed #595d6c;border-radius:4px;display:flex;align-items:center;justify-content:center">
+                <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c">Under-review content does not move</div>
+              </div>
+            </div>
+          </div>
+          <sc-if value="{{ showPins }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div class="pin" style="left:14px;top:56px">1</div>
+              <div class="pin" style="left:396px;top:120px">2</div>
+              <div class="pin" style="left:452px;top:180px">3</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:14px;padding-top:34px">
+        <sc-for list="{{ notes2 }}" as="n" hint-placeholder-count="4">
+          <div style="display:flex;gap:10px">
+            <div style="width:20px;height:20px;border-radius:50%;border:1px solid #75798c;font:600 11px/19px Inter,sans-serif;text-align:center;color:#cfd3e5;flex:none">{{ n.n }}</div>
+            <div style="font-size:12.5px;line-height:1.5;color:#9397ab"><strong style="color:#e9e9ed;font-weight:600">{{ n.t }}</strong> — {{ n.d }}</div>
+          </div>
+        </sc-for>
+        <div style="border-top:1px solid #292b31;padding-top:12px;font-size:12.5px;color:#9397ab;line-height:1.5"><strong style="color:#e9e9ed;font-weight:600">Rule.</strong> The banner takes space from the top of the window, pushing the whole app down once. Nothing the operator was reading reflows or changes position relative to its own container, and the detail pane keeps its selection.</div>
+      </div>
+    </div>
+
+    <!-- Frame 3 -->
+    <div style="display:flex;gap:28px;align-items:flex-start">
+      <div style="flex:none">
+        <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:10px">Frame 3 · incident under review</div>
+        <div style="width:1296px;height:560px;background:#1b1d2c;border:1px solid #3f424d;border-radius:8px;position:relative;overflow:hidden;display:flex">
+          <div style="width:432px;flex:none;border-right:1px solid #3f424d;opacity:.5">
+            <sc-for list="{{ rows12 }}" as="r" hint-placeholder-count="12">
+              <div class="gb-row"><div style="width:4px;height:26px;background:#595d6c;flex:none"></div><div style="width:44px;height:26px;background:#292b31;border-radius:2px;flex:none"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px"><div class="bar-lt" style="width:{{ r.a }}"></div><div class="bar" style="width:{{ r.b }};height:6px"></div></div></div>
+            </sc-for>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;padding:16px;gap:14px;min-width:0">
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <div style="width:8px;height:44px;background:#b2b6ca;border-radius:1px"></div>
+              <div style="display:flex;flex-direction:column;gap:8px;flex:1">
+                <div class="bar-lt" style="width:340px;height:14px"></div>
+                <div class="bar" style="width:480px;height:8px"></div>
+              </div>
+              <div style="width:140px;height:26px;background:#292b31;border-radius:3px"></div>
+            </div>
+            <div style="flex:1;display:flex;gap:14px;min-height:0">
+              <div style="flex:1.35;display:flex;flex-direction:column;gap:10px">
+                <div style="flex:1;background:#20222f;border:1px solid #3f424d;border-radius:4px;position:relative">
+                  <div style="position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:5px"><div class="bar" style="width:120px;height:7px"></div><div class="bar" style="width:86px;height:7px"></div></div>
+                  <div style="position:absolute;bottom:10px;left:10px;display:flex;gap:6px"><div class="bar" style="width:150px;height:7px"></div></div>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><div style="width:150px;height:80px;border:2px dashed #595d6c;border-radius:3px"></div></div>
+                </div>
+                <div style="height:56px;flex:none;display:flex;gap:8px">
+                  <div style="flex:1;border:1px solid #3f424d;border-radius:4px;background:#20222f"></div>
+                  <div style="flex:1;border:1px solid #3f424d;border-radius:4px;background:#20222f"></div>
+                  <div style="flex:1;border:1px solid #3f424d;border-radius:4px;background:#20222f"></div>
+                  <div style="flex:1;border:1px solid #3f424d;border-radius:4px;background:#20222f"></div>
+                </div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:10px;min-width:0">
+                <div style="border:1px solid #3f424d;border-radius:4px;padding:10px;display:flex;flex-direction:column;gap:9px">
+                  <sc-for list="{{ facts }}" as="f" hint-placeholder-count="6">
+                    <div style="display:flex;gap:10px;align-items:center"><div class="bar" style="width:{{ f.k }};height:7px"></div><div style="flex:1"></div><div class="bar-lt" style="width:{{ f.v }};height:7px"></div></div>
+                  </sc-for>
+                </div>
+                <div style="height:120px;flex:none;border:1px solid #3f424d;border-radius:4px;background:#20222f;position:relative">
+                  <div style="position:absolute;left:20%;top:40%;width:10px;height:10px;border:2px solid #b2b6ca;border-radius:50%"></div>
+                  <div style="position:absolute;left:52%;top:62%;width:7px;height:7px;background:#595d6c;border-radius:50%"></div>
+                  <div style="position:absolute;left:74%;top:28%;width:7px;height:7px;background:#595d6c;border-radius:50%"></div>
+                </div>
+                <div style="flex:1;border:1px solid #3f424d;border-radius:4px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:0">
+                  <sc-for list="{{ audit }}" as="a" hint-placeholder-count="4">
+                    <div style="display:flex;gap:8px;align-items:center"><div class="bar" style="width:52px;height:6px"></div><div class="bar-lt" style="width:{{ a.w }};height:6px"></div></div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            <div style="height:44px;flex:none;display:flex;align-items:center;gap:10px;border-top:1px solid #3f424d;padding-top:12px">
+              <div style="width:200px;height:34px;border:2px solid #cfd3e5;border-radius:4px"></div>
+              <div style="width:160px;height:34px;border:1px solid #75798c;border-radius:4px"></div>
+              <div style="width:190px;height:34px;border:1px solid #3f424d;border-radius:4px"></div>
+              <div style="flex:1"></div>
+              <div class="bar" style="width:160px"></div>
+            </div>
+          </div>
+          <sc-if value="{{ showPins }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div class="pin" style="left:452px;top:16px">1</div>
+              <div class="pin" style="left:470px;top:90px">2</div>
+              <div class="pin" style="left:930px;top:90px">3</div>
+              <div class="pin" style="left:470px;top:492px">4</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:14px;padding-top:34px">
+        <sc-for list="{{ notes3 }}" as="n" hint-placeholder-count="5">
+          <div style="display:flex;gap:10px">
+            <div style="width:20px;height:20px;border-radius:50%;border:1px solid #75798c;font:600 11px/19px Inter,sans-serif;text-align:center;color:#cfd3e5;flex:none">{{ n.n }}</div>
+            <div style="font-size:12.5px;line-height:1.5;color:#9397ab"><strong style="color:#e9e9ed;font-weight:600">{{ n.t }}</strong> — {{ n.d }}</div>
+          </div>
+        </sc-for>
+        <div style="border-top:1px solid #292b31;padding-top:12px;font-size:12.5px;color:#9397ab;line-height:1.5"><strong style="color:#e9e9ed;font-weight:600">Eye path.</strong> Priority strip and its stated reason (1), snapshot (2), the four facts that change the decision — lane, location, latency, confidence (3), then the action bar (4). The audit trail and map are reference, not path.</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="width:1344px;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">04</div>
+      <h2 style="margin:0;font-size:28px">Three layouts considered</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+
+      <div style="display:flex;flex-direction:column;gap:14px;border:1px solid #3f424d;border-radius:8px;padding:16px;background:#1b1d2c">
+        <div style="display:flex;align-items:baseline;gap:10px"><div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;color:#968ae0">A</div><h4 style="margin:0;font-size:18px">Master–detail split</h4></div>
+        <div style="height:190px;border:1px solid #3f424d;border-radius:4px;display:flex;flex-direction:column;overflow:hidden">
+          <div style="height:20px;background:#20222f;border-bottom:1px solid #3f424d"></div>
+          <div style="flex:1;display:flex">
+            <div style="width:38%;border-right:1px solid #3f424d;display:flex;flex-direction:column;padding:6px;gap:5px">
+              <sc-for list="{{ rows8 }}" as="r" hint-placeholder-count="8"><div style="height:12px;background:#292b31;border-left:3px solid #595d6c;border-radius:2px"></div></sc-for>
+            </div>
+            <div style="flex:1;padding:8px;display:flex;flex-direction:column;gap:6px"><div style="flex:1;background:#20222f;border:1px solid #3f424d;border-radius:3px"></div><div style="height:20px;display:flex;gap:5px"><div style="flex:1;border:1px solid #595d6c;border-radius:3px"></div><div style="flex:1;border:1px solid #3f424d;border-radius:3px"></div><div style="flex:1;border:1px solid #3f424d;border-radius:3px"></div></div></div>
+          </div>
+        </div>
+        <div style="font-size:12.5px;line-height:1.5"><span style="color:#d2cefd;font-weight:600">For ·</span> <span style="color:#b2b6ca">One list, one truth, one keyboard axis: ↑↓ to move, Enter to open, D to dispatch. Cheapest possible time to decision.</span></div>
+        <div style="font-size:12.5px;line-height:1.5"><span style="color:#9397ab;font-weight:600">Against ·</span> <span style="color:#9397ab">A flat list buries a critical under twenty mediums unless sorting is aggressive — and aggressive sorting reorders under the operator's cursor.</span></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px;border:1px solid #3f424d;border-radius:8px;padding:16px;background:#1b1d2c">
+        <div style="display:flex;align-items:baseline;gap:10px"><div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;color:#968ae0">B</div><h4 style="margin:0;font-size:18px">Priority-lane board</h4></div>
+        <div style="height:190px;border:1px solid #3f424d;border-radius:4px;display:flex;flex-direction:column;overflow:hidden">
+          <div style="height:20px;background:#20222f;border-bottom:1px solid #3f424d"></div>
+          <div style="flex:1;display:flex;gap:5px;padding:6px">
+            <sc-for list="{{ lanes }}" as="l" hint-placeholder-count="4">
+              <div style="flex:1;display:flex;flex-direction:column;gap:5px"><div style="height:8px;background:#3f424d;border-radius:2px"></div>
+                <sc-for list="{{ l.cards }}" as="c" hint-placeholder-count="2"><div style="height:26px;background:#292b31;border-top:3px solid #595d6c;border-radius:2px"></div></sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="font-size:12.5px;line-height:1.5"><span style="color:#d2cefd;font-weight:600">For ·</span> <span style="color:#b2b6ca">Priority is spatial — a critical always appears in the same column, so awareness is a glance at one region, not a scan.</span></div>
+        <div style="font-size:12.5px;line-height:1.5"><span style="color:#9397ab;font-weight:600">Against ·</span> <span style="color:#9397ab">Four lanes of mostly-empty columns waste the density budget, and the critical lane sits idle for hours — the operator stops looking at it. No single keyboard axis.</span></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px;border:1px solid #3f424d;border-radius:8px;padding:16px;background:#1b1d2c">
+        <div style="display:flex;align-items:baseline;gap:10px"><div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;color:#968ae0">C</div><h4 style="margin:0;font-size:18px">Video wall plus overlay</h4></div>
+        <div style="height:190px;border:1px solid #3f424d;border-radius:4px;display:flex;flex-direction:column;overflow:hidden;position:relative">
+          <div style="height:20px;background:#20222f;border-bottom:1px solid #3f424d"></div>
+          <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:4px;padding:6px">
+            <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="12"><div style="background:#20222f;border:1px solid #292b31;border-radius:2px"></div></sc-for>
+          </div>
+          <div style="position:absolute;right:12px;bottom:12px;width:44%;height:52%;background:#292b31;border:1px solid #75798c;border-radius:3px"></div>
+        </div>
+        <div style="font-size:12.5px;line-height:1.5"><span style="color:#d2cefd;font-weight:600">For ·</span> <span style="color:#b2b6ca">Keeps the camera imagery primary, which is what operators say they trust; the overlay lands on top of the feed the event came from.</span></div>
+        <div style="font-size:12.5px;line-height:1.5"><span style="color:#9397ab;font-weight:600">Against ·</span> <span style="color:#9397ab">Twelve moving tiles is a permanent motion field — the one thing that destroys the salience of a new alert. Overlays also cover the evidence underneath them.</span></div>
+      </div>
+    </div>
+
+    <div style="border:1px solid #5d5294;border-radius:8px;padding:22px;background:#1b1d2c;display:flex;gap:28px;align-items:flex-start">
+      <div style="flex:none;width:180px">
+        <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#968ae0;margin-bottom:10px">Recommendation</div>
+        <div style="font-size:22px;font-weight:600;line-height:1.2">A, with one lane borrowed from B</div>
+      </div>
+      <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:24px;font-size:13.5px;line-height:1.6;color:#b2b6ca">
+        <div><strong style="color:#e9e9ed">Time to awareness.</strong> Master–detail alone relies on the operator watching the list. So the queue keeps one pinned region at its top — a critical band that is empty and 0px tall almost always, and expands with a banner when a critical lands. That is lane B's spatial guarantee at a tenth of its cost: one fixed place where criticals appear, no permanent dead columns. Everything else stays a single time-ordered list. Measured target: notice within 2 s of arrival without a mouse move.</div>
+        <div><strong style="color:#e9e9ed">Time to decision.</strong> One list means one keyboard axis and no mode: ↑↓ moves and previews, Enter acknowledges and takes the lock, D dispatches, X dismisses with a reason. The detail pane's slot layout never changes between incident types, so the four facts that drive the call sit in the same four pixels every time — the operator reads position, not labels. Rejecting C is the strongest choice here: a live tile wall costs awareness permanently in exchange for trust the snapshot already provides.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer style="width:1344px;border-top:1px solid #292b31;padding-top:16px;font-size:12.5px;color:#75798c;display:flex;gap:24px">
+    <div>Pass A of three. Next: the token sheet as a plan — surfaces, priority ramps, tabular type, motion — for approval before anything is rendered in high fidelity.</div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showPins&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Annotation&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const w = (n) => Array.from({ length: n }, (_, i) => ({ i }));
+    const rand = (seed, lo, hi) => lo + ((seed * 37) % (hi - lo));
+    return {
+      showPins: this.props.showPins ?? true,
+      rows12: w(12).map((r, i) => ({ a: rand(i + 3, 45, 80) + '%', b: rand(i + 7, 30, 60) + '%' })),
+      rows8: w(8),
+      rows6: w(6).map((r, i) => ({ a: rand(i + 5, 45, 80) + '%', b: rand(i + 2, 30, 60) + '%' })),
+      tiles: w(12),
+      lanes: [{ cards: w(1) }, { cards: w(2) }, { cards: w(3) }, { cards: w(3) }],
+      facts: [
+        { k: '54px', v: '96px' }, { k: '68px', v: '72px' }, { k: '48px', v: '110px' },
+        { k: '72px', v: '58px' }, { k: '60px', v: '88px' }, { k: '50px', v: '64px' }
+      ],
+      audit: [{ w: '62%' }, { w: '48%' }, { w: '70%' }, { w: '40%' }],
+      journey: [
+        { stage: '00 · detection', what: 'Detector fires on the camera feed', state: 'Operator is elsewhere — reviewing a debris call two junctions south.', fail: 'Model latency and clip buffering add dead time nobody sees.', loss: '4 s', lossPct: '13%' },
+        { stage: '01 · arrival', what: 'Event reaches the operator position', state: 'Peripheral. Head down on another incident.', fail: 'Event appends to the bottom of a scrolled list and is never seen.', loss: '30 s', lossPct: '100%' },
+        { stage: '02 · notice', what: 'Something changed, and it matters', state: 'Startle, then annoyance if this is the fourth false positive this hour.', fail: 'Alert fatigue. Mediums and criticals announce themselves the same way.', loss: '12 s', lossPct: '40%' },
+        { stage: '03 · orient', what: 'What, where, how bad, how sure', state: 'Working memory loaded. Actively suppressing the previous task.', fail: 'Facts scattered across the pane, so the eye hunts instead of lands.', loss: '20 s', lossPct: '66%' },
+        { stage: '04 · verify', what: 'Read the snapshot against the claim', state: 'Sceptical — the operator is checking the machine, correctly.', fail: 'Snapshot too small, or too old to match what the label says.', loss: '15 s', lossPct: '50%' },
+        { stage: '05 · decide', what: 'Dispatch, or dismiss with a reason', state: 'Committed, but exposed — this call is attributable to them.', fail: 'Ambiguous button naming; hesitation over an irreversible-feeling action.', loss: '10 s', lossPct: '33%' },
+        { stage: '06 · hand off', what: 'Response team notified and acknowledged', state: 'Relief, then immediate return to the queue.', fail: 'No confirmation, so the operator re-checks and loses the thread.', loss: '5 s', lossPct: '17%' }
+      ],
+      states: [
+        { name: 'New', enter: 'Detector emits; server assigns priority from lane, class and confidence.', sees: 'Row inserts at the pinned top band, unread mark, live age counter starts. Critical also fires the banner.', edge: 'Acknowledge', key: 'Enter' },
+        { name: 'Acknowledged', enter: 'Operator has the incident and the lock. The clock keeps running.', sees: 'Unread mark clears, banner retires, row shows the owner\u2019s initials. Age counter continues in amber past 60 s.', edge: 'Dispatch', key: 'D' },
+        { name: 'Dispatched', enter: 'Response team assigned; ETA and unit ID attach to the incident.', sees: 'Row drops to a calm treatment with unit and ETA. Confirmation reads \u201cDispatched\u201d \u2014 same word as the control.', edge: 'Clear', key: 'R' }
+      ],
+      notes1: [
+        { n: 1, t: 'Status bar, 44px', d: 'Feed health, open counts by priority, UTC and local clock, mute. Glanceable, never in the reading path.' },
+        { n: 2, t: 'Pinned critical band', d: 'Zero-height when nothing is critical. The one place a critical can ever appear.' },
+        { n: 3, t: 'Triage queue, 432px', d: 'Twelve rows at 40px visible at 1440\u00d7900 without scrolling. Priority strip, thumbnail, what and where, live age.' },
+        { n: 4, t: 'Detail pane', d: 'Fixed slot layout \u2014 evidence left, facts right, so the eye learns positions rather than labels.' },
+        { n: 5, t: 'Decision bar', d: 'Three actions, always in the same place, always the same width. Primary is dispatch.' }
+      ],
+      notes2: [
+        { n: 1, t: 'Banner, 64px', d: 'Enters by taking space at the top, not by covering content. Carries class, location, lane and the two actions.' },
+        { n: 2, t: 'Row insertion', d: 'Row appears in the pinned band already at full height; the list below slides, the selected row does not.' },
+        { n: 3, t: 'Protected reading area', d: 'The detail pane keeps its selection and scroll. An arriving critical never steals focus \u2014 it earns a keystroke.' },
+        { n: 4, t: 'Tab title', d: 'Title becomes a count plus class so the alert survives the operator being on another monitor.' }
+      ],
+      notes3: [
+        { n: 1, t: 'Priority with its reason', d: 'Not just \u201ccritical\u201d \u2014 \u201clive lane 2 of 3, junction approach\u201d. The reason is the argument for the dispatch.' },
+        { n: 2, t: 'Snapshot', d: 'Burned-in camera ID and timestamp, detection box, and a strip of frames either side of the trigger.' },
+        { n: 3, t: 'Facts and map', d: 'Location and mile marker, detection-to-screen latency, confidence, plain-English description; nearby cameras below.' },
+        { n: 4, t: 'Decision bar', d: 'Dispatch, acknowledge only, dismiss with reason. Audit trail sits directly above so the record is visible as it is written.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

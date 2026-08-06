@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-ce7bd6a7-39e4-4917-bbec-e38bf6d4ee6c/styles.css">
+<script src="_ds/nocturne-ce7bd6a7-39e4-4917-bbec-e38bf6d4ee6c/_ds_bundle.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; }
+  a { color: #968ae0; }
+  a:hover { color: #b3a9ea; }
+  @keyframes pulseDemo { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+</style>
+</helmet>
+
+<div style="background:#161826;color:#e9e9ed;font-family:Inter,sans-serif;padding:64px 48px 120px;display:flex;flex-direction:column;align-items:center;gap:72px">
+
+  <header style="width:1344px;display:flex;flex-direction:column;gap:20px">
+    <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">Pass B · visual system</div>
+    <h1 style="font-size:44px;margin:0;letter-spacing:-.02em;max-width:900px;text-wrap:pretty">Token sheet — plan for approval</h1>
+    <p style="margin:0;max-width:780px;color:#b2b6ca;font-size:15px;line-height:1.6">For the master–detail layout with a pinned critical band, chosen in Pass A. Nothing below is a rendered screen — it is the set of colour, type, spacing and motion decisions Pass C will render into the five high-fidelity frames, held here for approval first.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:12px 16px;min-width:230px;max-width:280px">
+        <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:8px">Dark, not black</div>
+        <div style="font-size:13px;color:#cfd3e5;line-height:1.4">Three elevation levels, floor lifted off true black for a dim room and a 12-hour shift</div>
+      </div>
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:12px 16px;min-width:230px;max-width:280px">
+        <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:8px">Colour = priority, only</div>
+        <div style="font-size:13px;color:#cfd3e5;line-height:1.4">Saturation is reserved for meaning. Chrome, borders and structure stay neutral</div>
+      </div>
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:12px 16px;min-width:230px;max-width:280px">
+        <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:8px">Never colour alone</div>
+        <div style="font-size:13px;color:#cfd3e5;line-height:1.4">Every priority pairs a colour with an icon, a label and a border weight</div>
+      </div>
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:12px 16px;min-width:230px;max-width:280px">
+        <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:8px">Density over comfort</div>
+        <div style="font-size:13px;color:#cfd3e5;line-height:1.4">~12 queue rows visible at 1440×900 with no scrolling</div>
+      </div>
+    </div>
+  </header>
+
+  <section style="width:1344px;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">01</div>
+      <h2 style="margin:0;font-size:28px">Where this comes from</h2>
+      <div style="margin-left:auto;font-size:13px;color:#75798c">Vernacular in, generic AI defaults out</div>
+    </div>
+    <p style="margin:0;max-width:920px;font-size:13.5px;color:#9397ab;line-height:1.6">This subject already has a visual language — motorway signage, variable message signs, lane-control gantries, incident-log typography, camera OSD overlays. Three defaults were rejected on sight; four moves were taken from the reference set instead.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+      <sc-for list="{{ rejected }}" as="r" hint-placeholder-count="3">
+        <div style="border:1px solid #292b31;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;opacity:.6">
+          <div style="display:flex;gap:6px">
+            <div style="width:28px;height:28px;border-radius:3px;background:{{ r.c1 }}"></div>
+            <div style="width:28px;height:28px;border-radius:3px;background:{{ r.c2 }}"></div>
+            <div style="width:28px;height:28px;border-radius:3px;background:{{ r.c3 }}"></div>
+            <div style="margin-left:auto;font:600 10px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;align-self:center">Rejected</div>
+          </div>
+          <div style="font-size:13.5px;font-weight:600;color:#cfd3e5">{{ r.label }}</div>
+          <div style="font-size:12.5px;color:#75798c;line-height:1.5">{{ r.why }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+      <sc-for list="{{ taken }}" as="t" hint-placeholder-count="4">
+        <div style="border:1px solid #3f424d;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;background:#1b1d2c">
+          <div style="font:600 10px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#968ae0">{{ t.tag }}</div>
+          <div style="font-size:12.5px;color:#cfd3e5;line-height:1.5">{{ t.decision }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="width:1344px;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">02</div>
+      <h2 style="margin:0;font-size:28px">Colour</h2>
+      <div style="margin-left:auto;font-size:12px;color:#75798c">Contrast ratios shown below — toggle from the Tweaks panel</div>
+    </div>
+
+    <p style="margin:0;max-width:920px;font-size:13.5px;color:#9397ab;line-height:1.6"><strong style="color:#e9e9ed;font-weight:600">Why the floor sits above true black.</strong> A dim room adapts the eye's baseline down, so #000 next to white text and a critical-red chip creates simultaneous-contrast halation that gets worse across a 12-hour shift. The ground is lifted to roughly 9% luminance — dark enough that camera snapshots keep their own contrast, high enough that the eye is not fighting the interface itself by hour ten.</p>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <sc-for list="{{ surfaces }}" as="s" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:8px;width:250px">
+          <div style="height:110px;border-radius:6px;background:{{ s.hex }};border:1px solid #292b31;display:flex;align-items:flex-end;padding:10px">
+            <div style="font:600 12px/1 'IBM Plex Mono',monospace;color:#75798c">{{ s.hex }}</div>
+          </div>
+          <div style="font-size:13.5px;font-weight:600">{{ s.name }}</div>
+          <div style="font-size:12.5px;color:#9397ab;line-height:1.45">{{ s.role }}</div>
+          <div style="font-size:11.5px;color:#75798c">{{ s.elev }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <sc-for list="{{ textLevels }}" as="tx" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:8px;width:250px">
+          <div style="height:80px;border-radius:6px;background:#15181c;border:1px solid #292b31;display:flex;align-items:center;padding:0 14px">
+            <div style="font:500 15px/1.3 'Public Sans',sans-serif;color:{{ tx.hex }}">Camera 14 — lane 2 of 3</div>
+          </div>
+          <div style="font-size:13.5px;font-weight:600">{{ tx.name }} <span style="font-weight:400;color:#75798c;font-family:'IBM Plex Mono',monospace;font-size:11.5px">{{ tx.hex }}</span></div>
+          <sc-if value="{{ showRatios }}" hint-placeholder-val="{{ true }}"><div style="font-size:11.5px;color:#75798c">{{ tx.ratio }} against ground</div></sc-if>
+          <div style="font-size:12.5px;color:#9397ab;line-height:1.4">{{ tx.usage }}</div>
+        </div>
+      </sc-for>
+      <div style="display:flex;flex-direction:column;gap:8px;width:250px">
+        <div style="height:80px;border-radius:6px;background:#1c2024;border:1px solid #292b31;display:flex;align-items:flex-end;padding:14px">
+          <div style="width:100%;border-top:1px solid #23272b"></div>
+        </div>
+        <div style="font-size:13.5px;font-weight:600">Border, hairline <span style="font-weight:400;color:#75798c;font-family:'IBM Plex Mono',monospace;font-size:11.5px">#23272B</span></div>
+        <div style="font-size:12.5px;color:#9397ab;line-height:1.4">Row and rule dividers. Decorative separation only — not a contrast-bearing boundary.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;width:250px">
+        <div style="height:80px;border-radius:6px;background:#1c2024;border:1px solid #292b31;display:flex;align-items:flex-end;padding:14px">
+          <div style="width:100%;border-top:1px solid #6b737b"></div>
+        </div>
+        <div style="font-size:13.5px;font-weight:600">Border, component <span style="font-weight:400;color:#75798c;font-family:'IBM Plex Mono',monospace;font-size:11.5px">#6B737B</span></div>
+        <sc-if value="{{ showRatios }}" hint-placeholder-val="{{ true }}"><div style="font-size:11.5px;color:#75798c">3.4–3.7 : 1 against panel / ground</div></sc-if>
+        <div style="font-size:12.5px;color:#9397ab;line-height:1.4">Inputs, focus base, boundaries between major regions — meaningful edges, held to the 3:1 UI floor.</div>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid #292b31;padding-top:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:15px;font-weight:600">Priority ramps — the only saturated tokens</div>
+      <sc-for list="{{ priority }}" as="p" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:6px;background:#1b1d2c;border-left:{{ p.border }}px solid {{ p.hex }}">
+          <div style="width:26px;height:26px;flex:none;background:{{ p.hex }};{{ p.shapeStyle }}"></div>
+          <div style="width:150px;flex:none;font:600 15px/1 'Public Sans',sans-serif;color:{{ p.hex }};letter-spacing:.02em">{{ p.name }}</div>
+          <div style="flex:1;font-size:13px;color:#b2b6ca;line-height:1.4">{{ p.reason }}</div>
+          <div style="flex:none;text-align:right;display:flex;flex-direction:column;gap:3px">
+            <div style="font:500 12px/1 'IBM Plex Mono',monospace;color:#75798c">{{ p.mock }}</div>
+            <sc-if value="{{ showRatios }}" hint-placeholder-val="{{ true }}"><div style="font-size:11px;color:#595d6c">{{ p.hex }} · {{ p.ratio }}</div></sc-if>
+            <div style="font-size:11px;color:#595d6c">border {{ p.border }}px · {{ p.shapeName }}</div>
+          </div>
+        </div>
+      </sc-for>
+      <div style="font-size:12px;color:#75798c;line-height:1.5;max-width:920px">Shape is a fifth cue on top of colour, icon, label and border weight — triangle, diamond, circle, square borrow directly from sign taxonomy (danger / warning / caution / info). The final glyph inside each shape is a Phosphor icon, chosen at high fidelity.</div>
+    </div>
+
+    <div style="border-top:1px solid #292b31;padding-top:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:15px;font-weight:600">System state — live / reconnecting / offline</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-for list="{{ systemStates }}" as="sys" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:10px;height:10px;border-radius:50%;background:{{ sys.hex }};flex:none"></div>
+            <div style="width:140px;flex:none;font:600 13px/1 'Public Sans',sans-serif;color:#cfd3e5">{{ sys.name }}</div>
+            <div style="flex:1;font-size:12.5px;color:#9397ab">{{ sys.note }}</div>
+            <sc-if value="{{ showRatios }}" hint-placeholder-val="{{ true }}"><div style="flex:none;font-size:11px;color:#595d6c;font-family:'IBM Plex Mono',monospace">{{ sys.hex }} · {{ sys.ratio }}</div></sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;border:1px solid #3f424d;border-radius:8px;padding:12px 16px;width:fit-content">
+        <div style="{{ connDotStyle }}"></div>
+        <div style="font:600 13px/1 'Public Sans',sans-serif;min-width:130px">{{ connName }}</div>
+        <div style="font-size:12px;color:#9397ab;max-width:340px;line-height:1.4">{{ connNote }}</div>
+        <button onClick="{{ cycleConn }}" style="margin-left:8px;background:transparent;border:1px solid #3f424d;color:#cfd3e5;font:500 12px/1 Inter,sans-serif;padding:8px 12px;border-radius:4px;cursor:pointer;flex:none">Cycle state →</button>
+      </div>
+      <div style="font-size:12px;color:#75798c;max-width:920px;line-height:1.5">Deliberately lower-chroma than the priority ramp directly above — a glance must never confuse "connection degraded" with "high priority." Compare the amber here against High's amber above.</div>
+    </div>
+  </section>
+
+  <section style="width:1344px;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">03</div>
+      <h2 style="margin:0;font-size:28px">Type</h2>
+      <div style="margin-left:auto;font-size:13px;color:#75798c">Two families, deliberately not the defaults</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:20px;background:#1b1d2c;display:flex;flex-direction:column;gap:12px">
+        <div style="font:600 40px/1 'Public Sans',sans-serif">Public Sans</div>
+        <div style="font-size:13px;color:#9397ab;line-height:1.6">UI and body face. Public Sans descends from Interstate — the actual US highway-signage letterform — so its DNA is already a road typeface tuned for legibility at speed and at small sizes, not a marketing display face pressed into service. Set at medium weight throughout; this system never bolds past 600.</div>
+      </div>
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:20px;background:#1b1d2c;display:flex;flex-direction:column;gap:12px">
+        <div style="font:600 32px/1 'IBM Plex Mono',monospace">0123456789</div>
+        <div style="font-size:13px;color:#9397ab;line-height:1.6">Tabular numeric face — timestamps, camera IDs, mile markers, confidence, live age counters. IBM Plex Mono was built for technical instrumentation, carries true tabular-lining figures, and reads like the OSD burned into a camera feed rather than a coder's terminal font.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ typeScale }}" as="ts" hint-placeholder-count="8">
+        <div style="display:flex;align-items:center;gap:20px;padding:10px 4px;border-bottom:1px solid #23272b">
+          <div style="width:420px;flex:none;font-family:'Public Sans',sans-serif;font-size:{{ ts.px }}px;font-weight:{{ ts.weight }};line-height:{{ ts.lh }}px;color:#e9e9ed">Camera 14 — lane 2 of 3</div>
+          <div style="font:500 12px/1 'IBM Plex Mono',monospace;color:#75798c;width:150px;flex:none">{{ ts.px }} / {{ ts.weight }} / {{ ts.lh }}</div>
+          <div style="font-size:12.5px;color:#9397ab">{{ ts.use }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ monoScale }}" as="ms" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:20px;padding:10px 4px;border-bottom:1px solid #23272b">
+          <div style="width:420px;flex:none;font-family:'IBM Plex Mono',monospace;font-size:{{ ms.px }}px;font-weight:{{ ms.weight }};color:#e9e9ed;font-variant-numeric:tabular-nums">MM 42.3 · 00:14:07</div>
+          <div style="font:500 12px/1 'IBM Plex Mono',monospace;color:#75798c;width:110px;flex:none">{{ ms.px }} / {{ ms.weight }}</div>
+          <div style="font-size:12.5px;color:#9397ab">{{ ms.use }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:32px;border:1px solid #3f424d;border-radius:8px;padding:18px 20px;width:fit-content">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="font:500 20px/1.3 'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;color:#e9e9ed">T+00:14:07</div>
+        <div style="font:500 20px/1.3 'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;color:#e9e9ed">T+00:14:08</div>
+      </div>
+      <div style="font-size:12.5px;color:#9397ab;max-width:380px;line-height:1.5">Tabular-lining figures — every digit shares one advance width, so a counter that ticks once a second never reflows the characters beside it.</div>
+    </div>
+  </section>
+
+  <section style="width:1344px;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">04</div>
+      <h2 style="margin:0;font-size:28px">Spacing and radii</h2>
+      <div style="margin-left:auto;font-size:12px;color:#75798c">Radius ceiling preview — pick 0 / 2 / 3px from Tweaks</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:13.5px;color:#9397ab;max-width:920px;line-height:1.6">4px base grid. Every gap, padding and offset in the system is a multiple of 4.</div>
+      <div style="display:flex;align-items:flex-end;gap:20px;padding:12px 0">
+        <sc-for list="{{ spacingTicks }}" as="tk" hint-placeholder-count="9">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+            <div style="width:20px;height:{{ tk.h }}px;background:#3f424d;border-radius:2px"></div>
+            <div style="font:500 11px/1 'IBM Plex Mono',monospace;color:#75798c">{{ tk.v }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+      <div style="display:flex;flex-direction:column;gap:8px;width:220px">
+        <div style="height:70px;background:#292b31;border:1px solid #3f424d;border-radius:0px"></div>
+        <div style="font-size:13px;font-weight:600">0px — panels, rows, cells</div>
+        <div style="font-size:12px;color:#9397ab;line-height:1.4">Flush rectangles. Reads as an instrument bezel, not a card.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;width:220px">
+        <div style="height:70px;background:#292b31;border:1px solid #3f424d;border-radius:2px"></div>
+        <div style="font-size:13px;font-weight:600">2px — buttons, inputs</div>
+        <div style="font-size:12px;color:#9397ab;line-height:1.4">Just enough to read as a control, not a panel.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;width:220px">
+        <div style="height:70px;background:#292b31;border:1px solid #3f424d;border-radius:3px"></div>
+        <div style="font-size:13px;font-weight:600">3px — priority chips, max</div>
+        <div style="font-size:12px;color:#9397ab;line-height:1.4">The ceiling. A chip is a tag, small enough to earn the corner.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;width:220px">
+        <div style="height:70px;background:#292b31;border:1px solid #595d6c;border-radius:{{ maxRadius }}px"></div>
+        <div style="font-size:13px;font-weight:600">Live preview — {{ maxRadius }}px</div>
+        <div style="font-size:12px;color:#9397ab;line-height:1.4">Bound to the selector above.</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;width:220px;opacity:.5">
+        <div style="height:70px;background:#292b31;border:1px dashed #595d6c;border-radius:12px"></div>
+        <div style="font-size:13px;font-weight:600">12px — rejected</div>
+        <div style="font-size:12px;color:#9397ab;line-height:1.4">Reads soft and consumer-grade. An instrument doesn't need a hug.</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="width:1344px;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">05</div>
+      <h2 style="margin:0;font-size:28px">Motion</h2>
+      <div style="margin-left:auto;font-size:13px;color:#75798c">Click replay — each plays its own token</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <div style="display:flex;align-items:center;gap:20px;padding:14px 4px;border-bottom:1px solid #23272b">
+        <div style="width:170px;flex:none;height:34px;position:relative;display:flex;align-items:center">
+          <div style="position:absolute;inset:0;border-radius:4px;background:#20222f"></div>
+          <div style="position:relative;width:100%;padding:0 10px;border-left:3px solid #968ae0;font:500 12.5px/1 'Public Sans',sans-serif;color:#e9e9ed;{{ insertRowStyle }}">New event</div>
+        </div>
+        <div style="width:170px;flex:none;font-size:13px;font-weight:600">Row insertion</div>
+        <div style="flex:1;font-size:12.5px;color:#9397ab">180ms · cubic-bezier(.2,.7,.3,1). Slides down from the pinned band and fades in — pushed, never jumped.</div>
+        <button onClick="{{ replayInsert }}" style="flex:none;background:transparent;border:1px solid #3f424d;color:#cfd3e5;font:500 12px/1 Inter,sans-serif;padding:7px 12px;border-radius:4px;cursor:pointer">Replay ↻</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:20px;padding:14px 4px;border-bottom:1px solid #23272b">
+        <div style="width:170px;flex:none;{{ bannerWrapStyle }}">
+          <div style="height:52px;background:#292b31;border-bottom:2px solid #9397ab;display:flex;align-items:center;padding:0 10px;font:500 12px/1.3 'Public Sans',sans-serif;color:#e9e9ed">Wrong-way — M6 N</div>
+        </div>
+        <div style="width:170px;flex:none;font-size:13px;font-weight:600">Banner entry</div>
+        <div style="flex:1;font-size:12.5px;color:#9397ab">220ms · cubic-bezier(.16,.8,.24,1). Expands height from 0 and pushes content down — never overlays what was being read.</div>
+        <button onClick="{{ replayBanner }}" style="flex:none;background:transparent;border:1px solid #3f424d;color:#cfd3e5;font:500 12px/1 Inter,sans-serif;padding:7px 12px;border-radius:4px;cursor:pointer">Replay ↻</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:20px;padding:14px 4px;border-bottom:1px solid #23272b">
+        <div style="width:170px;flex:none;height:24px;position:relative">
+          <div style="{{ transNewStyle }};font:600 12.5px/24px 'Public Sans',sans-serif;color:#9aa1ab">NEW</div>
+          <div style="{{ transAckStyle }};font:600 12.5px/24px 'Public Sans',sans-serif;color:#e9e9ed">ACKNOWLEDGED</div>
+        </div>
+        <div style="width:170px;flex:none;font-size:13px;font-weight:600">State transition</div>
+        <div style="flex:1;font-size:12.5px;color:#9397ab">120ms · linear. Colour and label crossfade only — zero layout change, so the row never moves under the cursor.</div>
+        <button onClick="{{ replayTrans }}" style="flex:none;background:transparent;border:1px solid #3f424d;color:#cfd3e5;font:500 12px/1 Inter,sans-serif;padding:7px 12px;border-radius:4px;cursor:pointer">Replay ↻</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:20px;padding:14px 4px">
+        <div style="width:170px;flex:none;font-size:12px;color:#595d6c">See §02, live indicator</div>
+        <div style="width:170px;flex:none;font-size:13px;font-weight:600">Reconnecting pulse</div>
+        <div style="flex:1;font-size:12.5px;color:#9397ab">1.6s loop · ease-in-out, opacity 1↔0.55. Runs only while degraded and stops the instant the state changes.</div>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid #292b31;padding-top:16px;font-size:13px;color:#9397ab;line-height:1.6;max-width:920px"><strong style="color:#e9e9ed;font-weight:600">Reduced motion.</strong> Every duration above collapses to 0–100ms and drops its transform in favour of a plain opacity swap; anything that loops (only the reconnecting pulse does) stops looping and becomes a static state plus its label. No token here relies on motion to carry information that colour, icon and text don't already carry.</div>
+  </section>
+
+  <footer style="width:1344px;border-top:1px solid #292b31;padding-top:16px;font-size:12.5px;color:#75798c;display:flex;gap:24px">
+    <div>Pass B of three — token sheet, plan only, nothing rendered yet. Approve this to move to Pass C: the five high-fidelity frames at 1440×900, built on exactly these values.</div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showRatios&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Annotation&quot;},&quot;maxRadius&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;3&quot;,&quot;options&quot;:[&quot;0&quot;,&quot;2&quot;,&quot;3&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Radius argument&quot;}}">
+class Component extends DCLogic {
+  state = { connIdx: 0, insertOn: true, bannerOn: true, transOn: true };
+
+  cycleConn = () => this.setState(s => ({ connIdx: (s.connIdx + 1) % 3 }));
+
+  replay = (key) => {
+    this.setState({ [key]: false });
+    setTimeout(() => this.setState({ [key]: true }), 40);
+  };
+
+  renderVals() {
+    const showRatios = this.props.showRatios ?? true;
+    const maxRadius = this.props.maxRadius ?? '3';
+    const tick = (v, max) => ({ v, h: 8 + Math.round((v / max) * 56) });
+
+    const connStates = [
+      { name: 'LIVE', hex: '#5ba98c', ratio: '6.36 : 1', anim: 'none', note: 'Steady dot. Motion is reserved for change, not for status.' },
+      { name: 'RECONNECTING', hex: '#b98a4a', ratio: '5.76 : 1', anim: 'pulseDemo 1.6s ease-in-out infinite', note: 'Pulses only while degraded — stops the instant it resolves either way.' },
+      { name: 'OFFLINE', hex: '#9b5c5c', ratio: '3.46 : 1', anim: 'none', note: 'Static. Paired with a frozen "data as of" timestamp elsewhere on screen.' }
+    ];
+    const conn = connStates[this.state.connIdx];
+
+    return {
+      showRatios,
+      maxRadius,
+
+      connName: conn.name,
+      connNote: conn.note,
+      connDotStyle: `width:14px;height:14px;border-radius:50%;background:${conn.hex};animation:${conn.anim};flex:none`,
+      cycleConn: this.cycleConn,
+
+      insertRowStyle: `transition:all 180ms cubic-bezier(.2,.7,.3,1);opacity:${this.state.insertOn ? 1 : 0};transform:translateY(${this.state.insertOn ? '0' : '-10px'})`,
+      replayInsert: () => this.replay('insertOn'),
+      bannerWrapStyle: `transition:all 220ms cubic-bezier(.16,.8,.24,1);overflow:hidden;height:${this.state.bannerOn ? '52px' : '0px'};opacity:${this.state.bannerOn ? 1 : 0}`,
+      replayBanner: () => this.replay('bannerOn'),
+      transNewStyle: `position:absolute;inset:0;transition:opacity 120ms linear;opacity:${this.state.transOn ? 0 : 1}`,
+      transAckStyle: `position:absolute;inset:0;transition:opacity 120ms linear;opacity:${this.state.transOn ? 1 : 0}`,
+      replayTrans: () => this.replay('transOn'),
+
+      rejected: [
+        { c1: '#F2E8DC', c2: '#8B7355', c3: '#C1622D', label: 'Warm cream + serif + terracotta', why: 'Reads editorial and slow \u2014 a magazine, not a monitoring instrument.' },
+        { c1: '#0A0A0A', c2: '#1A1A1A', c3: '#6BFF3D', label: 'Near-black + acid-green accent', why: 'Acid green would be the loudest hue on screen with no meaning attached \u2014 it competes with the one colour that must win: critical.' },
+        { c1: '#F4F1EC', c2: '#D8D2C4', c3: '#2A2A2A', label: 'Hairline broadsheet grid', why: 'A broadsheet is read start to finish. This screen is scanned in the same fixed order for twelve hours \u2014 it needs zones, not columns.' }
+      ],
+      taken: [
+        { tag: 'Variable message sign', decision: 'Saturation is the alert, not the decoration. Priority owns colour; the rest of the interface stays deliberately quiet.' },
+        { tag: 'Lane-control gantry roundel', decision: 'A 3px radius ceiling. Chips and buttons get a small corner; panels stay square \u2014 an instrument bezel, not an app bubble.' },
+        { tag: 'Camera OSD timecode', decision: 'Every live number sets in tabular mono, so a counter that ticks never shifts the pixels around it.' },
+        { tag: 'Incident-log ledger', decision: 'Dense hairline rows, not card padding. Twelve rows fit because nothing is decorated for its own sake.' }
+      ],
+      surfaces: [
+        { name: 'Surface 0 · ground', hex: '#15181C', role: 'App background. Everything else sits on this.', elev: '~9% luminance floor' },
+        { name: 'Surface 1 · panel', hex: '#1C2024', role: 'Queue rows, side panels, the detail pane.', elev: '1.09× vs ground' },
+        { name: 'Surface 2 · raised', hex: '#262B30', role: 'Banner, modal, popover \u2014 anything temporarily on top.', elev: '1.25× vs ground' }
+      ],
+      textLevels: [
+        { name: 'Text primary', hex: '#E8EAED', ratio: '14.77 : 1', usage: 'Values that drive the decision \u2014 what, where, the facts.' },
+        { name: 'Text secondary', hex: '#9AA1AB', ratio: '6.83 : 1', usage: 'Labels and metadata \u2014 field names, captions.' },
+        { name: 'Text tertiary', hex: '#676E77', ratio: '3.45 : 1', usage: 'Large or tabular only \u2014 disabled state, timestamps of record.' }
+      ],
+      priority: [
+        { name: 'CRITICAL', hex: '#FF4433', ratio: '5.2 : 1', border: 4, shapeName: 'triangle', shapeStyle: 'clip-path:polygon(50% 0%,0% 100%,100% 100%)', reason: 'Immediate hazard in a live lane or against traffic \u2014 wrong-way driver, person on the carriageway, fire.', mock: 'MM 42.3 \u00b7 T+00:07' },
+        { name: 'HIGH', hex: '#FFA426', ratio: '8.98 : 1', border: 3, shapeName: 'diamond', shapeStyle: 'clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%)', reason: 'Hazard building or unconfirmed but severe \u2014 stopped vehicle in a live lane, heavy smoke.', mock: 'MM 38.9 \u00b7 T+01:42' },
+        { name: 'MEDIUM', hex: '#E4C230', ratio: '10.22 : 1', border: 2, shapeName: 'circle', shapeStyle: 'border-radius:50%', reason: 'Hazard contained \u2014 hard-shoulder stop, debris clear of live lanes, developing congestion.', mock: 'MM 51.0 \u00b7 T+04:15' },
+        { name: 'LOW', hex: '#5B8DEF', ratio: '5.51 : 1', border: 1, shapeName: 'square', shapeStyle: 'border-radius:3px', reason: 'Informational \u2014 resolved and logging, routine congestion, low-confidence detection awaiting confirmation.', mock: 'MM 29.6 \u00b7 T+11:30' }
+      ],
+      systemStates: [
+        { name: 'LIVE', hex: '#5ba98c', ratio: '6.36 : 1', note: 'Feed connected, events processing normally. Steady, no motion.' },
+        { name: 'RECONNECTING', hex: '#b98a4a', ratio: '5.76 : 1', note: 'Dropped and retrying. Pulses \u2014 the only status dot allowed to move.' },
+        { name: 'OFFLINE', hex: '#9b5c5c', ratio: '3.46 : 1', note: 'Feed down. Static, paired with a frozen timestamp of last known state.' }
+      ],
+      typeScale: [
+        { px: 11, weight: 500, lh: 16, use: 'Dense micro-metadata \u2014 secondary line in a queue row' },
+        { px: 12, weight: 500, lh: 16, use: 'Kicker labels, section eyebrows' },
+        { px: 13, weight: 500, lh: 18, use: 'Captions, queue row secondary line' },
+        { px: 14, weight: 500, lh: 20, use: 'UI default \u2014 buttons, inputs, queue row primary line' },
+        { px: 16, weight: 500, lh: 22, use: 'Detail-pane body copy' },
+        { px: 18, weight: 600, lh: 24, use: 'Incident title, subsection headings' },
+        { px: 20, weight: 600, lh: 26, use: 'Panel headings \u2014 queue header, detail header' },
+        { px: 24, weight: 600, lh: 30, use: 'Dialog title \u2014 the only heading this large' }
+      ],
+      monoScale: [
+        { px: 11, weight: 500, use: 'Mile markers, camera IDs in dense rows' },
+        { px: 12, weight: 500, use: 'Timestamps, confidence %, latency' },
+        { px: 14, weight: 500, use: 'Live age counters \u2014 the number operators track most' },
+        { px: 16, weight: 600, use: 'Hero timestamp / large counter in the detail pane' }
+      ],
+      spacingTicks: [4, 8, 12, 16, 20, 24, 32, 40, 48].map(v => tick(v, 48))
+    };
+  }
+}
+</script>
+</body>
+</html>

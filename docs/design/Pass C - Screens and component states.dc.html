@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-ce7bd6a7-39e4-4917-bbec-e38bf6d4ee6c/styles.css">
+<script src="_ds/nocturne-ce7bd6a7-39e4-4917-bbec-e38bf6d4ee6c/_ds_bundle.js"></script>
+<script src="image-slot.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; }
+  a { color: #968ae0; }
+  a:hover { color: #b3a9ea; }
+  @keyframes pcPulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+</style>
+</helmet>
+
+<div style="background:#161826;color:#e9e9ed;font-family:Inter,sans-serif;padding:64px 48px 120px;display:flex;flex-direction:column;align-items:center;gap:72px">
+
+  <header style="width:1344px;display:flex;flex-direction:column;gap:20px">
+    <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">Pass C · screens and component states</div>
+    <h1 style="font-size:44px;margin:0;letter-spacing:-.02em;max-width:900px;text-wrap:pretty">High-fidelity frames, 1440 × 900</h1>
+    <p style="margin:0;max-width:780px;color:#b2b6ca;font-size:15px;line-height:1.6">Rendered on the tokens approved in Pass B — three surfaces, four priority ramps, Public Sans and IBM Plex Mono, a 3px radius ceiling. Nothing below introduces a new colour. One incident — a wrong-way driver on camera CAM-014 — runs through frames 1 to 3 so you can see it detected, reviewed, and later dispatched.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:12px 16px;min-width:230px">
+        <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:8px">Frames</div>
+        <div style="font-size:15px;color:#cfd3e5">5, plus the arrival choreography and a state matrix</div>
+      </div>
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:12px 16px;min-width:230px">
+        <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:8px">Canvas</div>
+        <div style="font-size:15px;color:#cfd3e5">1440 × 900, shown at 90%</div>
+      </div>
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:12px 16px;min-width:230px">
+        <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#75798c;margin-bottom:8px">Copy rules</div>
+        <div style="font-size:15px;color:#cfd3e5">Sentence case · active voice · a control's verb becomes its confirmation</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;border-top:1px solid #292b31;padding-top:16px;margin-top:4px">
+      <div style="font-size:12px;color:#75798c">Priority key</div>
+      <sc-for list="{{ priorityLegend }}" as="pl" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:11px;height:11px;background:{{ pl.hex }};{{ pl.shapeStyle }}"></div>
+          <div style="font:600 12px/1 'Public Sans',sans-serif;color:{{ pl.hex }};letter-spacing:.03em">{{ pl.name }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </header>
+
+  <!-- FRAME 1 -->
+  <section style="width:1344px;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">01</div>
+      <h2 style="margin:0;font-size:28px">Default monitoring state</h2>
+      <div style="margin-left:auto;font-size:13px;color:#75798c">02:19:44 local · routine shift</div>
+    </div>
+
+    <div style="width:1296px;height:810px;background:#15181C;border:1px solid #23272B;border-radius:2px;display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:48px;flex:none;display:flex;align-items:center;gap:20px;padding:0 16px;background:#1C2024;border-bottom:1px solid #23272B">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:8px;height:8px;border-radius:50%;background:#5BA98C"></div>
+          <div style="font:500 12.5px/1 'Public Sans',sans-serif;color:#E8EAED">18 / 18 feeds live</div>
+        </div>
+        <div style="width:1px;height:20px;background:#23272B"></div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <sc-for list="{{ openCounts }}" as="oc" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="width:8px;height:8px;background:{{ oc.hex }};{{ oc.shapeStyle }}"></div>
+              <div style="font:600 12.5px/1 'IBM Plex Mono',monospace;color:#CFD3E0">{{ oc.n }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex:1"></div>
+        <div style="display:flex;align-items:center;gap:16px;font:500 12.5px/1 'IBM Plex Mono',monospace;color:#9AA1AB">
+          <div>02:19:44 <span style="color:#676E77">LOCAL</span></div>
+          <div>01:19:44 <span style="color:#676E77">UTC</span></div>
+        </div>
+        <button style="background:transparent;border:1px solid #6B737B;color:#CFD3E0;font:500 12px/1 'Public Sans',sans-serif;padding:6px 12px;border-radius:2px;cursor:pointer">Mute</button>
+      </div>
+
+      <div style="flex:1;display:flex;min-height:0">
+        <div style="width:432px;flex:none;border-right:1px solid #23272B;display:flex;flex-direction:column;min-height:0">
+          <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #23272B">
+            <div style="font:600 10px/1 'Public Sans',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#676E77">Queue · 12 open</div>
+            <div style="font:500 11.5px/1 'Public Sans',sans-serif;color:#9AA1AB">Newest first</div>
+          </div>
+          <div style="flex:1;overflow:hidden">
+            <sc-for list="{{ rows12 }}" as="r" hint-placeholder-count="12">
+              <div style="display:flex;align-items:center;gap:8px;padding:0 10px;height:40px;background:{{ r.bg }};border-bottom:1px solid #23272B">
+                <div style="width:{{ r.bs }}px;align-self:stretch;background:{{ r.pr }};flex:none"></div>
+                <div style="width:10px;height:10px;flex:none;background:{{ r.pr }};{{ r.shape }}"></div>
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <div style="font:{{ r.nameWeight }} 12.5px/1.3 'Public Sans',sans-serif;color:#E8EAED;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.cam }} · {{ r.what }}</div>
+                  <div style="font-size:11px;color:#9AA1AB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.loc }}</div>
+                </div>
+                <div style="flex:none;display:flex;align-items:center;gap:6px">
+                  <sc-if value="{{ r.unread }}" hint-placeholder-val="{{ false }}"><div style="width:5px;height:5px;border-radius:50%;background:#E8EAED"></div></sc-if>
+                  <div style="font:{{ r.ageWeight }} 11.5px/1 'IBM Plex Mono',monospace;color:{{ r.ageColor }}">{{ r.age }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-left:2px solid #E4C230">
+              <div style="width:9px;height:9px;background:#E4C230;border-radius:50%"></div>
+              <div style="font:600 11px/1 'Public Sans',sans-serif;letter-spacing:.06em;color:#E4C230">MEDIUM</div>
+            </div>
+            <div style="font:600 18px/1.2 'Public Sans',sans-serif;color:#E8EAED">Stopped vehicle, hard shoulder</div>
+            <div style="margin-left:auto;font:500 12.5px/1 'Public Sans',sans-serif;color:#9AA1AB">CAM-062 · M6 northbound</div>
+          </div>
+          <div style="flex:1;display:flex;gap:14px;min-height:0">
+            <div style="flex:1.3;position:relative;background:#0D0F12;border:1px solid #23272B;border-radius:2px;overflow:hidden">
+              <image-slot id="snap-f1" shape="rect" style="width:100%;height:100%;display:block" placeholder="Drop a snapshot — CAM-062, hard shoulder"></image-slot>
+              <div style="position:absolute;top:8px;left:8px;font:600 11px/1 'IBM Plex Mono',monospace;color:#E8EAED;background:rgba(13,15,18,.6);padding:3px 6px;border-radius:2px;pointer-events:none">CAM-062 · 02:19:41</div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:10px;min-width:0">
+              <div style="border:1px solid #23272B;border-radius:2px;padding:10px;display:flex;flex-direction:column;gap:9px">
+                <sc-for list="{{ facts1 }}" as="f" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <div style="font:600 10px/1 'Public Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#676E77;width:120px;flex:none">{{ f.k }}</div>
+                    <div style="font:600 13px/1 'IBM Plex Mono',monospace;color:#E8EAED">{{ f.v }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="flex:1;border:1px solid #23272B;border-radius:2px;padding:10px;display:flex;flex-direction:column;gap:6px">
+                <div style="font:600 10px/1 'Public Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#676E77">Description</div>
+                <div style="font:500 12.5px/1.5 'Public Sans',sans-serif;color:#CFD3E0">Vehicle stationary on the hard shoulder for over 6 minutes. Hazard lights not detected.</div>
+              </div>
+            </div>
+          </div>
+          <div style="height:44px;flex:none;display:flex;align-items:center;gap:10px;border-top:1px solid #23272B;padding-top:12px">
+            <button style="background:#E8EAED;color:#15181C;border:none;font:600 13px/1 'Public Sans',sans-serif;padding:0 18px;height:36px;border-radius:2px;cursor:pointer">Dispatch</button>
+            <button style="background:transparent;border:1px solid #6B737B;color:#E8EAED;font:500 13px/1 'Public Sans',sans-serif;padding:0 16px;height:36px;border-radius:2px;cursor:pointer">Acknowledge only</button>
+            <button style="background:transparent;border:1px solid #23272B;color:#9AA1AB;font:500 13px/1 'Public Sans',sans-serif;padding:0 14px;height:36px;border-radius:2px;cursor:pointer">Dismiss, not real ▾</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <sc-if value="{{ showCaptions }}" hint-placeholder-val="{{ true }}">
+      <div style="font-size:12.5px;color:#9397ab;line-height:1.5;max-width:1000px">02:19:44 — a routine shift. CAM-014's wrong-way driver from earlier this hour is already dispatched and calm in row one; the operator's attention is on a hard-shoulder stop instead. Twelve rows, no scrolling.</div>
+    </sc-if>
+  </section>
+
+  <!-- FRAME 2 -->
+  <section style="width:1344px;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">02</div>
+      <h2 style="margin:0;font-size:28px">Critical event arrival</h2>
+      <div style="margin-left:auto;font-size:13px;color:#75798c">02:14:07 local · CAM-014, M6 northbound</div>
+    </div>
+
+    <div style="width:1296px;height:810px;background:#15181C;border:1px solid #23272B;border-radius:2px;display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:48px;flex:none;display:flex;align-items:center;gap:20px;padding:0 16px;background:#1C2024;border-bottom:1px solid #23272B">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:8px;height:8px;border-radius:50%;background:#5BA98C"></div>
+          <div style="font:500 12.5px/1 'Public Sans',sans-serif;color:#E8EAED">18 / 18 feeds live</div>
+        </div>
+        <div style="flex:1"></div>
+        <div style="display:flex;align-items:center;gap:16px;font:500 12.5px/1 'IBM Plex Mono',monospace;color:#9AA1AB">
+          <div>02:14:07 <span style="color:#676E77">LOCAL</span></div>
+        </div>
+        <button style="background:transparent;border:1px solid #6B737B;color:#CFD3E0;font:500 12px/1 'Public Sans',sans-serif;padding:6px 12px;border-radius:2px;cursor:pointer">Mute</button>
+      </div>
+
+      <div style="height:52px;flex:none;background:#262B30;border-bottom:2px solid #FF4433;display:flex;align-items:center;gap:14px;padding:0 16px">
+        <div style="width:16px;height:16px;flex:none;background:#FF4433;clip-path:polygon(50% 0%,0% 100%,100% 100%)"></div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div style="font:600 13px/1.2 'Public Sans',sans-serif;color:#E8EAED">Wrong-way driver — CAM-014, M6 northbound, Jct 8–9</div>
+          <div style="font:500 11.5px/1 'Public Sans',sans-serif;color:#9AA1AB">Live lane 2 of 3 · detected 0.6s ago</div>
+        </div>
+        <div style="flex:1"></div>
+        <button style="background:#E8EAED;color:#15181C;border:none;font:600 12.5px/1 'Public Sans',sans-serif;padding:0 16px;height:32px;border-radius:2px;cursor:pointer">Acknowledge</button>
+        <button style="background:transparent;border:1px solid #6B737B;color:#E8EAED;font:500 12.5px/1 'Public Sans',sans-serif;padding:0 14px;height:32px;border-radius:2px;cursor:pointer">View</button>
+      </div>
+
+      <div style="flex:1;display:flex;min-height:0">
+        <div style="width:432px;flex:none;border-right:1px solid #23272B;display:flex;flex-direction:column;min-height:0">
+          <div style="height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #23272B">
+            <div style="font:600 10px/1 'Public Sans',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#676E77">Queue · 12 open</div>
+            <div style="font:500 11.5px/1 'Public Sans',sans-serif;color:#9AA1AB">Newest first</div>
+          </div>
+          <div style="flex:1;overflow:hidden">
+            <sc-for list="{{ rowsF2 }}" as="r" hint-placeholder-count="12">
+              <div style="display:flex;align-items:center;gap:8px;padding:0 10px;height:40px;background:{{ r.bg }};border-bottom:1px solid #23272B">
+                <div style="width:{{ r.bs }}px;align-self:stretch;background:{{ r.pr }};flex:none"></div>
+                <div style="width:10px;height:10px;flex:none;background:{{ r.pr }};{{ r.shape }}"></div>
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <div style="font:{{ r.nameWeight }} 12.5px/1.3 'Public Sans',sans-serif;color:#E8EAED;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.cam }} · {{ r.what }}</div>
+                  <div style="font-size:11px;color:#9AA1AB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.loc }}</div>
+                </div>
+                <div style="flex:none;display:flex;align-items:center;gap:6px">
+                  <sc-if value="{{ r.unread }}" hint-placeholder-val="{{ false }}"><div style="width:5px;height:5px;border-radius:50%;background:#E8EAED"></div></sc-if>
+                  <div style="font:{{ r.ageWeight }} 11.5px/1 'IBM Plex Mono',monospace;color:{{ r.ageColor }}">{{ r.age }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-left:3px solid #FFA426">
+              <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid #FFA426"></div>
+              <div style="font:600 11px/1 'Public Sans',sans-serif;letter-spacing:.06em;color:#FFA426">HIGH</div>
+            </div>
+            <div style="font:600 18px/1.2 'Public Sans',sans-serif;color:#E8EAED">Debris, live lane</div>
+            <div style="margin-left:auto;font:500 12.5px/1 'Public Sans',sans-serif;color:#9AA1AB">CAM-231 · M6 Toll</div>
+          </div>
+          <div style="flex:1;border:1px dashed #3f424d;border-radius:2px;display:flex;align-items:center;justify-content:center">
+            <div style="font:600 11px/1.5 'Public Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#676E77;text-align:center;max-width:280px">Selection preserved — the arrival did not move or replace what was already open</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <sc-if value="{{ showCaptions }}" hint-placeholder-val="{{ true }}">
+      <div style="font-size:12.5px;color:#9397ab;line-height:1.5;max-width:1000px">The banner takes space at the top; it never overlays the detail pane. The row the operator already had open — an unrelated debris call — keeps its scroll position and selection.</div>
+    </sc-if>
+
+    <div style="display:flex;gap:16px;align-items:flex-start;margin-top:4px">
+      <sc-for list="{{ filmstrip }}" as="fs" hint-placeholder-count="3">
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+          <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#75798c">{{ fs.label }}</div>
+          <div style="height:210px;background:#15181C;border:1px solid #23272B;border-radius:2px;overflow:hidden;display:flex;flex-direction:column">
+            <div style="height:30px;flex:none;background:#1C2024;border-bottom:1px solid #23272B;display:flex;align-items:center;padding:0 10px;gap:8px">
+              <div style="width:6px;height:6px;border-radius:50%;background:#5BA98C"></div>
+              <div style="font:500 10.5px/1 'IBM Plex Mono',monospace;color:#9AA1AB">{{ fs.clock }}</div>
+            </div>
+            <div style="height:{{ fs.bannerH }}px;flex:none;background:#262B30;border-bottom:2px solid #FF4433;overflow:hidden;display:flex;align-items:center;gap:8px;padding:0 10px;opacity:{{ fs.bannerOp }}">
+              <div style="width:10px;height:10px;flex:none;background:#FF4433;clip-path:polygon(50% 0%,0% 100%,100% 100%)"></div>
+              <div style="font:600 10.5px/1.3 'Public Sans',sans-serif;color:#E8EAED">Wrong-way — CAM-014</div>
+            </div>
+            <div style="flex:1;padding:8px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:{{ fs.rowBg }};opacity:{{ fs.rowOp }};transform:{{ fs.rowTf }};transition:all 200ms ease">
+                <div style="width:3px;align-self:stretch;background:#FF4433;flex:none"></div>
+                <div style="width:8px;height:8px;flex:none;background:#FF4433;clip-path:polygon(50% 0%,0% 100%,100% 100%)"></div>
+                <div style="font:600 11px/1.3 'Public Sans',sans-serif;color:#E8EAED;flex:1">CAM-014 · Wrong-way driver</div>
+                <sc-if value="{{ fs.showUnread }}" hint-placeholder-val="{{ false }}"><div style="width:5px;height:5px;border-radius:50%;background:#E8EAED;flex:none"></div></sc-if>
+                <div style="font:600 10.5px/1 'IBM Plex Mono',monospace;color:#E8EAED;flex:none">{{ fs.age }}</div>
+              </div>
+              <div style="height:8px;background:#1C2024;border-radius:1px"></div>
+              <div style="height:8px;background:#1C2024;border-radius:1px;width:70%"></div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:#9397ab;line-height:1.4">{{ fs.note }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:24px;border:1px solid #3f424d;border-radius:8px;padding:16px 20px;margin-top:4px">
+      <div style="width:230px;flex:none;display:flex;flex-direction:column;gap:8px">
+        <div style="font:600 11px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#75798c">Live replay</div>
+        <div style="border:1px solid #23272B;border-radius:2px;overflow:hidden;background:#15181C">
+          <div style="background:#262B30;border-bottom:2px solid #FF4433;display:flex;align-items:center;gap:6px;padding:0 8px;{{ bannerLiveStyle }}">
+            <div style="width:8px;height:8px;flex:none;background:#FF4433;clip-path:polygon(50% 0%,0% 100%,100% 100%)"></div>
+            <div style="font:600 10.5px/1.3 'Public Sans',sans-serif;color:#E8EAED;white-space:nowrap">Wrong-way — CAM-014</div>
+          </div>
+          <div style="padding:8px;display:flex;align-items:center;gap:6px;{{ rowLiveStyle }}">
+            <div style="width:3px;align-self:stretch;background:#FF4433;flex:none"></div>
+            <div style="font:600 11px/1.3 'Public Sans',sans-serif;color:#E8EAED;flex:1">CAM-014 · Wrong-way driver</div>
+            <sc-if value="{{ showUnreadLive }}" hint-placeholder-val="{{ false }}"><div style="width:5px;height:5px;border-radius:50%;background:#E8EAED;flex:none"></div></sc-if>
+            <div style="font:600 10.5px/1 'IBM Plex Mono',monospace;color:#E8EAED;flex:none">{{ ageLive }}</div>
+          </div>
+        </div>
+        <div style="height:26px;background:#262B30;border-radius:4px 4px 0 0;display:flex;align-items:center;gap:6px;padding:0 8px;border:1px solid #3f424d;border-bottom:none">
+          <div style="width:6px;height:6px;border-radius:50%;background:{{ tabDotLive }};flex:none"></div>
+          <div style="font:500 10.5px/1 'Public Sans',sans-serif;color:#e9e9ed;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ tabLive }}</div>
+        </div>
+      </div>
+      <div style="flex:1;font-size:12.5px;color:#9397ab;line-height:1.5">Banner entry at 220ms cubic-bezier(.16,.8,.24,1), row insertion at 180ms cubic-bezier(.2,.7,.3,1) — the same tokens from Pass B, not new ones. The tab title flips the instant the banner does.</div>
+      <button onClick="{{ playSequence }}" style="flex:none;background:transparent;border:1px solid #3f424d;color:#cfd3e5;font:500 12px/1 Inter,sans-serif;padding:9px 16px;border-radius:4px;cursor:pointer">Play sequence ▶</button>
+    </div>
+  </section>
+
+  <!-- FRAME 3 -->
+  <section style="width:1344px;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">03</div>
+      <h2 style="margin:0;font-size:28px">Incident under review</h2>
+      <div style="margin-left:auto;font-size:13px;color:#75798c">02:14:41 local · acknowledged, 34s after arrival</div>
+    </div>
+
+    <div style="width:1296px;height:810px;background:#15181C;border:1px solid #23272B;border-radius:2px;display:flex;overflow:hidden">
+      <div style="width:300px;flex:none;border-right:1px solid #23272B;opacity:.4;pointer-events:none;overflow:hidden">
+        <sc-for list="{{ rows12 }}" as="r" hint-placeholder-count="12">
+          <div style="display:flex;align-items:center;gap:6px;padding:0 8px;height:40px;background:{{ r.bg }};border-bottom:1px solid #23272B">
+            <div style="width:{{ r.bs }}px;align-self:stretch;background:{{ r.pr }};flex:none"></div>
+            <div style="width:8px;height:8px;flex:none;background:{{ r.pr }};{{ r.shape }}"></div>
+            <div style="flex:1;min-width:0;font:500 11.5px/1.3 'Public Sans',sans-serif;color:#CFD3E0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.cam }} · {{ r.what }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="flex:1;min-width:0;padding:20px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:flex-start;gap:14px">
+          <div style="display:flex;align-items:center;gap:6px;padding:5px 9px;border-left:4px solid #FF4433;flex:none">
+            <div style="width:11px;height:11px;background:#FF4433;clip-path:polygon(50% 0%,0% 100%,100% 100%)"></div>
+            <div style="font:600 12px/1 'Public Sans',sans-serif;letter-spacing:.06em;color:#FF4433">CRITICAL</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px;flex:1">
+            <div style="font:600 20px/1.2 'Public Sans',sans-serif;color:#E8EAED">Wrong-way driver</div>
+            <div style="font:500 12.5px/1 'Public Sans',sans-serif;color:#9AA1AB">CAM-014 · M6 northbound, Jct 8–9</div>
+          </div>
+          <div style="text-align:right;flex:none">
+            <div style="font:600 12.5px/1.3 'Public Sans',sans-serif;color:#E8EAED">✓ Acknowledged</div>
+            <div style="font:500 11.5px/1.3 'Public Sans',sans-serif;color:#9AA1AB">J. Kavanagh · 34s after arrival</div>
+          </div>
+        </div>
+        <div style="font:600 15px/1.4 'Public Sans',sans-serif;color:#FF4433">“Critical — live lane 2 of 3, junction approach”</div>
+        <div style="font:500 12.5px/1.5 'Public Sans',sans-serif;color:#CFD3E0;max-width:820px">Detector description: vehicle travelling against traffic flow in live lane 2 of 3, approaching Jct 9.</div>
+
+        <div style="flex:1;display:flex;gap:14px;min-height:0">
+          <div style="flex:1.3;position:relative;background:#0D0F12;border:1px solid #23272B;border-radius:2px;overflow:hidden">
+            <image-slot id="snap-f3" shape="rect" style="width:100%;height:100%;display:block" placeholder="Drop a snapshot — CAM-014, wrong-way driver"></image-slot>
+            <div style="position:absolute;top:8px;left:8px;font:600 11px/1 'IBM Plex Mono',monospace;color:#E8EAED;background:rgba(13,15,18,.6);padding:3px 6px;border-radius:2px;pointer-events:none">CAM-014 · 02:14:07</div>
+            <div style="position:absolute;left:36%;top:28%;width:24%;height:36%;border:2px dashed #FF4433;border-radius:2px;pointer-events:none"></div>
+            <div style="position:absolute;left:36%;top:calc(28% - 16px);font:600 10px/1 'IBM Plex Mono',monospace;color:#FF4433;pointer-events:none">96%</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:10px;min-width:0">
+            <div style="border:1px solid #23272B;border-radius:2px;padding:10px;display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ facts3 }}" as="f" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="font:600 10px/1 'Public Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#676E77;width:120px;flex:none">{{ f.k }}</div>
+                  <div style="font:600 13px/1 'IBM Plex Mono',monospace;color:#E8EAED">{{ f.v }}</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="height:118px;flex:none;border:1px solid #23272B;border-radius:2px;position:relative;padding:10px;display:flex;flex-direction:column">
+              <div style="font:600 10px/1 'Public Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#676E77;margin-bottom:4px">Nearby cameras</div>
+              <div style="flex:1;position:relative">
+                <div style="position:absolute;left:16%;top:0;bottom:0;width:2px;background:#3f424d"></div>
+                <div style="position:absolute;left:calc(16% - 3px);top:8%;width:8px;height:8px;border-radius:50%;background:#6B737B"></div>
+                <div style="position:absolute;left:calc(16% - 5px);top:42%;width:12px;height:12px;border-radius:50%;background:#FF4433;box-shadow:0 0 0 3px rgba(255,68,51,.25);animation:pcPulse 1.6s ease-in-out infinite"></div>
+                <div style="position:absolute;left:calc(16% - 3px);top:82%;width:8px;height:8px;border-radius:50%;background:#6B737B"></div>
+                <div style="position:absolute;left:30%;top:4%;font:500 11px/1.4 'Public Sans',sans-serif;color:#9AA1AB">CAM-011 · MM 41.0</div>
+                <div style="position:absolute;left:30%;top:38%;font:600 11px/1.4 'Public Sans',sans-serif;color:#E8EAED">CAM-014 · MM 42.3 — this incident</div>
+                <div style="position:absolute;left:30%;top:78%;font:500 11px/1.4 'Public Sans',sans-serif;color:#9AA1AB">CAM-017 · MM 43.6</div>
+                <div style="position:absolute;right:6px;top:40%;font:600 9.5px/1.2 'Public Sans',sans-serif;color:#9397ab;text-align:right;max-width:70px">↓ flow<br>↑ wrong-way</div>
+              </div>
+            </div>
+            <div style="flex:1;border:1px solid #23272B;border-radius:2px;padding:10px;display:flex;flex-direction:column;gap:7px;min-height:0;overflow:hidden">
+              <div style="font:600 10px/1 'Public Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#676E77">Audit trail</div>
+              <sc-for list="{{ audit3 }}" as="a" hint-placeholder-count="4">
+                <div style="display:flex;gap:10px;align-items:baseline">
+                  <div style="font:500 11px/1.3 'IBM Plex Mono',monospace;color:#676E77;width:64px;flex:none">{{ a.t }}</div>
+                  <div style="font:500 11.5px/1.3 'Public Sans',sans-serif;color:#CFD3E0">{{ a.d }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:44px;flex:none;display:flex;align-items:center;gap:10px;border-top:1px solid #23272B;padding-top:12px">
+          <button style="background:#E8EAED;color:#15181C;border:none;font:600 13px/1 'Public Sans',sans-serif;padding:0 18px;height:36px;border-radius:2px;cursor:pointer">Dispatch</button>
+          <div style="font:500 12px/1.3 'Public Sans',sans-serif;color:#9AA1AB">✓ Acknowledged · J. Kavanagh</div>
+          <div style="flex:1"></div>
+          <button style="background:transparent;border:1px solid #23272B;color:#9AA1AB;font:500 13px/1 'Public Sans',sans-serif;padding:0 14px;height:36px;border-radius:2px;cursor:pointer">Dismiss, not real ▾</button>
+        </div>
+      </div>
+    </div>
+    <sc-if value="{{ showCaptions }}" hint-placeholder-val="{{ true }}">
+      <div style="font-size:12.5px;color:#9397ab;line-height:1.5;max-width:1000px">The reason sits directly under the title in the priority's own colour — the only saturated text on the frame. Acknowledge already happened at 34s (past the 20s auto-escalation, visible in the audit trail); Dispatch is still the one live decision.</div>
+    </sc-if>
+  </section>
+
+  <!-- FRAME 4 -->
+  <section style="width:1344px;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">04</div>
+      <h2 style="margin:0;font-size:28px">Component state matrix</h2>
+      <div style="margin-left:auto;font-size:13px;color:#75798c">Queue row, connection indicator, buffered-events bar</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <sc-for list="{{ matrixRows }}" as="m" hint-placeholder-count="8">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="width:150px;flex:none;font-size:12.5px;color:#9397ab">{{ m.label }}</div>
+          <div style="width:432px;flex:none;height:52px;background:#15181C;box-shadow:{{ m.rowShadow }};display:flex;align-items:center;gap:10px;padding:0 12px;border-left:{{ m.bs }}px solid {{ m.pr }};border-radius:1px">
+            <div style="width:12px;height:12px;flex:none;background:{{ m.pr }};{{ m.shape }}"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+              <div style="font:{{ m.textWeight }} 12.5px/1.3 'Public Sans',sans-serif;color:#E8EAED;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.cam }} · {{ m.what }}</div>
+              <div style="font-size:11px;color:#9AA1AB;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.loc }}</div>
+            </div>
+            <sc-if value="{{ m.hasBadge }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ m.badgeStyle }}">{{ m.badge }}</div>
+            </sc-if>
+            <div style="font:{{ m.ageWeight }} 11.5px/1 'IBM Plex Mono',monospace;color:{{ m.ageColor }};flex:none">{{ m.age }}</div>
+          </div>
+          <div style="flex:1;font-size:12.5px;color:#9397ab;line-height:1.4">{{ m.caption }}</div>
+        </div>
+      </sc-for>
+
+      <div style="display:flex;align-items:center;gap:16px">
+        <div style="width:150px;flex:none;font-size:12.5px;color:#9397ab">Dismissed</div>
+        <div style="width:432px;flex:none;height:20px;background:#15181C;opacity:.55;display:flex;align-items:center;gap:8px;padding:0 12px;border-left:1px solid #5B8DEF">
+          <div style="font:500 10.5px/1 'Public Sans',sans-serif;color:#9AA1AB;flex:1">CAM-091 · Dismissed — shadow</div>
+          <div style="font:600 10.5px/1 'Public Sans',sans-serif;color:#CFD3E0;text-decoration:underline;cursor:pointer">Undo</div>
+        </div>
+        <div style="flex:1;font-size:12.5px;color:#9397ab;line-height:1.4">Collapses to a 20px strip with its reason and an undo, holds 8s, then leaves.</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;border-top:1px solid #292b31;padding-top:20px;margin-top:8px">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:15px;font-weight:600">Connection indicator</div>
+        <sc-for list="{{ connStates }}" as="cs" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:10px;height:10px;border-radius:50%;background:{{ cs.hex }};animation:{{ cs.anim }};flex:none"></div>
+            <div style="width:130px;flex:none;font:600 12.5px/1 'Public Sans',sans-serif;color:#E8EAED">{{ cs.name }}</div>
+            <div style="flex:1;font-size:12px;color:#9397ab">{{ cs.note }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:15px;font-weight:600">Buffered new-events bar</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid #6B737B;border-radius:2px;width:fit-content">
+          <div style="width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:6px solid #CFD3E0"></div>
+          <div style="font:600 12.5px/1 'Public Sans',sans-serif;color:#E8EAED">+3 new events</div>
+          <div style="font:500 11.5px/1 'Public Sans',sans-serif;color:#9AA1AB">Press Home, or click to jump to newest</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid #FF4433;border-left-width:3px;border-radius:2px;width:fit-content">
+          <div style="width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:6px solid #FF4433"></div>
+          <div style="font:600 12.5px/1 'Public Sans',sans-serif;color:#E8EAED">+4 new · 1 critical</div>
+          <div style="font:500 11.5px/1 'Public Sans',sans-serif;color:#9397ab">Escalates even while the operator has scrolled away</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FRAME 5 -->
+  <section style="width:1344px;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #292b31;padding-bottom:12px">
+      <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#968ae0">05</div>
+      <h2 style="margin:0;font-size:28px">Degradation and edge states</h2>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:16px;background:#1b1d2c;display:flex;flex-direction:column;gap:12px">
+        <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#75798c">Connection lost</div>
+        <div style="border-radius:2px;overflow:hidden;border:1px solid #23272B">
+          <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;background:#1C2024;border-bottom:1px solid #23272B">
+            <div style="width:8px;height:8px;border-radius:50%;background:#9B5C5C"></div>
+            <div style="font:600 12px/1 'Public Sans',sans-serif;color:#E8EAED">OFFLINE</div>
+            <div style="font:500 12px/1 'Public Sans',sans-serif;color:#9AA1AB">Feed connection lost. Showing data as of 02:19:44. Reconnecting automatically.</div>
+          </div>
+          <div style="padding:8px;display:flex;flex-direction:column;gap:6px;opacity:.5">
+            <div style="height:34px;background:#15181C;border-left:2px solid #E4C230"></div>
+            <div style="height:34px;background:#15181C;border-left:1px solid #5B8DEF"></div>
+            <div style="height:34px;background:#15181C;border-left:1px solid #5B8DEF"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:16px;background:#1b1d2c;display:flex;flex-direction:column;gap:12px">
+        <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#75798c">Empty queue</div>
+        <div style="border-radius:2px;border:1px solid #23272B;background:#15181C;padding:36px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+          <div style="width:32px;height:32px;border-radius:50%;border:2px solid #5BA98C;display:flex;align-items:center;justify-content:center;font:600 15px/1 'Public Sans',sans-serif;color:#5BA98C">✓</div>
+          <div style="font:600 14px/1.3 'Public Sans',sans-serif;color:#E8EAED">Queue clear</div>
+          <div style="font:500 12.5px/1.5 'Public Sans',sans-serif;color:#9AA1AB;max-width:320px">All 18 feeds live. New detections appear here automatically.</div>
+        </div>
+      </div>
+
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:16px;background:#1b1d2c;display:flex;flex-direction:column;gap:12px">
+        <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#75798c">Snapshot failed to load</div>
+        <div style="height:170px;border-radius:2px;border:1px dashed #6B737B;background:#0D0F12;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px">
+          <div style="width:34px;height:26px;border:2px solid #676E77;border-radius:2px;position:relative"><div style="position:absolute;left:-1px;top:11px;width:38px;height:2px;background:#676E77;transform:rotate(-28deg)"></div></div>
+          <div style="font:600 12.5px/1.4 'Public Sans',sans-serif;color:#E8EAED;text-align:center">Snapshot unavailable</div>
+          <div style="font:500 11.5px/1.5 'Public Sans',sans-serif;color:#9AA1AB;text-align:center;max-width:280px">The camera feed may be delayed. Retry, or continue from the description below.</div>
+          <button style="background:transparent;border:1px solid #6B737B;color:#E8EAED;font:500 11.5px/1 'Public Sans',sans-serif;padding:6px 14px;border-radius:2px;cursor:pointer;margin-top:2px">Retry</button>
+        </div>
+      </div>
+
+      <div style="border:1px solid #3f424d;border-radius:8px;padding:16px;background:#1b1d2c;display:flex;flex-direction:column;gap:12px">
+        <div style="font:600 12px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#75798c">Low-confidence, needs verification</div>
+        <div style="border:1px dashed #6B737B;border-radius:2px;padding:12px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font:600 10.5px/1 'Public Sans',sans-serif;letter-spacing:.06em;color:#9AA1AB;border:1px solid #6B737B;border-radius:2px;padding:2px 6px">NEEDS VERIFICATION</div>
+            <div style="font:600 12.5px/1 'IBM Plex Mono',monospace;color:#9AA1AB;margin-left:auto">41% confidence</div>
+          </div>
+          <div style="font:600 13px/1.3 'Public Sans',sans-serif;color:#E8EAED">CAM-091 · M25 anti-clockwise, J9</div>
+          <div style="font:500 12px/1.5 'Public Sans',sans-serif;color:#9AA1AB">Possible debris in lane 1. Low-confidence detection — image contrast was poor.</div>
+          <div style="display:flex;gap:8px">
+            <button style="background:transparent;border:1px solid #6B737B;color:#E8EAED;font:500 12px/1 'Public Sans',sans-serif;padding:7px 12px;border-radius:2px;cursor:pointer">Confirm as Medium</button>
+            <button style="background:transparent;border:1px solid #23272B;color:#9AA1AB;font:500 12px/1 'Public Sans',sans-serif;padding:7px 12px;border-radius:2px;cursor:pointer">Dismiss, not real</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer style="width:1344px;border-top:1px solid #292b31;padding-top:16px;font-size:12.5px;color:#75798c;display:flex;gap:24px">
+    <div>Pass C of three — high fidelity, built on Pass A's chosen layout and Pass B's approved tokens. Try one of the follow-up prompts next: a supervisor's critique, the four-events-at-once proof, or exporting these tokens as Tailwind.</div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showCaptions&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Annotation&quot;}}">
+class Component extends DCLogic {
+  state = { seq: 0 };
+
+  playSequence = () => {
+    this.setState({ seq: 0 });
+    setTimeout(() => this.setState({ seq: 1 }), 260);
+    setTimeout(() => this.setState({ seq: 2 }), 1600);
+  };
+
+  renderVals() {
+    const showCaptions = this.props.showCaptions ?? true;
+    const seq = this.state.seq;
+
+    const PR = {
+      critical: { hex: '#FF4433', bs: 4, shape: 'clip-path:polygon(50% 0%,0% 100%,100% 100%)' },
+      high: { hex: '#FFA426', bs: 3, shape: 'clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%)' },
+      medium: { hex: '#E4C230', bs: 2, shape: 'border-radius:50%' },
+      low: { hex: '#5B8DEF', bs: 1, shape: 'border-radius:3px' }
+    };
+    const mkRow = (prKey, cam, loc, what, age, extra = {}) => {
+      const unread = !!extra.unread;
+      return {
+        pr: PR[prKey].hex, bs: PR[prKey].bs, shape: PR[prKey].shape,
+        cam, loc, what, age,
+        bg: extra.bg || 'transparent',
+        unread,
+        nameWeight: unread ? 600 : 500,
+        ageWeight: unread ? 600 : 500,
+        ageColor: unread ? '#E8EAED' : '#9AA1AB'
+      };
+    };
+
+    const rows12 = [
+      mkRow('critical', 'CAM-014', 'M6 N · Jct 8–9', 'Wrong-way driver', '05:37'),
+      mkRow('high', 'CAM-108', 'M42 S · Jct 3a–4', 'Stopped vehicle, live lane', '00:52', { unread: true }),
+      mkRow('high', 'CAM-231', 'M6 Toll · Jct T1–T2', 'Debris, live lane', '03:18'),
+      mkRow('medium', 'CAM-062', 'M6 N · Jct 10a', 'Stopped vehicle, hard shoulder', '06:41', { bg: '#262B30' }),
+      mkRow('medium', 'CAM-019', 'M25 clockwise · J6–7', 'Congestion building', '01:05', { unread: true }),
+      mkRow('medium', 'CAM-145', 'M6 S · Jct 15', 'Debris, hard shoulder', '11:22'),
+      mkRow('medium', 'CAM-077', 'M42 N · Jct 8', 'Smoke, verge', '18:09'),
+      mkRow('medium', 'CAM-203', 'M6 N · Jct 11a–12', 'Congestion, lanes 1–2', '22:47'),
+      mkRow('low', 'CAM-091', 'M25 anti-clockwise · J9', 'Low-confidence detection', '09:14'),
+      mkRow('low', 'CAM-156', 'M6 S · Jct 4', 'Routine congestion', '44:52'),
+      mkRow('low', 'CAM-038', 'M42 S · Jct 1', 'Resolved, logging', '52:30'),
+      mkRow('low', 'CAM-152', 'M6 N · Jct 9–10', 'Resolved, logging', '58:03')
+    ];
+    const rowsF2 = [
+      mkRow('critical', 'CAM-014', 'M6 N · Jct 8–9', 'Wrong-way driver, live lane 2 of 3', '00:00', { unread: true, bg: 'rgba(255,68,51,0.10)' }),
+      ...rows12.slice(1)
+    ];
+
+    const openCounts = [
+      { hex: '#FF4433', shapeStyle: 'clip-path:polygon(50% 0%,0% 100%,100% 100%)', n: 1 },
+      { hex: '#FFA426', shapeStyle: 'clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%)', n: 2 },
+      { hex: '#E4C230', shapeStyle: 'border-radius:50%', n: 5 },
+      { hex: '#5B8DEF', shapeStyle: 'border-radius:3px', n: 4 }
+    ];
+
+    const filmstripBase = [
+      { label: 'T + 0.0s — detection lands', clock: '02:14:07.0', bannerH: 0, bannerOp: 0, rowBg: 'transparent', rowOp: 0, rowTf: 'translateY(-6px)', showUnread: false, age: '00:00', note: 'Nothing on screen yet — the detector has fired but the UI hasn\u2019t painted it.' },
+      { label: 'T + 0.3s — banner and row settle', clock: '02:14:07.3', bannerH: 44, bannerOp: 1, rowBg: 'rgba(255,68,51,0.10)', rowOp: 1, rowTf: 'translateY(0)', showUnread: true, age: '00:00', note: 'Banner has expanded from 0; the row has inserted into the pinned band. Both finish inside 220ms.' },
+      { label: 'T + 8s — still waiting', clock: '02:14:15.0', bannerH: 44, bannerOp: 1, rowBg: 'transparent', rowOp: 1, rowTf: 'translateY(0)', showUnread: true, age: '00:08', note: 'Banner has not auto-dismissed — nothing does. Row is still unread; the age counter is the only thing moving.' }
+    ];
+    const filmstrip = filmstripBase;
+
+    const bannerLiveStyle = `height:${seq === 0 ? 0 : 44}px;opacity:${seq === 0 ? 0 : 1};overflow:hidden;transition:height 220ms cubic-bezier(.16,.8,.24,1),opacity 220ms cubic-bezier(.16,.8,.24,1)`;
+    const rowLiveStyle = `opacity:${seq === 0 ? 0 : 1};transform:${seq === 0 ? 'translateY(-6px)' : 'translateY(0)'};transition:all 180ms cubic-bezier(.2,.7,.3,1)`;
+    const ageLive = ['00:00', '00:00', '00:08'][seq];
+    const showUnreadLive = seq >= 1;
+    const tabLive = seq === 0 ? 'Incident Monitor — Sector 4' : '(1) CRITICAL · Incident Monitor';
+    const tabDotLive = seq === 0 ? '#6B737B' : '#FF4433';
+
+    return {
+      showCaptions,
+      playSequence: this.playSequence,
+      tabLive, tabDotLive,
+      bannerLiveStyle, rowLiveStyle, ageLive, showUnreadLive,
+      filmstrip,
+
+      priorityLegend: [
+        { name: 'CRITICAL', hex: '#FF4433', shapeStyle: 'clip-path:polygon(50% 0%,0% 100%,100% 100%)' },
+        { name: 'HIGH', hex: '#FFA426', shapeStyle: 'clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%)' },
+        { name: 'MEDIUM', hex: '#E4C230', shapeStyle: 'border-radius:50%' },
+        { name: 'LOW', hex: '#5B8DEF', shapeStyle: 'border-radius:3px' }
+      ],
+      openCounts,
+      rows12,
+      rowsF2,
+
+      facts1: [
+        { k: 'Location', v: 'M6 northbound · Jct 10a' },
+        { k: 'Mile marker', v: 'MM 34.7' },
+        { k: 'Detection latency', v: '0.8s' },
+        { k: 'Confidence', v: '92%' }
+      ],
+      facts3: [
+        { k: 'Location', v: 'M6 northbound · Jct 8–9' },
+        { k: 'Mile marker', v: 'MM 42.3' },
+        { k: 'Detection latency', v: '0.6s' },
+        { k: 'Confidence', v: '96%' }
+      ],
+      audit3: [
+        { t: '02:14:07', d: 'Detected · confidence 96% (system)' },
+        { t: '02:14:07', d: 'Priority set Critical (system)' },
+        { t: '02:14:19', d: 'Unacknowledged 20s — banner re-fired, pushed to supervisor (system)' },
+        { t: '02:14:41', d: 'Acknowledged (J. Kavanagh)' }
+      ],
+
+      matrixRows: [
+        { label: 'Default', pr: '#E4C230', bs: 2, shape: 'border-radius:50%', cam: 'CAM-077', loc: 'M42 N · Jct 8', what: 'Debris, hard shoulder', age: '18:09', ageWeight: 500, ageColor: '#9AA1AB', textWeight: 500, rowShadow: 'none', hasBadge: false, badge: '', badgeStyle: '', caption: 'Baseline row — no special state.' },
+        { label: 'Hovered', pr: '#E4C230', bs: 2, shape: 'border-radius:50%', cam: 'CAM-077', loc: 'M42 N · Jct 8', what: 'Debris, hard shoulder', age: '18:09', ageWeight: 500, ageColor: '#9AA1AB', textWeight: 500, rowShadow: 'inset 0 0 0 1px #23272B', hasBadge: false, badge: '', badgeStyle: '', caption: 'Pointer over the row — background lifts one step, no colour added.' },
+        { label: 'Keyboard-focused', pr: '#E4C230', bs: 2, shape: 'border-radius:50%', cam: 'CAM-077', loc: 'M42 N · Jct 8', what: 'Debris, hard shoulder', age: '18:09', ageWeight: 500, ageColor: '#9AA1AB', textWeight: 500, rowShadow: 'inset 0 0 0 2px #E8EAED', hasBadge: false, badge: '', badgeStyle: '', caption: '↑↓ focus ring — 2px inset, neutral, never the priority colour.' },
+        { label: 'Selected', pr: '#E4C230', bs: 2, shape: 'border-radius:50%', cam: 'CAM-062', loc: 'M6 N · Jct 10a', what: 'Stopped vehicle, hard shoulder', age: '06:41', ageWeight: 500, ageColor: '#9AA1AB', textWeight: 600, rowShadow: 'none', hasBadge: false, badge: '', badgeStyle: '', caption: 'Persistent highlight — stays while the detail pane shows it.' },
+        { label: 'New & unread', pr: '#FFA426', bs: 3, shape: 'clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%)', cam: 'CAM-108', loc: 'M42 S · Jct 3a–4', what: 'Stopped vehicle, live lane', age: '00:52', ageWeight: 600, ageColor: '#E8EAED', textWeight: 600, rowShadow: 'none', hasBadge: true, badge: '●', badgeStyle: 'font-size:9px;color:#E8EAED;flex:none', caption: 'Unread dot, bolder text. Clears the moment it\u2019s opened.' },
+        { label: 'Ageing past SLA', pr: '#E4C230', bs: 2, shape: 'border-radius:50%', cam: 'CAM-019', loc: 'M25 clockwise · J6–7', what: 'Congestion building', age: '07:42', ageWeight: 600, ageColor: '#E8EAED', textWeight: 500, rowShadow: 'none', hasBadge: true, badge: 'SLA', badgeStyle: "font:600 9.5px/1 'Public Sans',sans-serif;color:#9AA1AB;border:1px solid #6B737B;border-radius:2px;padding:2px 5px;flex:none", caption: 'Age gains weight and an outline tag — contrast, not a new hue.' },
+        { label: 'Acknowledged', pr: '#FF4433', bs: 4, shape: 'clip-path:polygon(50% 0%,0% 100%,100% 100%)', cam: 'CAM-014', loc: 'M6 N · Jct 8–9', what: 'Wrong-way driver', age: '00:41', ageWeight: 500, ageColor: '#9AA1AB', textWeight: 500, rowShadow: 'none', hasBadge: true, badge: 'JK', badgeStyle: "font:600 9.5px/1 'IBM Plex Mono',monospace;color:#15181C;background:#E8EAED;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex:none", caption: 'Owner\u2019s initials replace the unread dot. Clock keeps running.' },
+        { label: 'Dispatched', pr: '#FF4433', bs: 4, shape: 'clip-path:polygon(50% 0%,0% 100%,100% 100%)', cam: 'CAM-014', loc: 'Unit 12 · ETA 4 min', what: 'M6 N · Jct 8–9', age: '04:12', ageWeight: 500, ageColor: '#9AA1AB', textWeight: 500, rowShadow: 'none', hasBadge: false, badge: '', badgeStyle: '', caption: 'Calm treatment — unit and ETA replace the raw description.' }
+      ],
+
+      connStates: [
+        { name: 'LIVE', hex: '#5BA98C', anim: 'none', note: 'Feed connected, processing normally. Steady, no motion.' },
+        { name: 'RECONNECTING', hex: '#B98A4A', anim: 'pcPulse 1.6s ease-in-out infinite', note: 'Dropped and retrying — the only status dot allowed to move.' },
+        { name: 'OFFLINE', hex: '#9B5C5C', anim: 'none', note: 'Feed down. Static, paired with a frozen "data as of" timestamp.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

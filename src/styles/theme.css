@@ -1,0 +1,161 @@
+/*
+ * Pass B's token sheet, ported into a Tailwind v4 @theme block.
+ *
+ * Source of truth: docs/design/Pass B - Visual system.dc.html
+ * Mapping and rationale: docs/DESIGN_INVENTORY.md §1.2
+ *
+ * These tokens are consumed, never re-authored. If a value you need is not
+ * here, that is a signal the design needs a decision — not that you should
+ * reach for an arbitrary utility. `pnpm lint` enforces this.
+ *
+ * Four values marked (§5.1) appear in Pass C but were never declared in
+ * Pass B. They are named here rather than hard-coded at each use site;
+ * DESIGN_INVENTORY.md §5.1 is the record of why they exist.
+ */
+
+@theme {
+  /* ── Surfaces ─────────────────────────────────────────────────────────
+   * Three elevation levels, floor lifted off true black. A dim room adapts
+   * the eye's baseline down, so #000 beside white text and a critical chip
+   * creates halation that worsens across a 12-hour shift. (Pass B §02)
+   */
+  --color-ground: #15181c; /* Surface 0 — app background, ~9% luminance   */
+  --color-panel: #1c2024; /* Surface 1 — queue rows, side panels, detail  */
+  --color-raised: #262b30; /* Surface 2 — banner, modal, selected row     */
+  --color-well: #0d0f12; /* §5.1 — the snapshot well, behind imagery      */
+
+  /* ── Text ─────────────────────────────────────────────────────────────
+   * Ratios measured against --color-ground.
+   */
+  --color-text-primary: #e8eaed; /* 14.77:1 — values that drive the call  */
+  --color-text-body: #cfd3e0; /* §5.1 — descriptions, button labels       */
+  --color-text-secondary: #9aa1ab; /* 6.83:1 — labels and metadata        */
+  --color-text-tertiary: #676e77; /* 3.45:1 — large or tabular only       */
+
+  /* ── Borders ──────────────────────────────────────────────────────────*/
+  --color-border-hairline: #23272b; /* row rules — decorative separation  */
+  --color-border-component: #6b737b; /* meaningful edges, at the 3:1 floor*/
+
+  /* ── Priority — the only saturated tokens in the system ───────────────
+   * Colour is never the sole cue. Each priority also carries a border
+   * weight, a shape from sign taxonomy, an icon, and a text label; the
+   * weights and shapes live in src/lib/priority.ts so a row, a chip and a
+   * status-bar count can never disagree. (Pass B §02)
+   */
+  --color-critical: #ff4433; /* 5.2:1  · 4px border · triangle — danger   */
+  --color-high: #ffa426; /* 8.98:1 · 3px border · diamond  — warning      */
+  --color-medium: #e4c230; /* 10.22:1 · 2px border · circle — caution     */
+  --color-low: #5b8def; /* 5.51:1 · 1px border · square   — info         */
+
+  --color-critical-tint: rgb(255 68 51 / 0.1); /* §5.1 — new-critical row */
+  --color-osd-plate: rgb(13 15 18 / 0.6); /* §5.1 — burned-in overlay     */
+
+  /* ── System state ─────────────────────────────────────────────────────
+   * Deliberately lower chroma than the priority ramp above: a glance must
+   * never confuse "connection degraded" with "high priority". (Pass B §02)
+   */
+  --color-live: #5ba98c; /* 6.36:1 — steady, no motion                    */
+  --color-reconnecting: #b98a4a; /* 5.76:1 — the only dot allowed to move */
+  --color-offline: #9b5c5c; /* 3.46:1 — static, with a frozen timestamp   */
+
+  /* ── Type ─────────────────────────────────────────────────────────────
+   * Public Sans descends from Interstate, the US highway-signage
+   * letterform — a road typeface tuned for legibility at small sizes,
+   * not a display face pressed into service. IBM Plex Mono carries true
+   * tabular-lining figures, so a counter ticking once a second never
+   * reflows the characters beside it. (Pass B §03)
+   *
+   * Both are self-hosted by next/font in src/app/layout.tsx.
+   */
+  --font-ui: var(--font-public-sans), system-ui, sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+
+  /* UI scale. Never bolder than 600 — hierarchy is size and space. */
+  --text-micro: 11px; /* dense micro-metadata — row secondary line        */
+  --text-micro--line-height: 16px;
+  --text-micro--font-weight: 500;
+
+  --text-kicker: 12px; /* kicker labels, section eyebrows                 */
+  --text-kicker--line-height: 16px;
+  --text-kicker--font-weight: 500;
+
+  --text-caption: 13px; /* captions, row primary line                     */
+  --text-caption--line-height: 18px;
+  --text-caption--font-weight: 500;
+
+  --text-ui: 14px; /* UI default — buttons, inputs                        */
+  --text-ui--line-height: 20px;
+  --text-ui--font-weight: 500;
+
+  --text-body: 16px; /* detail-pane body copy                            */
+  --text-body--line-height: 22px;
+  --text-body--font-weight: 500;
+
+  --text-title: 18px; /* incident title, subsection headings             */
+  --text-title--line-height: 24px;
+  --text-title--font-weight: 600;
+
+  --text-panel: 20px; /* panel headings — queue header, detail header    */
+  --text-panel--line-height: 26px;
+  --text-panel--font-weight: 600;
+
+  --text-dialog: 24px; /* dialog title — the only heading this large     */
+  --text-dialog--line-height: 30px;
+  --text-dialog--font-weight: 600;
+
+  /* Mono scale — every live number sets here. */
+  --text-mono-micro: 11px; /* mile markers, camera IDs in dense rows      */
+  --text-mono-micro--line-height: 16px;
+  --text-mono-micro--font-weight: 500;
+
+  --text-mono-meta: 12px; /* timestamps, confidence, latency             */
+  --text-mono-meta--line-height: 16px;
+  --text-mono-meta--font-weight: 500;
+
+  --text-mono-age: 14px; /* live age counters — the number most watched  */
+  --text-mono-age--line-height: 20px;
+  --text-mono-age--font-weight: 500;
+
+  --text-mono-hero: 16px; /* hero timestamp in the detail pane           */
+  --text-mono-hero--line-height: 22px;
+  --text-mono-hero--font-weight: 600;
+
+  /* ── Spacing ──────────────────────────────────────────────────────────
+   * 4px base grid: "every gap, padding and offset is a multiple of 4".
+   * One declaration generates the whole scale, so every layout constant in
+   * the frames resolves to a plain utility with no arbitrary values —
+   * status bar h-12 (48), banner h-13 (52), queue w-108 (432), row h-10
+   * (40), queue header h-9 (36), action bar h-11 (44), dismissed strip h-5
+   * (20). (Pass B §04)
+   */
+  --spacing: 4px;
+
+  /* ── Radius — a ceiling, not a scale ──────────────────────────────────
+   * Pass B renders and explicitly rejects 12px: "reads soft and
+   * consumer-grade. An instrument doesn't need a hug."
+   */
+  --radius-panel: 0px; /* panels, rows, cells — an instrument bezel       */
+  --radius-control: 2px; /* buttons, inputs, frames                       */
+  --radius-chip: 3px; /* priority chips — the ceiling                     */
+
+  /* ── Motion ───────────────────────────────────────────────────────────
+   * Durations are custom properties rather than @theme keys so that one
+   * prefers-reduced-motion block in globals.css can retarget all of them
+   * at once, and no component ever branches on the preference in JS.
+   * (Pass B §05, DESIGN_INVENTORY.md §3.4)
+   */
+  --ease-row: cubic-bezier(0.2, 0.7, 0.3, 1); /* row insertion            */
+  --ease-banner: cubic-bezier(0.16, 0.8, 0.24, 1); /* banner entry        */
+
+  --animate-pulse-status: pulse-status 1.6s ease-in-out infinite;
+
+  @keyframes pulse-status {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+}

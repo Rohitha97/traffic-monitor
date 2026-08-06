@@ -1,0 +1,26 @@
+# The reviewer's quick start: `docker compose up`, and nothing else.
+#
+# Phase 1 ships the dashboard alone. The `detector-sim` service — the ~60-line
+# Node script that POSTs generated events to /api/events/ingest — lands in
+# phase 3 alongside the ingest route it talks to. Adding it now would mean a
+# compose file that cannot come up, which would defeat the point of proving
+# this one works before any feature is written.
+
+services:
+  dashboard:
+    build:
+      context: .
+      target: runner
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: production
+    # 127.0.0.1 rather than localhost — see the note on HEALTHCHECK in the
+    # Dockerfile. Against localhost this silently never goes healthy.
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/api/health']
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
