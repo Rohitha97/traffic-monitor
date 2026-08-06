@@ -33,17 +33,29 @@ Requires Node 22+. Both paths are verified from a clean clone.
 
 ## Project status
 
-Built in phases. **Phases 0 and 1 are complete.**
+Built in phases. **Phases 0–2 are complete.**
 
 | Phase                   | State | What it covers                                                                                    |
 | ----------------------- | ----- | ------------------------------------------------------------------------------------------------- |
 | 0 · Design import       | ✅    | Design read and inventoried; source exported to `docs/design/`                                    |
 | 1 · Scaffold            | ✅    | Next 15 + TS strict + Tailwind v4, token layer, adherence lint, Docker, health route, layout grid |
-| 2 · Design system layer | —     | Every Pass C component and its full state matrix at `/dev/states`                                 |
+| 2 · Design system layer | ✅    | 17 components, every Pass C state, verified at `/dev/states`                                      |
 | 3 · Data and transport  | —     | Zod schema, `derivePriority` + tests, SSE, Zustand store, `detector-sim`                          |
 | 4 · Queue and detail    | —     | Filters, keyboard navigation, buffered arrivals, evidence panel, the three actions                |
 | 5 · Real-time layer     | —     | Critical banner choreography, sound, tab badging, degradation states                              |
 | 6 · Polish and proof    | —     | Playwright journey, full README, AI log, a11y and Lighthouse passes                               |
+
+## Seeing the components
+
+`/dev/states` renders every component in every state Pass C draws, with the design's own captions
+beside each one, so it can be diffed directly against the frames. Development-only —
+`next.config.ts` rewrites `/dev/*` to a 404 in production.
+
+```bash
+pnpm dev
+```
+
+Then open <http://localhost:3000/dev/states>.
 
 ## Design process
 

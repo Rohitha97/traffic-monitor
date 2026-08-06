@@ -70,55 +70,70 @@
   --font-ui: var(--font-public-sans), system-ui, sans-serif;
   --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
 
-  /* UI scale. Never bolder than 600 — hierarchy is size and space. */
+  /*
+   * UI scale. Never bolder than 600 — hierarchy is size and space.
+   *
+   * Line height is carried on the token; weight deliberately is not. Pass C
+   * varies weight independently of size at almost every size (500 for a read
+   * row, 600 for the same row unread), so weight is always stated explicitly
+   * at the call site with font-medium / font-semibold. Baking a default here
+   * would mean every override depended on utility source order.
+   */
   --text-micro: 11px; /* dense micro-metadata — row secondary line        */
   --text-micro--line-height: 16px;
-  --text-micro--font-weight: 500;
 
   --text-kicker: 12px; /* kicker labels, section eyebrows                 */
   --text-kicker--line-height: 16px;
-  --text-kicker--font-weight: 500;
 
   --text-caption: 13px; /* captions, row primary line                     */
   --text-caption--line-height: 18px;
-  --text-caption--font-weight: 500;
 
   --text-ui: 14px; /* UI default — buttons, inputs                        */
   --text-ui--line-height: 20px;
-  --text-ui--font-weight: 500;
 
   --text-body: 16px; /* detail-pane body copy                            */
   --text-body--line-height: 22px;
-  --text-body--font-weight: 500;
 
   --text-title: 18px; /* incident title, subsection headings             */
   --text-title--line-height: 24px;
-  --text-title--font-weight: 600;
 
   --text-panel: 20px; /* panel headings — queue header, detail header    */
   --text-panel--line-height: 26px;
-  --text-panel--font-weight: 600;
 
   --text-dialog: 24px; /* dialog title — the only heading this large     */
   --text-dialog--line-height: 30px;
-  --text-dialog--font-weight: 600;
+
+  /*
+   * Letter-spacing. Pass C tracks out every uppercase run — the three values
+   * below are the only ones it uses, and they scale inversely with size the
+   * way small-caps setting should.
+   */
+  --tracking-label: 0.06em; /* priority labels — CRITICAL, HIGH           */
+  --tracking-field: 0.08em; /* uppercase field labels in the detail pane  */
+  --tracking-kicker: 0.1em; /* section kickers — QUEUE · 12 OPEN          */
 
   /* Mono scale — every live number sets here. */
   --text-mono-micro: 11px; /* mile markers, camera IDs in dense rows      */
   --text-mono-micro--line-height: 16px;
-  --text-mono-micro--font-weight: 500;
 
   --text-mono-meta: 12px; /* timestamps, confidence, latency             */
   --text-mono-meta--line-height: 16px;
-  --text-mono-meta--font-weight: 500;
 
   --text-mono-age: 14px; /* live age counters — the number most watched  */
   --text-mono-age--line-height: 20px;
-  --text-mono-age--font-weight: 500;
 
   --text-mono-hero: 16px; /* hero timestamp in the detail pane           */
   --text-mono-hero--line-height: 22px;
-  --text-mono-hero--font-weight: 600;
+
+  /* ── Elevation ────────────────────────────────────────────────────────
+   * On a dark ground elevation is an edge plus ambient darkness, never a
+   * stack of shadows (nocturne readme, carried forward). Row state uses
+   * inset rings so it costs no layout — the row must never move under the
+   * cursor. (Pass C frame 4)
+   */
+  --shadow-row-hover: inset 0 0 0 1px var(--color-border-hairline);
+  --shadow-row-focus: inset 0 0 0 2px var(--color-text-primary);
+  --shadow-incident-pin: 0 0 0 3px rgb(255 68 51 / 0.25);
 
   /* ── Spacing ──────────────────────────────────────────────────────────
    * 4px base grid: "every gap, padding and offset is a multiple of 4".

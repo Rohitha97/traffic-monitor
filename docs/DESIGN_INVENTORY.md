@@ -391,13 +391,32 @@ Pass B declares 11 / 12 / 13 / 14 / 16 / 18 / 20 / 24. Pass C renders 9.5, 10, 1
 12, 12.5, 13, 15, 18, 20 — six sizes that are not on the approved scale, most of them half-pixel.
 Pass C also uses 18px detail-pane padding and a 118px panel, both off the declared 4px grid.
 
-**Proposed:** snap to Pass B's scale, since it is the approved token sheet and the brief's own rule
+**Resolved:** snap to Pass B's scale, since it is the approved token sheet and the brief's own rule
 is that tokens are consumed rather than re-authored. Every delta is ≤1px and none changes a line
-count or a layout break. The one exception is the queue row's 12.5px primary line, which sits
-between two scale steps and is load-bearing for the "twelve rows at 1440×900 without scrolling"
-density target — I will verify the row count at 13px before snapping it, and keep 12.5px as a
-token if 13px costs a row. **Resolved this way unless you object;** the density check is a phase-2
-verification item.
+count or a layout break.
+
+Snapping is **by role, not by nearest number** — Pass B assigns each step a job, so a value is
+snapped to the step whose job it is doing. The facts panel's 13px mono values go to 12px, for
+instance, because Pass B's 12px mono step is defined as "timestamps, confidence %, latency", which
+is exactly what that panel contains.
+
+| Drawn in Pass C    | Snapped to               | Role                            |
+| ------------------ | ------------------------ | ------------------------------- |
+| 9.5, 10, 10.5, 11  | `--text-micro` (11)      | dense micro-metadata, badges    |
+| 11.5, 12           | `--text-kicker` (12)     | labels, section eyebrows        |
+| 12.5, 13           | `--text-caption` (13)    | row primary line, button labels |
+| 15                 | `--text-body` (16)       | detail-pane body copy           |
+| 18, 20, 24         | unchanged                | already on the scale            |
+| 9.5–11 mono        | `--text-mono-micro` (11) | mile markers, camera IDs        |
+| 11.5–13 mono       | `--text-mono-meta` (12)  | timestamps, confidence, latency |
+| 18px pane padding  | `p-5` (20)               | nearest 4px step                |
+| 118px camera panel | `h-30` (120)             | nearest 4px step                |
+
+> **The guarded exception resolved in phase 2.** The queue row's 12.5px primary line was flagged as
+> possibly load-bearing for the "twelve rows at 1440×900 without scrolling" density target. It is
+> not: the row is a fixed 40px with truncating text, so type size cannot change the row count.
+> Measured on the running build — row height exactly 40px at 13px type, and the queue region has
+> room for 18 rows at that height, comfortably past the target of 12. Snapped to 13px with no cost.
 
 ### 5.3 ⚠️ "Nearby cameras" is a schematic strip, not a map — and the stack mandates maplibre
 

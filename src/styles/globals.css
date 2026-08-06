@@ -40,6 +40,24 @@
   }
 }
 
+/*
+ * Priority glyph shapes, borrowed directly from sign taxonomy: triangle for
+ * danger, diamond for warning, circle for caution, square for info. Shape is
+ * the fifth cue on top of colour, icon, label and border weight — an operator
+ * with a colour-vision deficiency on a badly calibrated monitor still reads
+ * severity. (Pass B §02)
+ *
+ * Circle and square are plain radii (rounded-full / rounded-chip) and need no
+ * utility here.
+ */
+@utility clip-triangle {
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+
+@utility clip-diamond {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
 @layer base {
   html {
     background-color: var(--color-ground);
