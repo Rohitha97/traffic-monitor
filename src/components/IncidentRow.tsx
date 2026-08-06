@@ -1,3 +1,5 @@
+'use client';
+
 import { PriorityGlyph } from '@/components/PriorityGlyph';
 import { PRIORITY, type Priority } from '@/lib/priority';
 
@@ -23,6 +25,7 @@ interface IncidentRowProps {
   dispatch?: { unit: string; eta: string };
   /** A critical that has just landed, before the tint settles. */
   arriving?: boolean;
+  onSelect?: () => void;
   className?: string;
 }
 
@@ -52,6 +55,7 @@ export function IncidentRow({
   owner,
   dispatch,
   arriving = false,
+  onSelect,
   className = '',
 }: IncidentRowProps) {
   const { strip, fill, label } = PRIORITY[priority];
@@ -71,7 +75,22 @@ export function IncidentRow({
     <div
       role="option"
       aria-selected={selected}
-      tabIndex={-1}
+      /*
+       * Roving tabindex: only the selected row is in the tab order, so Tab
+       * moves past the queue rather than through every incident in it. Moving
+       * *within* the queue is ↑↓, handled globally — one keyboard axis, no
+       * modes. (Pass A §04)
+       */
+      tabIndex={selected ? 0 : -1}
+      onClick={onSelect}
+      onKeyDown={(event) => {
+        // Space selects without acknowledging; Enter is bound globally to
+        // acknowledge, so it is deliberately not handled here.
+        if (event.key === ' ') {
+          event.preventDefault();
+          onSelect?.();
+        }
+      }}
       className={`flex h-10 cursor-pointer items-center gap-2 border-b border-border-hairline px-2.5 outline-none transition-colors duration-(--duration-state) hover:shadow-row-hover focus-visible:shadow-row-focus ${
         selected ? 'bg-raised' : arriving ? 'bg-critical-tint' : ''
       } ${className}`}

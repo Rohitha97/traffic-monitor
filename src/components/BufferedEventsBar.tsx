@@ -1,7 +1,10 @@
+'use client';
+
 interface BufferedEventsBarProps {
   count: number;
   /** How many of the buffered events are critical. Non-zero escalates the bar. */
   criticalCount?: number;
+  onLoad?: () => void;
 }
 
 /**
@@ -16,6 +19,7 @@ interface BufferedEventsBarProps {
 export function BufferedEventsBar({
   count,
   criticalCount = 0,
+  onLoad,
 }: BufferedEventsBarProps) {
   const escalated = criticalCount > 0;
 
@@ -23,6 +27,7 @@ export function BufferedEventsBar({
     <button
       type="button"
       aria-live="polite"
+      onClick={onLoad}
       className={`rounded-control flex w-fit cursor-pointer items-center gap-2.5 border px-3 py-2 transition-colors duration-(--duration-state) hover:bg-text-primary/6 ${
         escalated ? 'border-l-3 border-critical' : 'border-border-component'
       }`}

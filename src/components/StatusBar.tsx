@@ -14,7 +14,13 @@ interface StatusBarProps {
   localTime: string;
   utcTime: string;
   muted: boolean;
+  onToggleMute?: () => void;
+  /** Priorities currently filtered to; empty means everything. */
+  activeFilters?: ReadonlySet<Priority>;
+  onToggleFilter?: (priority: Priority) => void;
 }
+
+const NO_FILTERS: ReadonlySet<Priority> = new Set<Priority>();
 
 /**
  * The 48px status bar. Feed health, open counts by priority, both clocks, and
@@ -31,6 +37,9 @@ export function StatusBar({
   localTime,
   utcTime,
   muted,
+  onToggleMute,
+  activeFilters = NO_FILTERS,
+  onToggleFilter,
 }: StatusBarProps) {
   return (
     <header
@@ -44,7 +53,11 @@ export function StatusBar({
         className="h-5 w-px flex-none bg-border-hairline"
       />
 
-      <OpenCounts counts={counts} />
+      <OpenCounts
+        counts={counts}
+        active={activeFilters}
+        onToggle={onToggleFilter ?? (() => {})}
+      />
 
       <span className="flex-1" />
 
@@ -61,7 +74,7 @@ export function StatusBar({
        * Audio is muted on first load and the control says so. A page that
        * makes noise before consent is hostile; the choice then persists.
        */}
-      <Button size="xs" aria-pressed={muted}>
+      <Button size="xs" aria-pressed={muted} onClick={onToggleMute}>
         {muted ? 'Unmute' : 'Mute'}
       </Button>
     </header>

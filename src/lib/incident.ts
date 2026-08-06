@@ -129,6 +129,7 @@ export function toDetailView(event: DetectionEvent) {
           : `${entry.action} (${entry.actor})`,
     })),
     ...(event.assignedTo ? { acknowledgedBy: event.assignedTo } : {}),
+    ...(event.dispatch ? { dispatched: event.dispatch } : {}),
   };
 }
 

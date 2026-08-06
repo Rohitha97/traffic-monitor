@@ -109,9 +109,18 @@ export const detectionEventSchema = z.object({
       etaMinutes: z.number().int().positive(),
     })
     .optional(),
-  /** Set on dismissal. The reason is how the detection model improves. */
+  /**
+   * Set on dismissal. The reason is how the detection model improves.
+   * `previousStatus` exists so undo restores the lock rather than resetting to
+   * new — dismissing an acknowledged incident and undoing it must give the
+   * operator their incident back, not somebody else's to claim.
+   */
   dismissal: z
-    .object({ reason: z.string().min(1), at: z.iso.datetime() })
+    .object({
+      reason: z.string().min(1),
+      at: z.iso.datetime(),
+      previousStatus: statusSchema.optional(),
+    })
     .optional(),
   /** A dismissed incident that re-detected within 3 minutes comes back tagged. */
   seenBefore: z.boolean().optional(),

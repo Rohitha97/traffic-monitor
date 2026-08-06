@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from '@/components/Button';
 import { PriorityGlyph } from '@/components/PriorityGlyph';
 
@@ -8,6 +10,8 @@ interface CriticalBannerProps {
   detail: string;
   /** False collapses the banner to zero height without unmounting it. */
   present?: boolean;
+  onAcknowledge?: (() => void) | undefined;
+  onView?: (() => void) | undefined;
 }
 
 /**
@@ -26,6 +30,8 @@ export function CriticalBanner({
   headline,
   detail,
   present = true,
+  onAcknowledge,
+  onView,
 }: CriticalBannerProps) {
   return (
     <div
@@ -61,10 +67,10 @@ export function CriticalBanner({
 
         <span className="flex-1" />
 
-        <Button variant="primary" size="sm">
+        <Button variant="primary" size="sm" onClick={onAcknowledge}>
           Acknowledge
         </Button>
-        <Button variant="secondary" size="sm">
+        <Button variant="secondary" size="sm" onClick={onView}>
           View
         </Button>
       </div>

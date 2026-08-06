@@ -1,5 +1,6 @@
 import { ActionBar } from '@/components/ActionBar';
 import { AuditTrail, type AuditEntry } from '@/components/AuditTrail';
+import type { DismissReason } from '@/components/DismissReasonMenu';
 import { CameraSnapshot } from '@/components/CameraSnapshot';
 import { FactsPanel } from '@/components/FactsPanel';
 import { NearbyCameras, type NearbyCamera } from '@/components/NearbyCameras';
@@ -35,10 +36,16 @@ export interface IncidentDetailData {
   acknowledgedBy?: string;
   /** "34s after arrival" */
   acknowledgedAfter?: string;
+  dispatched?: { unit: string; etaMinutes: number };
 }
 
 interface IncidentDetailProps {
   incident?: IncidentDetailData;
+  onAcknowledge?: () => void;
+  onDispatchRequest?: () => void;
+  onDismiss?: (reason: DismissReason) => void;
+  dismissOpen?: boolean;
+  onDismissOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -53,7 +60,14 @@ interface IncidentDetailProps {
  * saturated text on the frame. Rendering "critical" without "live lane 2 of 3,
  * junction approach" would be showing the conclusion and hiding the argument.
  */
-export function IncidentDetail({ incident }: IncidentDetailProps) {
+export function IncidentDetail({
+  incident,
+  onAcknowledge,
+  onDispatchRequest,
+  onDismiss,
+  dismissOpen,
+  onDismissOpenChange,
+}: IncidentDetailProps) {
   if (!incident) {
     return (
       <main
@@ -137,6 +151,12 @@ export function IncidentDetail({ incident }: IncidentDetailProps) {
         {...(incident.acknowledgedBy
           ? { acknowledgedBy: incident.acknowledgedBy }
           : {})}
+        {...(incident.dispatched ? { dispatched: incident.dispatched } : {})}
+        {...(onAcknowledge ? { onAcknowledge } : {})}
+        {...(onDispatchRequest ? { onDispatchRequest } : {})}
+        {...(onDismiss ? { onDismiss } : {})}
+        {...(dismissOpen !== undefined ? { dismissOpen } : {})}
+        {...(onDismissOpenChange ? { onDismissOpenChange } : {})}
       />
     </main>
   );

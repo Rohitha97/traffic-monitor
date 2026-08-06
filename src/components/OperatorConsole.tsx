@@ -1,16 +1,20 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { BufferedEventsBar } from '@/components/BufferedEventsBar';
 import { CriticalBanner } from '@/components/CriticalBanner';
+import { DismissedStrip } from '@/components/DismissedStrip';
+import { DispatchConfirm } from '@/components/DispatchConfirm';
 import { EmptyQueue } from '@/components/EmptyQueue';
 import { IncidentDetail } from '@/components/IncidentDetail';
 import { IncidentRow } from '@/components/IncidentRow';
 import { OfflineNotice } from '@/components/OfflineNotice';
+import { ShortcutOverlay } from '@/components/ShortcutOverlay';
 import { StatusBar } from '@/components/StatusBar';
 import { useEventStream } from '@/hooks/useEventStream';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useLiveClock } from '@/hooks/useLiveClock';
 import { FEED_COUNT } from '@/lib/cameras';
 import { formatClock, formatClockUtc, formatTimestamp } from '@/lib/format';
@@ -20,21 +24,24 @@ import {
   toDetailView,
   toRowView,
 } from '@/lib/incident';
+import { PRIORITY } from '@/lib/priority';
 import {
   isBreachingSla,
   selectBufferedCritical,
+  selectCriticalAlert,
+  selectLeavingEvents,
   selectOpenCounts,
+  selectQueueEvents,
   selectSelected,
-  selectVisibleEvents,
   useEventStore,
 } from '@/store/useEventStore';
 
 /**
  * The operator's screen: master–detail with a pinned critical band.
  *
- * Everything here is driven from one store slice on one shared tick. The
- * client boundary starts at this component rather than at the page so the
- * layout shell stays a server component.
+ * Everything is driven from one store slice on one shared tick. The client
+ * boundary starts here rather than at the page, so the layout shell stays a
+ * server component.
  */
 export function OperatorConsole() {
   useEventStream();
@@ -45,27 +52,53 @@ export function OperatorConsole() {
   const dataAsOf = useEventStore((state) => state.dataAsOf);
   const buffered = useEventStore((state) => state.buffered);
   const selectedId = useEventStore((state) => state.selectedId);
+  const filters = useEventStore((state) => state.filters);
+  const muted = useEventStore((state) => state.muted);
+
   const select = useEventStore((state) => state.select);
   const flushBuffered = useEventStore((state) => state.flushBuffered);
   const setScrolledAway = useEventStore((state) => state.setScrolledAway);
+  const acknowledge = useEventStore((state) => state.acknowledge);
+  const dispatchResponse = useEventStore((state) => state.dispatchResponse);
+  const dismiss = useEventStore((state) => state.dismiss);
+  const undoDismiss = useEventStore((state) => state.undoDismiss);
+  const toggleFilter = useEventStore((state) => state.toggleFilter);
+  const toggleMute = useEventStore((state) => state.toggleMute);
 
   /*
-   * useShallow on the two selectors that build a fresh array or object each
-   * call. Zustand v5 compares by reference, so without it these would report a
-   * change on every store update — including the once-a-second tick — and
-   * React would warn that the store snapshot is not cached. The whole reason
-   * for choosing a store over Context was to keep a one-second clock from
-   * re-rendering the world; this is where that is actually enforced.
+   * useShallow on the selectors that build a fresh array or object each call.
+   * Zustand v5 compares by reference, so without it these would report a change
+   * on every store update — including the once-a-second tick — and React would
+   * warn the store snapshot is not cached. Choosing a store over Context only
+   * pays off if this is enforced.
    */
-  const visible = useEventStore(useShallow(selectVisibleEvents));
+  const queue = useEventStore(useShallow(selectQueueEvents));
   const counts = useEventStore(useShallow(selectOpenCounts));
   const selected = useEventStore(selectSelected);
   const bufferedCritical = useEventStore(selectBufferedCritical);
+  const criticalAlert = useEventStore(selectCriticalAlert);
 
-  // Clocks are client-only state: rendering them on the server would ship a
-  // timestamp from build time and hydrate into a mismatch.
+  const [dispatchOpen, setDispatchOpen] = useState(false);
+  const [dismissOpen, setDismissOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // Clocks are client-only: rendering them on the server would ship a build-time
+  // timestamp and hydrate into a mismatch.
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => setNow(Date.now()), [tick]);
+  const clock = now ?? 0;
+
+  /*
+   * Subscribe to the raw list and derive the leaving set outside the selector.
+   * An inline selector closing over `clock` would be a new function on every
+   * render, which defeats useShallow's memoisation and resubscribes the store
+   * every second.
+   */
+  const allEvents = useEventStore(useShallow((state) => state.events));
+  const leaving = useMemo(
+    () => selectLeavingEvents(allEvents, clock),
+    [allEvents, clock],
+  );
 
   // Buffering turns on as soon as an incident is open — an arrival must never
   // move what is being read.
@@ -73,19 +106,49 @@ export function OperatorConsole() {
     setScrolledAway(selectedId !== null);
   }, [selectedId, setScrolledAway]);
 
-  // Warm every queued snapshot so opening a detail never shows a spinner.
+  // Warm every queued snapshot so opening a detail never shows a spinner. The
+  // single biggest perceived-speed win available here.
   useEffect(() => {
-    for (const event of visible) preloadSnapshot(event.snapshotUrl);
-  }, [visible]);
+    for (const event of queue) preloadSnapshot(event.snapshotUrl);
+  }, [queue]);
 
-  // The banner shows the newest unacknowledged critical, and retires the
-  // moment it is acknowledged. Nothing auto-dismisses it. (Pass A, Pass C f2)
-  const criticalAlert = useMemo(
-    () => visible.find((e) => e.priority === 'critical' && e.status === 'new'),
-    [visible],
+  // Keep the keyboard selection in view as ↑↓ walks past the fold.
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!selectedId) return;
+    listRef.current
+      ?.querySelector(`[data-event-id="${CSS.escape(selectedId)}"]`)
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [selectedId]);
+
+  const onGenerate = useCallback((critical: boolean) => {
+    void fetch('/api/events/ingest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: critical ? JSON.stringify({ preset: 'critical' }) : '{}',
+    });
+  }, []);
+
+  const onDispatchRequest = useCallback(() => setDispatchOpen(true), []);
+  const onDismissRequest = useCallback(() => setDismissOpen(true), []);
+  const onToggleShortcuts = useCallback(
+    () => setShortcutsOpen((open) => !open),
+    [],
   );
 
-  const clock = now ?? 0;
+  useKeyboardShortcuts({
+    onDispatchRequest,
+    onDismissRequest,
+    onToggleShortcuts,
+    onGenerate,
+    // Radix owns the keyboard while a dialog or menu is open.
+    suspended: dispatchOpen || dismissOpen || shortcutsOpen,
+  });
+
+  const filterLabel =
+    filters.size === 0
+      ? null
+      : [...filters].map((p) => PRIORITY[p].title).join(', ');
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-ground">
@@ -98,7 +161,10 @@ export function OperatorConsole() {
         counts={counts}
         localTime={now === null ? '--:--:--' : formatClock(now)}
         utcTime={now === null ? '--:--:--' : formatClockUtc(now)}
-        muted
+        muted={muted}
+        onToggleMute={toggleMute}
+        activeFilters={filters}
+        onToggleFilter={toggleFilter}
       />
 
       {/*
@@ -117,6 +183,10 @@ export function OperatorConsole() {
             ? `${criticalAlert.priorityReason.split(' — ')[1] ?? ''} · detected ${formatTimestamp(criticalAlert.detectedAt)}`
             : ''
         }
+        onAcknowledge={
+          criticalAlert ? () => acknowledge(criticalAlert.id) : undefined
+        }
+        onView={criticalAlert ? () => select(criticalAlert.id) : undefined}
       />
 
       {connection === 'offline' && dataAsOf && (
@@ -130,7 +200,8 @@ export function OperatorConsole() {
         >
           <div className="flex h-9 flex-none items-center justify-between border-b border-border-hairline px-3">
             <h2 className="text-micro tracking-kicker font-semibold text-text-tertiary uppercase">
-              Queue · {visible.length} open
+              Queue · {queue.length} open
+              {filterLabel && ` · ${filterLabel} only`}
             </h2>
             <span className="text-micro font-medium text-text-secondary">
               Newest first
@@ -139,33 +210,31 @@ export function OperatorConsole() {
 
           {buffered.length > 0 && (
             <div className="flex-none border-b border-border-hairline p-2">
-              <button
-                type="button"
-                onClick={flushBuffered}
-                className="w-full cursor-pointer text-left"
-              >
-                <BufferedEventsBar
-                  count={buffered.length}
-                  criticalCount={bufferedCritical}
-                />
-              </button>
+              <BufferedEventsBar
+                count={buffered.length}
+                criticalCount={bufferedCritical}
+                onLoad={flushBuffered}
+              />
             </div>
           )}
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            {visible.length === 0 ? (
+          <div
+            ref={listRef}
+            className="min-h-0 flex-1 overflow-y-auto"
+            onScroll={(event) =>
+              setScrolledAway(
+                event.currentTarget.scrollTop > 0 || selectedId !== null,
+              )
+            }
+          >
+            {queue.length === 0 && leaving.length === 0 ? (
               <div className="p-3">
                 <EmptyQueue feeds={{ online: FEED_COUNT, total: FEED_COUNT }} />
               </div>
             ) : (
               <div role="listbox" aria-label="Open incidents">
-                {visible.map((event) => (
-                  <button
-                    key={event.id}
-                    type="button"
-                    onClick={() => select(event.id)}
-                    className="block w-full text-left"
-                  >
+                {queue.map((event) => (
+                  <div key={event.id} data-event-id={event.id}>
                     <IncidentRow
                       {...toRowView(event, clock)}
                       selected={event.id === selectedId}
@@ -173,9 +242,26 @@ export function OperatorConsole() {
                       arriving={
                         event.priority === 'critical' && event.status === 'new'
                       }
+                      onSelect={() => select(event.id)}
                     />
-                  </button>
+                  </div>
                 ))}
+
+                {/*
+                 * Incidents on their way out keep their place for the undo
+                 * window rather than vanishing — a row that disappears on click
+                 * gives no chance to notice a mis-click.
+                 */}
+                {leaving.map((event) =>
+                  event.status === 'dismissed' && event.dismissal ? (
+                    <DismissedStrip
+                      key={event.id}
+                      camera={event.camera.id}
+                      reason={event.dismissal.reason.toLowerCase()}
+                      onUndo={() => undoDismiss(event.id)}
+                    />
+                  ) : null,
+                )}
               </div>
             )}
           </div>
@@ -183,8 +269,42 @@ export function OperatorConsole() {
 
         <IncidentDetail
           {...(selected ? { incident: toDetailView(selected) } : {})}
+          {...(selected
+            ? {
+                onAcknowledge: () => acknowledge(selected.id),
+                onDispatchRequest,
+                onDismiss: (reason: string) => {
+                  dismiss(selected.id, reason);
+                  setDismissOpen(false);
+                },
+              }
+            : {})}
+          dismissOpen={dismissOpen}
+          onDismissOpenChange={setDismissOpen}
         />
       </div>
+
+      <DispatchConfirm
+        open={dispatchOpen}
+        onOpenChange={setDispatchOpen}
+        onConfirm={() => {
+          if (selected) dispatchResponse(selected.id);
+          setDispatchOpen(false);
+        }}
+        {...(selected
+          ? {
+              incident: {
+                priority: selected.priority,
+                summary: summaryOf(selected),
+                camera: selected.camera.id,
+                location: selected.camera.name,
+                priorityReason: selected.priorityReason,
+              },
+            }
+          : {})}
+      />
+
+      <ShortcutOverlay open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </div>
   );
 }

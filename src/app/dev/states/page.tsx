@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import { BufferedEventsBar } from '@/components/BufferedEventsBar';
 import { CameraSnapshot } from '@/components/CameraSnapshot';
 import { CriticalBanner } from '@/components/CriticalBanner';
-import { DismissReasonMenu } from '@/components/DismissReasonMenu';
 import { DismissedStrip } from '@/components/DismissedStrip';
 import { EmptyQueue } from '@/components/EmptyQueue';
 import {
@@ -16,6 +15,8 @@ import { OfflineNotice } from '@/components/OfflineNotice';
 import { PriorityChip } from '@/components/PriorityChip';
 import { StatusBar } from '@/components/StatusBar';
 import { PRIORITIES } from '@/lib/priority';
+
+import { DialogDemos } from './DialogDemos';
 
 export const metadata: Metadata = {
   title: 'Component states — Incident Monitor',
@@ -400,14 +401,17 @@ export default function ComponentStatesPage() {
               confirmAs="medium"
             />
           </State>
-          <State
-            label="Dismiss reasons"
-            width="w-70"
-            caption="A dismissal reason is the training signal that improves the detector, so the picker is mandatory."
-          >
-            <DismissReasonMenu />
-          </State>
         </div>
+      </Section>
+
+      <Section title="Overlays" source="Radix · focus-trapped">
+        <State
+          label="Open each"
+          width="flex-1 min-w-0"
+          caption="Dismissing always states a reason — that reason is the training signal that improves the detector. Dispatch confirms, but with a single keypress: the confirm button takes focus on open, so D then Enter completes it."
+        >
+          <DialogDemos />
+        </State>
       </Section>
 
       <Section title="Detail pane" source="Pass C frame 3">

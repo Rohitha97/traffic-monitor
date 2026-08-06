@@ -1,7 +1,10 @@
+'use client';
+
 interface DismissedStripProps {
   camera: string;
   /** The false-positive reason the operator picked — it feeds detector tuning. */
   reason: string;
+  onUndo?: () => void;
 }
 
 /**
@@ -11,7 +14,11 @@ interface DismissedStripProps {
  * The undo lives in the row rather than in a toast so it stays where the
  * operator's eye already is — and so it cannot cover another incident.
  */
-export function DismissedStrip({ camera, reason }: DismissedStripProps) {
+export function DismissedStrip({
+  camera,
+  reason,
+  onUndo,
+}: DismissedStripProps) {
   return (
     <div className="flex h-5 items-center gap-2 border-b border-border-hairline px-3 opacity-55">
       <span aria-hidden="true" className="h-full w-0.25 flex-none bg-low" />
@@ -20,6 +27,7 @@ export function DismissedStrip({ camera, reason }: DismissedStripProps) {
       </span>
       <button
         type="button"
+        onClick={onUndo}
         className="text-micro cursor-pointer font-semibold text-text-body underline underline-offset-2 hover:text-text-primary"
       >
         Undo

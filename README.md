@@ -33,15 +33,15 @@ Requires Node 22+. Both paths are verified from a clean clone.
 
 ## Project status
 
-Built in phases. **Phases 0–3 are complete.**
+Built in phases. **Phases 0–4 are complete.**
 
 | Phase                   | State | What it covers                                                                                    |
 | ----------------------- | ----- | ------------------------------------------------------------------------------------------------- |
 | 0 · Design import       | ✅    | Design read and inventoried; source exported to `docs/design/`                                    |
 | 1 · Scaffold            | ✅    | Next 15 + TS strict + Tailwind v4, token layer, adherence lint, Docker, health route, layout grid |
 | 2 · Design system layer | ✅    | 17 components, every Pass C state, verified at `/dev/states`                                      |
-| 3 · Data and transport  | ✅    | Zod schema, `derivePriority` + 20 tests, SSE, Zustand store, `detector-sim`                       |
-| 4 · Queue and detail    | —     | Filters, keyboard navigation, buffered arrivals, evidence panel, the three actions                |
+| 3 · Data and transport  | ✅    | Zod schema, `derivePriority` + tests, SSE, Zustand store, `detector-sim`                          |
+| 4 · Queue and detail    | ✅    | Filters, keyboard navigation, buffered arrivals, the three actions with undo · 42 tests           |
 | 5 · Real-time layer     | —     | Critical banner choreography, sound, tab badging, degradation states                              |
 | 6 · Polish and proof    | —     | Playwright journey, full README, AI log, a11y and Lighthouse passes                               |
 
@@ -73,6 +73,28 @@ curl -X POST -H 'Content-Type: application/json' -d '{}' http://localhost:3000/a
 Note what comes back: an id and a **priority the dashboard decided**. The detector posts what the
 camera saw — type, lane position, confidence — and never a priority. That is the whole point of
 the boundary, and it is why the triage rules stay auditable.
+
+## Keyboard
+
+Press `?` in the app for the live list — it renders from the same table the key handler dispatches
+from, so it cannot drift from what actually works.
+
+| Key                  |                                                  |
+| -------------------- | ------------------------------------------------ |
+| `↑` `↓` (or `K` `J`) | Previous / next incident — previews as it moves  |
+| `Enter`              | Acknowledge, and take the lock                   |
+| `D`                  | Dispatch a response — `Enter` confirms           |
+| `X`                  | Dismiss as a false positive, with a reason       |
+| `R`                  | Mark resolved                                    |
+| `Home`               | Load buffered new events                         |
+| `Esc`                | Close the detail pane                            |
+| `1`–`4` / `0`        | Filter by priority / clear                       |
+| `M`                  | Mute / unmute                                    |
+| `G`                  | Generate a test event (`Shift+G` for a critical) |
+
+Note `Enter` **acknowledges** rather than opens. That is Pass A's state machine: `↑↓` already
+previews, so opening is not an action that needs a key. It is one of eleven places the design and
+the build brief disagree, all enumerated in `DESIGN_INVENTORY.md` §6.
 
 ## Seeing the components
 

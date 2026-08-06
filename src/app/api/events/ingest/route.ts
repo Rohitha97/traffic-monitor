@@ -41,13 +41,27 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: 'Body is not valid JSON' }, { status: 400 });
   }
 
-  // A demo affordance: an empty body means "make something up", which is what
-  // the G keypress and `pnpm seed` use. A body is validated properly.
-  if (
+  /*
+   * Demo affordances for the walkthrough, behind explicit shapes so a real
+   * observation can never accidentally take this path: an empty body means
+   * "make something up" (the G key), and `{ preset: 'critical' }` forces a
+   * wrong-way driver in a live lane (Shift+G). Anything else is validated as a
+   * real detection.
+   */
+  const isEmpty =
     body === null ||
-    (typeof body === 'object' && Object.keys(body).length === 0)
-  ) {
-    const event = generateEvent();
+    (typeof body === 'object' && Object.keys(body).length === 0);
+  const isCriticalPreset =
+    typeof body === 'object' &&
+    body !== null &&
+    (body as { preset?: unknown }).preset === 'critical';
+
+  if (isEmpty || isCriticalPreset) {
+    const event = generateEvent(
+      isCriticalPreset
+        ? { type: 'wrong_way_driver', lanePosition: 'live_lane' }
+        : {},
+    );
     publish(event);
     return Response.json(
       { id: event.id, priority: event.priority },
