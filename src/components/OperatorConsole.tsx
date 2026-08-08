@@ -233,7 +233,7 @@ export function OperatorConsole() {
           className="flex w-108 flex-none flex-col border-r border-border-hairline"
         >
           <div className="flex h-9 flex-none items-center justify-between border-b border-border-hairline px-3">
-            <h2 className="text-micro tracking-kicker font-semibold text-text-tertiary uppercase">
+            <h2 className="text-micro tracking-kicker font-semibold text-text-secondary uppercase">
               Queue · {queue.length} open
               {filterLabel && ` · ${filterLabel} only`}
             </h2>

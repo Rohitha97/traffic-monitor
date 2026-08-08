@@ -23,7 +23,7 @@ interface AuditTrailProps {
 export function AuditTrail({ entries }: AuditTrailProps) {
   return (
     <section className="rounded-control flex min-h-0 flex-1 flex-col gap-1.75 overflow-hidden border border-border-hairline p-2.5">
-      <h3 className="text-micro tracking-field font-semibold text-text-tertiary uppercase">
+      <h3 className="text-micro tracking-field font-semibold text-text-secondary uppercase">
         Audit trail
       </h3>
       <ol className="flex min-h-0 flex-col gap-1.75 overflow-y-auto">
@@ -32,7 +32,7 @@ export function AuditTrail({ entries }: AuditTrailProps) {
             key={`${entry.at}-${entry.action}`}
             className="flex items-baseline gap-2.5"
           >
-            <span className="text-mono-micro w-16 flex-none font-mono font-medium text-text-tertiary">
+            <span className="text-mono-micro w-16 flex-none font-mono font-medium text-text-secondary">
               {entry.at}
             </span>
             <span className="text-micro font-medium text-text-body">

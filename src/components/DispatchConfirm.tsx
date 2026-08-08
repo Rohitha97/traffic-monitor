@@ -51,7 +51,11 @@ export function DispatchConfirm({
               <AlertDialog.Description asChild>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2.5">
-                    <PriorityChip priority={incident.priority} size="sm" />
+                    <PriorityChip
+                      priority={incident.priority}
+                      size="sm"
+                      onRaised
+                    />
                     <span className="text-caption font-semibold text-text-primary">
                       {incident.summary}
                     </span>

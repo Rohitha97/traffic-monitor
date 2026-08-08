@@ -69,12 +69,18 @@ export function IncidentDetail({
   onDismissOpenChange,
 }: IncidentDetailProps) {
   if (!incident) {
+    /*
+     * The live region is on both branches, not only the populated one. A live
+     * region created at the same moment as its content does not reliably
+     * announce — the region has to already exist for the change to be a change.
+     */
     return (
       <main
         aria-label="Incident detail"
+        aria-live="polite"
         className="flex min-w-0 flex-1 items-center justify-center p-5"
       >
-        <p className="text-micro tracking-label max-w-70 text-center font-semibold text-text-tertiary uppercase">
+        <p className="text-micro tracking-label max-w-70 text-center font-semibold text-text-secondary uppercase">
           Select an incident to review it
         </p>
       </main>

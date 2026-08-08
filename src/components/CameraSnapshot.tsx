@@ -49,7 +49,7 @@ export function CameraSnapshot({
         <svg
           aria-hidden="true"
           viewBox="0 0 40 32"
-          className="h-8 w-10 text-text-tertiary"
+          className="h-8 w-10 text-text-secondary"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -94,7 +94,7 @@ export function CameraSnapshot({
         />
       ) : (
         <div className="flex size-full items-center justify-center">
-          <p className="text-micro tracking-field font-semibold text-text-tertiary uppercase">
+          <p className="text-micro tracking-field font-semibold text-text-secondary uppercase">
             No snapshot yet
           </p>
         </div>

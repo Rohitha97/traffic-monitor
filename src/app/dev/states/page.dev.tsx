@@ -48,7 +48,7 @@ function Section({
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline gap-3 border-b border-border-hairline pb-2">
         <h2 className="text-title font-semibold text-text-primary">{title}</h2>
-        <span className="text-micro tracking-field font-semibold text-text-tertiary uppercase">
+        <span className="text-micro tracking-field font-semibold text-text-secondary uppercase">
           {source}
         </span>
       </div>
@@ -76,7 +76,7 @@ function State({
       </span>
       <div className={`${width} bg-ground`}>{children}</div>
       {caption && (
-        <p className="text-kicker w-80 flex-none font-medium text-text-tertiary">
+        <p className="text-kicker w-80 flex-none font-medium text-text-secondary">
           {caption}
         </p>
       )}
@@ -120,7 +120,7 @@ export default function ComponentStatesPage() {
   return (
     <div className="flex min-h-dvh flex-col gap-12 bg-ground p-10">
       <header className="flex flex-col gap-2">
-        <p className="text-micro tracking-kicker font-semibold text-text-tertiary uppercase">
+        <p className="text-micro tracking-kicker font-semibold text-text-secondary uppercase">
           Development only · excluded from the production build
         </p>
         <h1 className="text-dialog font-semibold text-text-primary">

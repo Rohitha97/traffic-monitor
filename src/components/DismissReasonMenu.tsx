@@ -53,9 +53,10 @@ export function DismissReasonMenu({
         <DropdownMenu.Content
           align="end"
           sideOffset={6}
+          aria-label="Dismiss as false positive"
           className="rounded-control flex w-fit flex-col border border-border-component bg-raised py-1 shadow-row-hover"
         >
-          <DropdownMenu.Label className="text-micro tracking-field px-3 py-1 font-semibold text-text-tertiary uppercase">
+          <DropdownMenu.Label className="text-micro tracking-field px-3 py-1 font-semibold text-text-secondary uppercase">
             Why is this not real?
           </DropdownMenu.Label>
           {DISMISS_REASONS.map((reason) => (

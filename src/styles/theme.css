@@ -30,7 +30,15 @@
   --color-text-primary: #e8eaed; /* 14.77:1 — values that drive the call  */
   --color-text-body: #cfd3e0; /* §5.1 — descriptions, button labels       */
   --color-text-secondary: #9aa1ab; /* 6.83:1 — labels and metadata        */
-  --color-text-tertiary: #676e77; /* 3.45:1 — large or tabular only       */
+  /*
+   * 3.45:1 — Pass B scopes this to "large or tabular only". Below WCAG AA's
+   * 4.5:1 for normal text, which an axe pass confirmed against the running
+   * build, so no feature code consumes it: every small label that Pass C draws
+   * in tertiary is rendered in --color-text-secondary instead, and hierarchy
+   * is carried by size and weight. Kept because it is Pass B's token and this
+   * layer is the design's inventory, not a list of what happens to be used.
+   */
+  --color-text-tertiary: #676e77;
 
   /* ── Borders ──────────────────────────────────────────────────────────*/
   --color-border-hairline: #23272b; /* row rules — decorative separation  */

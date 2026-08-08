@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!--
+    The resting tab icon: the app's ground with the live-feed dot, in the same
+    values as --color-ground and --color-live. It exists so the very first
+    request for an icon succeeds — useTabAlert redraws this on a canvas once
+    the alert state is known, but that cannot happen before JavaScript runs,
+    and a 404 in between is a console error a reviewer will see.
+  -->
+  <rect width="32" height="32" rx="6" fill="#15181c" />
+  <circle cx="16" cy="16" r="6" fill="#5ba98c" />
+</svg>

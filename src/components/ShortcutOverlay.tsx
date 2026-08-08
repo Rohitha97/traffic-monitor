@@ -31,14 +31,14 @@ export function ShortcutOverlay({ open, onOpenChange }: ShortcutOverlayProps) {
               <Dialog.Title className="text-title font-semibold text-text-primary">
                 Keyboard
               </Dialog.Title>
-              <Dialog.Description className="text-micro font-medium text-text-tertiary">
+              <Dialog.Description className="text-micro font-medium text-text-secondary">
                 ↑↓ previews as it moves, so opening is never a separate action.
               </Dialog.Description>
             </div>
 
             {SHORTCUT_GROUPS.map((group) => (
               <section key={group} className="flex flex-col gap-1.5">
-                <h3 className="text-micro tracking-field font-semibold text-text-tertiary uppercase">
+                <h3 className="text-micro tracking-field font-semibold text-text-secondary uppercase">
                   {group}
                 </h3>
                 <dl className="flex flex-col gap-1">

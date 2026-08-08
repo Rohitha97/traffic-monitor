@@ -37,7 +37,7 @@ export function NearbyCameras({ cameras, flowNote }: NearbyCamerasProps) {
 
   return (
     <section className="rounded-control flex h-30 flex-none flex-col border border-border-hairline p-2.5">
-      <h3 className="text-micro tracking-field mb-1 font-semibold text-text-tertiary uppercase">
+      <h3 className="text-micro tracking-field mb-1 font-semibold text-text-secondary uppercase">
         Nearby cameras
       </h3>
 

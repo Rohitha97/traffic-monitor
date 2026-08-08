@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from '@/components/Button';
 import {
   ConnectionIndicator,
@@ -61,12 +63,19 @@ export function StatusBar({
 
       <span className="flex-1" />
 
-      <div className="text-mono-meta flex items-center gap-4 font-mono font-medium text-text-secondary">
+      {/*
+       * The zone labels are subordinate to the times by *size*, not by a
+       * dimmer colour. Pass C draws them in text-tertiary, but that token
+       * measures 3.45:1 — Pass B itself scopes it to "large or tabular only",
+       * and an 11px label is neither. Deviating here is closer to Pass B's own
+       * rule than the frame is. (DECISIONS 6.3)
+       */}
+      <div className="text-mono-meta flex items-baseline gap-4 font-mono font-medium text-text-secondary">
         <span>
-          {localTime} <span className="text-text-tertiary">LOCAL</span>
+          {localTime} <span className="text-mono-micro">LOCAL</span>
         </span>
         <span>
-          {utcTime} <span className="text-text-tertiary">UTC</span>
+          {utcTime} <span className="text-mono-micro">UTC</span>
         </span>
       </div>
 

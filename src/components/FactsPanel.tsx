@@ -35,7 +35,7 @@ export function FactsPanel({
     <dl className="rounded-control flex flex-col gap-2 border border-border-hairline p-2.5">
       {facts.map(({ key, value }) => (
         <div key={key} className="flex items-center gap-2.5">
-          <dt className="text-micro tracking-field w-30 flex-none font-semibold text-text-tertiary uppercase">
+          <dt className="text-micro tracking-field w-30 flex-none font-semibold text-text-secondary uppercase">
             {key}
           </dt>
           <dd className="text-mono-meta font-mono font-semibold text-text-primary">
