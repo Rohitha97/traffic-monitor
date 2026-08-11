@@ -18,3 +18,7 @@ pnpm-debug.log*
 .vercel
 *.tsbuildinfo
 lh*.json
+
+# pnpm's content-addressable store, created when the visual suite installs
+# inside the Playwright container against the bind-mounted repo.
+.pnpm-store/

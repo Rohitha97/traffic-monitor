@@ -185,10 +185,29 @@ phases, each written when the decision was made. The ones worth stating up front
 | E2E           | 11 Playwright specs — the full journey driven from the keyboard                       |
 | Accessibility | 4 axe audits at WCAG 2.1 AA across four states, **zero violations**                   |
 | Lighthouse    | performance **100**, accessibility **100**, best practices **100**, SEO **100**       |
+| Visual        | 26 component states — 25 captured as images, 1 checked dimensionally                  |
 
 ```bash
 pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e
 ```
+
+Visual regression runs separately, because screenshots are not portable: font rasterisation differs
+enough between platforms that a snapshot taken on a laptop will never match CI. Capture and
+comparison both happen in the Playwright image, pinned to the installed version.
+
+```bash
+pnpm test:visual
+```
+
+The suite skips outside Linux rather than diffing, so nobody can commit snapshots their own machine
+produced. `pnpm test:visual:update` regenerates them in the same container. It catches the drift the
+adherence lint cannot see — the lint proves values come from tokens, not that the result still looks
+like the frame.
+
+One state is checked by dimension rather than by image: the collapsed critical band is zero-height
+by design, and a photograph of an empty element passes no matter what changes. It is asserted to
+have no height _and no bottom border_ — the second half being the actual bug it exists to catch, a
+permanent red rule across a quiet screen.
 
 ## Docker
 

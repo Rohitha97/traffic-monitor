@@ -29,3 +29,4 @@ e2e
 playwright.config.ts
 vitest.config.mts
 lh*.json
+.pnpm-store

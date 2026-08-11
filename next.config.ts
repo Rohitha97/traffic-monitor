@@ -24,6 +24,15 @@ const nextConfig: NextConfig = {
   pageExtensions: isProduction
     ? ['ts', 'tsx']
     : ['ts', 'tsx', 'dev.ts', 'dev.tsx'],
+
+  /*
+   * The visual-regression suite drives the dev server over 127.0.0.1 rather
+   * than the localhost the server reports, which Next flags as a cross-origin
+   * dev request and warns will need declaring in a future major. Declaring it
+   * now keeps the capture logs clean — a warning nobody has read is a warning
+   * nobody will notice changing.
+   */
+  allowedDevOrigins: ['127.0.0.1'],
 };
 
 export default nextConfig;

@@ -58,11 +58,23 @@ function Section({
 }
 
 function State({
+  id,
   label,
   caption,
   width = 'w-108 flex-none',
   children,
 }: {
+  /**
+   * Stable anchor for the visual-regression suite, which screenshots this
+   * element rather than the page. Screenshotting the component alone keeps
+   * the dev-server overlay, the section headings and the neighbouring states
+   * out of the frame, so a diff can only be caused by the component itself.
+   *
+   * The list of ids is asserted in e2e/visual.spec.ts: adding a state here
+   * without adding a test there fails the suite rather than silently going
+   * uncovered.
+   */
+  id: string;
   label: string;
   caption?: string;
   /** Pass 'flex-1 min-w-0' for components that should take the full row. */
@@ -74,7 +86,9 @@ function State({
       <span className="text-kicker w-38 flex-none font-medium text-text-secondary">
         {label}
       </span>
-      <div className={`${width} bg-ground`}>{children}</div>
+      <div data-vrt={id} className={`${width} bg-ground`}>
+        {children}
+      </div>
       {caption && (
         <p className="text-kicker w-80 flex-none font-medium text-text-secondary">
           {caption}
@@ -137,7 +151,12 @@ export default function ComponentStatesPage() {
       <Section title="Status bar" source="Pass C frames 1–2">
         <div className="flex flex-col gap-3">
           {(['live', 'reconnecting', 'offline'] as const).map((state) => (
-            <State key={state} label={state} width="flex-1 min-w-0">
+            <State
+              key={state}
+              id={`status-bar/${state}`}
+              label={state}
+              width="flex-1 min-w-0"
+            >
               <StatusBar
                 connection={state}
                 feeds={{ online: 18, total: 18 }}
@@ -148,7 +167,7 @@ export default function ComponentStatesPage() {
               />
             </State>
           ))}
-          <State label="unmuted" width="flex-1 min-w-0">
+          <State id="status-bar/unmuted" label="unmuted" width="flex-1 min-w-0">
             <StatusBar
               connection="live"
               feeds={{ online: 18, total: 18 }}
@@ -166,6 +185,7 @@ export default function ComponentStatesPage() {
           {PRIORITIES.map((priority) => (
             <State
               key={priority}
+              id={`priority-chip/${priority}`}
               label={priority}
               width="w-40"
               caption="Colour, border weight, shape, glyph and label — five cues, so a colour-blind operator on a badly calibrated monitor still reads severity."
@@ -182,7 +202,11 @@ export default function ComponentStatesPage() {
           aria-label="Queue row states"
           className="flex flex-col gap-3"
         >
-          <State label="Default" caption="Baseline row — no special state.">
+          <State
+            id="queue-row/default"
+            label="Default"
+            caption="Baseline row — no special state."
+          >
             <IncidentRow
               priority="medium"
               camera="CAM-077"
@@ -193,6 +217,7 @@ export default function ComponentStatesPage() {
           </State>
 
           <State
+            id="queue-row/hovered"
             label="Hovered"
             caption="Pointer over the row — background lifts one step, no colour added."
           >
@@ -207,6 +232,7 @@ export default function ComponentStatesPage() {
           </State>
 
           <State
+            id="queue-row/focused"
             label="Keyboard-focused"
             caption="↑↓ focus ring — 2px inset, neutral, never the priority colour."
           >
@@ -221,6 +247,7 @@ export default function ComponentStatesPage() {
           </State>
 
           <State
+            id="queue-row/selected"
             label="Selected"
             caption="Persistent highlight — stays while the detail pane shows it."
           >
@@ -235,6 +262,7 @@ export default function ComponentStatesPage() {
           </State>
 
           <State
+            id="queue-row/unread"
             label="New & unread"
             caption="Unread dot, bolder text. Clears the moment it’s opened."
           >
@@ -249,6 +277,7 @@ export default function ComponentStatesPage() {
           </State>
 
           <State
+            id="queue-row/sla"
             label="Ageing past SLA"
             caption="Age gains weight and an outline tag — contrast, not a new hue."
           >
@@ -263,6 +292,7 @@ export default function ComponentStatesPage() {
           </State>
 
           <State
+            id="queue-row/acknowledged"
             label="Acknowledged"
             caption="Owner’s initials replace the unread dot. Clock keeps running."
           >
@@ -277,6 +307,7 @@ export default function ComponentStatesPage() {
           </State>
 
           <State
+            id="queue-row/dispatched"
             label="Dispatched"
             caption="Calm treatment — unit and ETA replace the raw description."
           >
@@ -291,6 +322,7 @@ export default function ComponentStatesPage() {
           </State>
 
           <State
+            id="queue-row/arriving"
             label="Critical arriving"
             caption="The tint a critical row carries as it lands, before it settles."
           >
@@ -306,6 +338,7 @@ export default function ComponentStatesPage() {
           </State>
 
           <State
+            id="queue-row/dismissed"
             label="Dismissed"
             caption="Collapses to a 20px strip with its reason and an undo, holds 8s, then leaves."
           >
@@ -316,13 +349,14 @@ export default function ComponentStatesPage() {
 
       <Section title="Critical banner" source="Pass C frame 2">
         <div className="flex flex-col gap-3">
-          <State label="Present" width="flex-1 min-w-0">
+          <State id="banner/present" label="Present" width="flex-1 min-w-0">
             <CriticalBanner
               headline="Wrong-way driver — CAM-014, M6 northbound, Jct 8–9"
               detail="Live lane 2 of 3 · detected 0.6s ago"
             />
           </State>
           <State
+            id="banner/collapsed"
             label="Collapsed"
             width="flex-1 min-w-0"
             caption="Zero height when nothing is critical. It expands to 52px and pushes the app down — it never overlays what is being read."
@@ -338,10 +372,11 @@ export default function ComponentStatesPage() {
 
       <Section title="Buffered new-events bar" source="Pass C frame 4">
         <div className="flex flex-col gap-3">
-          <State label="Neutral" width="w-fit">
+          <State id="buffered-bar/neutral" label="Neutral" width="w-fit">
             <BufferedEventsBar count={3} />
           </State>
           <State
+            id="buffered-bar/critical"
             label="Critical escalated"
             width="w-fit"
             caption="Escalates even while the operator has scrolled away."
@@ -386,13 +421,17 @@ export default function ComponentStatesPage() {
 
       <Section title="Edge states" source="Pass C frame 5">
         <div className="flex flex-col gap-4">
-          <State label="Connection lost" width="flex-1 min-w-0">
+          <State
+            id="edge/offline"
+            label="Connection lost"
+            width="flex-1 min-w-0"
+          >
             <OfflineNotice dataAsOf="02:19:44" />
           </State>
-          <State label="Empty queue" width="w-108">
+          <State id="edge/empty-queue" label="Empty queue" width="w-108">
             <EmptyQueue feeds={{ online: 18, total: 18 }} />
           </State>
-          <State label="Low confidence" width="w-108">
+          <State id="edge/low-confidence" label="Low confidence" width="w-108">
             <LowConfidenceCard
               camera="CAM-091"
               location="M25 anti-clockwise, J9"
@@ -406,6 +445,7 @@ export default function ComponentStatesPage() {
 
       <Section title="Overlays" source="Radix · focus-trapped">
         <State
+          id="overlays/triggers"
           label="Open each"
           width="flex-1 min-w-0"
           caption="Dismissing always states a reason — that reason is the training signal that improves the detector. Dispatch confirms, but with a single keypress: the confirm button takes focus on open, so D then Enter completes it."
