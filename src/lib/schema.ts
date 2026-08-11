@@ -133,8 +133,18 @@ export const detectionEventSchema = z.object({
       previousStatus: statusSchema.optional(),
     })
     .optional(),
-  /** A dismissed incident that re-detected within 3 minutes comes back tagged. */
-  seenBefore: z.boolean().optional(),
+  /**
+   * Set when this detection re-litigates a call already made: the same object
+   * on the same camera, dismissed inside the reopen window.
+   *
+   * Carries the earlier reason rather than being a flag, because the rule is
+   * that the operator can see the judgement already made — a boolean plus a
+   * separate reason field would be two things that can disagree, and the tag
+   * is useless without the reason.
+   */
+  seenBefore: z
+    .object({ reason: z.string().min(1), at: z.iso.datetime() })
+    .optional(),
   resolvedAt: z.iso.datetime().optional(),
   history: z.array(historyEntrySchema),
 });

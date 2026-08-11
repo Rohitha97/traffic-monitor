@@ -53,6 +53,7 @@ export interface RowView {
   unread: boolean;
   owner?: string;
   dispatch?: { unit: string; eta: string };
+  seenBefore?: { reason: string };
 }
 
 export function toRowView(event: DetectionEvent, now: number): RowView {
@@ -72,10 +73,17 @@ export function toRowView(event: DetectionEvent, now: number): RowView {
           },
         }
       : {}),
+    /*
+     * Lower-cased to read as prose inside the tag — "Seen before · sensor
+     * glare" — the same treatment the dismissal strip gives the reason.
+     */
+    ...(event.seenBefore
+      ? { seenBefore: { reason: event.seenBefore.reason.toLowerCase() } }
+      : {}),
   };
 }
 
-/** "J. Kavanagh" → "JK". The row has 20px for ownership; a name does not fit. */
+/** "Rohitha" → "JK". The row has 20px for ownership; a name does not fit. */
 export function initialsOf(name: string): string {
   return name
     .split(/[\s.]+/)
@@ -104,6 +112,14 @@ export function toDetailView(event: DetectionEvent) {
     location: fullLocationOf(event.camera),
     mileMarker: event.camera.marker,
     priorityReason: event.priorityReason,
+    ...(event.seenBefore
+      ? {
+          seenBefore: {
+            reason: event.seenBefore.reason.toLowerCase(),
+            at: formatTimestamp(event.seenBefore.at),
+          },
+        }
+      : {}),
     description: event.description,
     detectionLatency: formatLatency(event.detectedAt, event.receivedAt),
     confidence: event.confidence,

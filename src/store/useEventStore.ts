@@ -34,7 +34,7 @@ export const DISMISS_UNDO_MS = 8000;
 export const RESOLVED_FADE_MS = 3000;
 
 /** Who is at this position. Single-operator demo; a real deployment would auth. */
-export const OPERATOR = 'J. Kavanagh';
+export const OPERATOR = 'Rohitha';
 
 export interface EventStoreState {
   /** Insertion-ordered, newest first. */
@@ -127,12 +127,25 @@ function withHistory(
  * The `window` guard keeps it out of the unit tests, which run in node and
  * exercise the store directly.
  */
-function postMark(id: string, mark: Mark, at: string, action: string): void {
+function postMark(
+  id: string,
+  mark: Mark,
+  at: string,
+  action: string,
+  dismissalReason?: string,
+): void {
   if (typeof window === 'undefined') return;
   void fetch('/api/events/mark', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, mark, at, actor: OPERATOR, action }),
+    body: JSON.stringify({
+      id,
+      mark,
+      at,
+      actor: OPERATOR,
+      action,
+      ...(dismissalReason !== undefined ? { dismissalReason } : {}),
+    }),
   }).catch(() => {
     // Metrics are not worth a console error on an operator's screen.
   });
@@ -153,9 +166,10 @@ function decisionMark(
   event: DetectionEvent,
   id: string,
   action: string,
+  dismissalReason?: string,
 ): Mark | undefined {
   if (event.history.some((entry) => entry.mark === 'decided')) return undefined;
-  postMark(id, 'decided', new Date().toISOString(), action);
+  postMark(id, 'decided', new Date().toISOString(), action, dismissalReason);
   return 'decided';
 }
 
@@ -299,7 +313,9 @@ export const useEventStore = create<EventStoreState>()((set) => ({
       events: state.events.map((event) => {
         if (event.id !== id) return event;
         const action = 'Dismissed as false positive';
-        const mark = decisionMark(event, id, action);
+        // The reason travels with the decision: it is what the reopen rule
+        // carries forward if this camera reports the same thing again.
+        const mark = decisionMark(event, id, action, reason);
         return {
           ...withHistory(event, OPERATOR, action, reason, mark),
           status: 'dismissed',

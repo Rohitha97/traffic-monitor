@@ -32,12 +32,6 @@ compare-and-set on the event record, and the loser needs a specific rejection re
 Blocked on identity. It does **not** need a full auth system; a position identity held in a cookie
 is enough to make a lock meaningful.
 
-### 6 · The reopen rule
-
-Pass A specifies that a dismissed incident re-detecting within three minutes returns tagged "seen
-before", carrying the earlier dismissal reason, so the operator does not re-litigate a call already
-made. The schema carries `seenBefore` and `dismissal`; only the correlation logic is missing.
-
 ### 7 · Snapshot filmstrip
 
 Pass A note 2 asks for "a strip of frames either side of the trigger". Only the trigger frame is
@@ -62,6 +56,32 @@ interpolating frames the detector never produced. See
   currently means an audit line and nothing else.
 
 ## Shipped
+
+### 6 · The reopen rule — phase 8
+
+A dismissed incident that re-detects within three minutes returns as _new_, tagged "seen before" and
+carrying the original reason on the row, so the operator does not make the same call twice.
+Correlation is a pure function over the event buffer (`src/lib/correlation.ts`) rather than a
+parallel index — which is also how the congestion-repeat rule's map turned out to be wrong: it kept
+one timestamp per camera across every event type, so a debris call escalated the next congestion
+detection. [ADR-0006](adr/0006-the-reopen-rule.md).
+
+The part that would have shipped broken: nothing ever told the server an incident was dismissed.
+`POST /api/events/mark` knew a call had been _decided_ and nothing more, so the rule would have
+scanned a buffer with no dismissals in it and correctly found nothing, forever. The route now
+carries the reason. Caught by the end-to-end test, not the unit tests — which all pass against a
+rule that never fires.
+
+Implementing it added two things to the list:
+
+- **The audit entry's `note` is doing double duty as the dismissal reason.** Fine while there is one
+  kind of note. #2 should give the action record a proper shape rather than growing a third meaning
+  for the same string.
+- **The seeded scenario now needs an operator for its last beat.** The tag records a decision, so
+  there is nothing to demonstrate until one has been made. A fully scripted walkthrough would need
+  the seed to act as an operator as well as a detector, which is a different thing pretending to be
+  the same script — worth splitting into a separate demo driver if the walkthrough ever needs to run
+  unattended.
 
 ### 3 · Virtualise the queue — phase 8
 

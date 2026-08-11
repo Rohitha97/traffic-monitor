@@ -1,6 +1,13 @@
 /*
- * A deterministic 90-second scenario: quiet, a debris call, a stopped vehicle
- * escalating to critical, then a wrong-way driver.
+ * A deterministic two-minute scenario: quiet, a debris call, a stopped vehicle
+ * escalating to critical, a wrong-way driver, then a low-confidence call that
+ * re-detects after it has been judged.
+ *
+ * The last beat needs the operator: dismiss the 82s CAM-091 debris call and the
+ * 106s one arrives carrying the reason you gave, rather than asking you to make
+ * the same call twice. Leave it alone and the redetect is simply a second
+ * incident, which is also correct — the tag is a record of a decision, so
+ * there is nothing to show until one has been made.
  *
  * Run against a dashboard that is already up:  pnpm seed
  *
@@ -127,6 +134,26 @@ const SCRIPT = [
     laneNumber: 1,
     confidence: 0.41,
     description: 'Possible debris in lane 1. Low-confidence detection — image contrast was poor.',
+    prompt:
+      'Verify and dismiss this one (D) — it comes back in 24s to show the reopen rule.',
+  },
+  {
+    /*
+     * The redetect. Same camera, same class, same lane as the 82s call — so if
+     * the operator dismissed that one, this arrives tagged with their reason
+     * instead of asking them to judge it again from scratch.
+     *
+     * Lane 2 rather than lane 1 on purpose: adjacent lanes are treated as one
+     * object, because a detector that changes its mind about which lane a piece
+     * of debris is in has still only seen one piece of debris.
+     */
+    atSeconds: 106,
+    camera: 'CAM-091',
+    type: 'debris',
+    lanePosition: 'live_lane',
+    laneNumber: 2,
+    confidence: 0.53,
+    description: 'Possible debris in lane 2. Contrast still poor; detection is marginal.',
   },
 ];
 
@@ -157,12 +184,15 @@ async function post(step) {
     return;
   }
   console.log(
-    `  ✓ ${String(step.atSeconds).padStart(2)}s  ${step.camera}  ${step.type.padEnd(16)} → ${result.priority}`,
+    `  ✓ ${String(step.atSeconds).padStart(3)}s  ${step.camera}  ${step.type.padEnd(16)} → ${result.priority}${
+      result.seenBefore ? `  (seen before — "${result.seenBefore}")` : ''
+    }`,
   );
+  if (step.prompt) console.log(`        ↳ ${step.prompt}`);
 }
 
 async function main() {
-  console.log(`Seeding a 90-second scenario against ${DASHBOARD_URL}`);
+  console.log(`Seeding a two-minute scenario against ${DASHBOARD_URL}`);
   console.log('Priorities below are derived by the dashboard, not sent by this script.\n');
 
   let elapsed = 0;

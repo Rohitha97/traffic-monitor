@@ -88,11 +88,35 @@ export function recordMark(
   at: string,
   actor: string,
   action: string,
+  /**
+   * The false-positive reason, when the decision was a dismissal.
+   *
+   * The correlation rules read this: without it the server knows an incident
+   * was decided but not that it was dismissed or why, and the reopen rule has
+   * nothing to carry forward. It is also what puts `status` on the buffered
+   * copy in step with the client's.
+   */
+  dismissalReason?: string,
 ): boolean {
   const event = recent.find((item) => item.id === id);
   if (!event || event.history.some((entry) => entry.mark === mark))
     return false;
 
-  event.history = [...event.history, { at, actor, action, mark }];
+  event.history = [
+    ...event.history,
+    {
+      at,
+      actor,
+      action,
+      mark,
+      ...(dismissalReason !== undefined ? { note: dismissalReason } : {}),
+    },
+  ];
+
+  if (dismissalReason !== undefined) {
+    event.status = 'dismissed';
+    event.dismissal = { reason: dismissalReason, at };
+  }
+
   return true;
 }

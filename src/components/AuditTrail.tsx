@@ -1,7 +1,7 @@
 export interface AuditEntry {
   /** Wall-clock time, pre-formatted. */
   at: string;
-  /** "Acknowledged (J. Kavanagh)" or "Priority set Critical (system)". */
+  /** "Acknowledged (Rohitha)" or "Priority set Critical (system)". */
   action: string;
 }
 

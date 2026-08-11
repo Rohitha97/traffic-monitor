@@ -137,7 +137,7 @@ test('a critical event arrives, is reviewed, and a response is dispatched', asyn
   // Enter acknowledges and takes the lock. (Pass A's state machine)
   await page.keyboard.press('Enter');
   await expect(detail(page)).toContainText('✓ Acknowledged');
-  await expect(detail(page)).toContainText('Acknowledged (J. Kavanagh)');
+  await expect(detail(page)).toContainText('Acknowledged (Rohitha)');
 
   // Acknowledging retires this incident's alert — and only acknowledging does.
   await expect.poll(() => criticalCount(page)).toBe(outstandingBefore - 1);

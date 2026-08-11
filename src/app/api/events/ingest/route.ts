@@ -1,11 +1,12 @@
-import { publish } from '@/lib/event-bus';
+import {
+  findPriorDismissal,
+  isRepeatDetection,
+  type Observation,
+} from '@/lib/correlation';
+import { publish, snapshot } from '@/lib/event-bus';
 import { generateEvent } from '@/lib/generator';
 import { derivePriority } from '@/lib/priority';
-import {
-  detectionIngestSchema,
-  type DetectionEvent,
-  type EventType,
-} from '@/lib/schema';
+import { detectionIngestSchema, type DetectionEvent } from '@/lib/schema';
 
 /*
  * Where the detection system hands an event to the people.
@@ -21,17 +22,6 @@ import {
  */
 
 export const dynamic = 'force-dynamic';
-
-/** Congestion escalates on a repeat from the same camera inside this window. */
-const REPEAT_WINDOW_MS = 10 * 60 * 1000;
-const lastSeenByCamera = new Map<string, number>();
-
-function isRepeat(cameraId: string, type: EventType, now: number): boolean {
-  if (type !== 'congestion') return false;
-  const previous = lastSeenByCamera.get(cameraId);
-  lastSeenByCamera.set(cameraId, now);
-  return previous !== undefined && now - previous < REPEAT_WINDOW_MS;
-}
 
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
@@ -81,6 +71,22 @@ export async function POST(request: Request): Promise<Response> {
   const now = new Date();
   const detectedAt = observation.detectedAt ?? now.toISOString();
 
+  /*
+   * Both correlation rules ask the same question of the same history — has
+   * this camera reported something like this recently — so they take one
+   * snapshot of the buffer between them.
+   */
+  const history = snapshot();
+  const seen: Observation = {
+    cameraId: observation.camera.id,
+    type: observation.type,
+    lanePosition: observation.lanePosition,
+    laneNumber: observation.laneNumber,
+    at: now.getTime(),
+  };
+
+  const priorDismissal = findPriorDismissal(history, seen);
+
   const { priority, reason } = derivePriority({
     type: observation.type,
     lanePosition: observation.lanePosition,
@@ -89,11 +95,7 @@ export async function POST(request: Request): Promise<Response> {
       ? { laneNumber: observation.laneNumber }
       : {}),
     laneCount: observation.camera.laneCount,
-    repeatWithinWindow: isRepeat(
-      observation.camera.id,
-      observation.type,
-      now.getTime(),
-    ),
+    repeatWithinWindow: isRepeatDetection(history, seen),
   });
 
   const event: DetectionEvent = {
@@ -104,6 +106,12 @@ export async function POST(request: Request): Promise<Response> {
     priority,
     priorityReason: reason,
     status: 'new',
+    /*
+     * A re-detection comes back as `new`, not as the old incident revived.
+     * It is a fresh sighting and gets its own priority — the operator's earlier
+     * call is context for the decision, not a substitute for making one.
+     */
+    ...(priorDismissal ? { seenBefore: priorDismissal } : {}),
     history: [
       {
         at: detectedAt,
@@ -115,13 +123,26 @@ export async function POST(request: Request): Promise<Response> {
         actor: 'system',
         action: `Priority set ${priority.charAt(0).toUpperCase()}${priority.slice(1)}`,
       },
+      ...(priorDismissal
+        ? [
+            {
+              at: now.toISOString(),
+              actor: 'system',
+              action: `Seen before — dismissed as "${priorDismissal.reason}" within the last 3 minutes`,
+            },
+          ]
+        : []),
     ],
   };
 
   publish(event);
 
   return Response.json(
-    { id: event.id, priority: event.priority },
+    {
+      id: event.id,
+      priority: event.priority,
+      ...(priorDismissal ? { seenBefore: priorDismissal.reason } : {}),
+    },
     { status: 202 },
   );
 }

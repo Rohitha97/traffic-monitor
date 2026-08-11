@@ -16,6 +16,11 @@ export interface IncidentDetailData {
   mileMarker: string;
   /** Why this priority — "Critical — live lane 2 of 3, junction approach". */
   priorityReason: string;
+  /**
+   * The operator's earlier verdict on this same call, when the camera has
+   * re-reported something inside the reopen window.
+   */
+  seenBefore?: { reason: string; at: string };
   /** One plain-English sentence from the detector. */
   description: string;
   detectionLatency: string;
@@ -121,6 +126,22 @@ export function IncidentDetail({
       >
         &ldquo;{incident.priorityReason}&rdquo;
       </p>
+
+      {/*
+       * Directly under the priority argument, above the detector's own
+       * description, because it changes how that description should be read:
+       * the operator has already looked at this camera reporting this thing and
+       * said what it was. Deliberately not styled as a warning — it is not a
+       * correction, it is the operator's own prior call handed back to them.
+       */}
+      {incident.seenBefore && (
+        <p className="text-caption rounded-control border border-border-component bg-raised px-2.5 py-1.5 font-medium text-text-body">
+          <span className="font-semibold text-text-primary">Seen before</span> ·
+          dismissed as &ldquo;{incident.seenBefore.reason}&rdquo; at{' '}
+          {incident.seenBefore.at}
+        </p>
+      )}
+
       <p className="text-caption max-w-205 font-medium text-text-body">
         Detector description: {incident.description}
       </p>

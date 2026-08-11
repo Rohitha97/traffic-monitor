@@ -18,3 +18,4 @@ infrastructure, or commits the project to something awkward to reverse. Everythi
 | [0003](0003-visual-regression.md)                  | Visual regression against the state matrix — roadmap #5              |
 | [0004](0004-instrumenting-the-two-numbers.md)      | Instrumenting the two numbers the design argues from — roadmap #4    |
 | [0005](0005-virtualising-the-queue.md)             | Virtualising the queue — roadmap #3                                  |
+| [0006](0006-the-reopen-rule.md)                    | The reopen rule — roadmap #6                                         |

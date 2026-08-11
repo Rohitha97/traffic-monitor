@@ -126,7 +126,7 @@ const INCIDENT: IncidentDetailData = {
       action:
         'Unacknowledged 20s — banner re-fired, pushed to supervisor (system)',
     },
-    { at: '02:14:41', action: 'Acknowledged (J. Kavanagh)' },
+    { at: '02:14:41', action: 'Acknowledged (Rohitha)' },
   ],
 };
 
@@ -338,6 +338,22 @@ export default function ComponentStatesPage() {
           </State>
 
           <State
+            id="queue-row/seen-before"
+            label="Seen before"
+            caption="Re-detected within 3 min of being dismissed. The tag carries the original reason, so the call isn’t re-litigated."
+          >
+            <IncidentRow
+              priority="medium"
+              camera="CAM-091"
+              summary="Debris, live lane"
+              location="M25 A/C · Jct 9"
+              age="00:06"
+              unread
+              seenBefore={{ reason: 'shadow' }}
+            />
+          </State>
+
+          <State
             id="queue-row/dismissed"
             label="Dismissed"
             caption="Collapses to a 20px strip with its reason and an undo, holds 8s, then leaves."
@@ -463,7 +479,7 @@ export default function ComponentStatesPage() {
             <IncidentDetail
               incident={{
                 ...INCIDENT,
-                acknowledgedBy: 'J. Kavanagh',
+                acknowledgedBy: 'Rohitha',
                 acknowledgedAfter: '34s after arrival',
               }}
             />

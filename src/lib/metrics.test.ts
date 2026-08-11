@@ -27,14 +27,14 @@ function incident(marks: HistoryEntry[] = []): DetectionEvent {
 
 const seenAt = (ms: number): HistoryEntry => ({
   at: iso(ms),
-  actor: 'J. Kavanagh',
+  actor: 'Rohitha',
   action: SEEN_ACTION,
   mark: 'seen',
 });
 
 const decidedAt = (ms: number): HistoryEntry => ({
   at: iso(ms),
-  actor: 'J. Kavanagh',
+  actor: 'Rohitha',
   action: 'Response dispatched · unit 12, ETA 4 min',
   mark: 'decided',
 });

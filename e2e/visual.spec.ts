@@ -45,6 +45,7 @@ const CAPTURED = [
   'queue-row/acknowledged',
   'queue-row/dispatched',
   'queue-row/arriving',
+  'queue-row/seen-before',
   'queue-row/dismissed',
 
   'banner/present',

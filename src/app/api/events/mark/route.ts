@@ -24,6 +24,16 @@ const markRequestSchema = z.object({
   at: z.iso.datetime(),
   actor: z.string().min(1),
   action: z.string().min(1),
+  /**
+   * Present when the decision was a dismissal.
+   *
+   * This route started as metrics plumbing, but it is really the client
+   * reporting an operator's action to the server — and the reopen rule needs
+   * to know not just that an incident was decided but that it was dismissed
+   * and on what grounds. Item #2 makes the server authoritative for actions
+   * outright; this is the narrow version that unblocks correlation.
+   */
+  dismissalReason: z.string().min(1).optional(),
 });
 
 export async function POST(request: Request): Promise<Response> {
@@ -42,8 +52,8 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const { id, mark, at, actor, action } = parsed.data;
-  const recorded = recordMark(id, mark, at, actor, action);
+  const { id, mark, at, actor, action, dismissalReason } = parsed.data;
+  const recorded = recordMark(id, mark, at, actor, action, dismissalReason);
 
   // 200 either way. "Already marked" and "aged out of the buffer" are both
   // normal, and neither is the client's problem to handle.

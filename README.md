@@ -44,13 +44,18 @@ metronome, so the next event is never predictable. Roughly 60% low/medium, 30% h
 a demo where everything is critical teaches you nothing about triage. Running locally with
 `pnpm dev` instead, the same simulator runs in-process.
 
-**2. A seeded scenario.** A deterministic 90 seconds — quiet, a debris call, a stopped vehicle on
+**2. A seeded scenario.** A deterministic two minutes — quiet, a debris call, a stopped vehicle on
 the hard shoulder, then the _same class of event one lane over_ deriving critical, then a wrong-way
 driver, then a low-confidence detection that demotes:
 
 ```bash
 pnpm seed
 ```
+
+The last beat needs you. Dismiss the demoted CAM-091 debris call when it lands; twenty-four seconds
+later the camera reports it again and it arrives tagged **seen before**, carrying the reason you
+gave. Leave it alone and the redetect is simply a second incident — the tag records a decision, so
+there is nothing to show until one has been made.
 
 **3. Post an observation yourself.** The ingest route is the boundary a real detection pipeline
 would use. An empty body means "make something up":
@@ -125,6 +130,21 @@ looking at this window — and because none of them is allowed to be the only on
   not startling: this plays hundreds of times a shift, and a resented alert gets muted permanently.
 - **The tab title** becomes `(1) CRITICAL · Incident Monitor`.
 - **The favicon** swaps its live-green dot for the critical triangle.
+
+### When a call comes back
+
+A dismissal is a judgement, and a detector that reports the same thing ninety seconds later should
+not make the operator repeat it. If a camera re-detects the same class of event in the same place
+within three minutes of it being dismissed, the incident arrives tagged **seen before**, carrying
+the reason from the first call — on the row, not buried in the detail pane.
+
+It comes back as a live incident with its own priority, not as the old one revived. The earlier
+verdict is context for the decision, not a substitute for making one.
+
+"The same place" is deliberately not "the same camera": debris on the hard shoulder and debris in a
+live lane are two calls, and merging them would hide the second behind the first's dismissal.
+Within the live lanes, adjacent lanes _do_ merge — a detector that says lane 2 and then lane 3 has
+seen one object and disagreed with itself. `src/lib/correlation.ts`.
 
 ## Design process
 
@@ -250,9 +270,6 @@ load-bearing: without them the host bind mount shadows the container's installed
 - **Persistence.** The event bus is in-memory. It does not survive a restart and is not shared
   between instances. A real deployment needs a broker and a store — but that is backend work the
   brief explicitly scoped out.
-- **The reopen rule.** Pass A specifies that a dismissed incident re-detecting within three minutes
-  returns tagged "seen before" with its earlier reason. The schema carries `seenBefore` and
-  `dismissal` for it; the correlation logic is not written.
 - **Snapshot filmstrip.** Pass A note 2 mentions "a strip of frames either side of the trigger".
   Only the single trigger frame is shown.
 - **Real imagery.** Snapshots are committed SVG stills per event type, drawn in the design's own
@@ -288,6 +305,6 @@ human call, and an honest list of what the AI got wrong and how each was caught.
 | `pnpm test`                 | Vitest                                                |
 | `pnpm test:e2e`             | Playwright — journey, accessibility, metrics          |
 | `pnpm test:visual`          | Visual regression, in the pinned Playwright container |
-| `pnpm seed`                 | The 90-second scenario                                |
+| `pnpm seed`                 | The two-minute scenario                               |
 | `pnpm baseline`             | Measurement run — produces a reading, not a pass/fail |
 | `pnpm format`               | Prettier                                              |
