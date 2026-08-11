@@ -16,3 +16,4 @@ infrastructure, or commits the project to something awkward to reverse. Everythi
 | [0001](0001-phase-8-sequencing.md)                 | Phase 8 build order, and why it is not the roadmap's order           |
 | [0002](0002-filmstrip-blocked-on-frame-sources.md) | The snapshot filmstrip is blocked on frame sources that do not exist |
 | [0003](0003-visual-regression.md)                  | Visual regression against the state matrix — roadmap #5              |
+| [0004](0004-instrumenting-the-two-numbers.md)      | Instrumenting the two numbers the design argues from — roadmap #4    |

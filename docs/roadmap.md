@@ -38,11 +38,6 @@ Twelve rows is the design target, but a bad hour is hundreds. `IncidentRow` is f
 every age counter already reads one shared tick, so windowing is a wrapper rather than a rewrite.
 The risk is entirely in the keyboard path: `↑↓` must move through rows that are not mounted.
 
-### 4 · Instrument time-to-awareness and time-to-decision
-
-The whole design argues from these two numbers and never measures either. Three marks per incident
-— server arrival, first operator sight of it, decision — turn the thesis into something falsifiable.
-
 ### 6 · The reopen rule
 
 Pass A specifies that a dismissed incident re-detecting within three minutes returns tagged "seen
@@ -73,6 +68,24 @@ interpolating frames the detector never produced. See
   currently means an audit line and nothing else.
 
 ## Shipped
+
+### 4 · Instrument time-to-awareness and time-to-decision — phase 8
+
+Three marks per incident on the existing audit trail — arrival, seen, decided — and
+`GET /api/metrics` reporting p50 and p95 for both over the replay buffer. The definition of "seen"
+was the real decision: in this design ↑↓ previews into the detail pane, so selection _is_ the
+render, and an incident counts as seen only once it has held the pane for 500ms. Cursoring through
+a queue marks nothing, which `e2e/metrics.spec.ts` asserts in both directions.
+[ADR-0004](adr/0004-instrumenting-the-two-numbers.md) carries the baseline readings that #3 must
+not regress.
+
+Implementing it added two things to the list:
+
+- **Marks are posted to the server but the client keeps its own copy**, so the two can diverge — a
+  browser that never posts still shows its own trail. #2 makes the server authoritative and should
+  fold this in.
+- **`/api/metrics` measures one instance's buffer.** Once #1 puts events in Redis, metrics should
+  read from there or they will report per-instance figures behind a load balancer.
 
 ### 5 · Visual regression against `/dev/states` — phase 8
 

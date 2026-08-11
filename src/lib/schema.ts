@@ -63,12 +63,23 @@ export const cameraSchema = z.object({
   lng: z.number(),
 });
 
+/**
+ * The two instrumented moments, carried on the audit entry that records them.
+ *
+ * A typed field rather than string-matching the action prose: the trail stays
+ * one human-readable timeline, but the measurement reads a value that cannot
+ * drift when someone rewords a line.
+ */
+export const MARKS = ['seen', 'decided'] as const;
+export const markSchema = z.enum(MARKS);
+
 export const historyEntrySchema = z.object({
   at: z.iso.datetime(),
   /** "system", or an operator's name. */
   actor: z.string().min(1),
   action: z.string().min(1),
   note: z.string().optional(),
+  mark: markSchema.optional(),
 });
 
 /**
@@ -153,6 +164,7 @@ export type Status = z.infer<typeof statusSchema>;
 export type Priority = z.infer<typeof prioritySchema>;
 export type Camera = z.infer<typeof cameraSchema>;
 export type HistoryEntry = z.infer<typeof historyEntrySchema>;
+export type Mark = z.infer<typeof markSchema>;
 export type DetectionBox = z.infer<typeof detectionBoxSchema>;
 export type DetectionEvent = z.infer<typeof detectionEventSchema>;
 export type DetectionIngest = z.infer<typeof detectionIngestSchema>;

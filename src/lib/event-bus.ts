@@ -1,4 +1,4 @@
-import type { DetectionEvent } from '@/lib/schema';
+import type { DetectionEvent, HistoryEntry } from '@/lib/schema';
 
 /*
  * The server-side fan-out between ingest and the SSE stream.
@@ -66,4 +66,33 @@ export function snapshot(): DetectionEvent[] {
 
 export function subscriberCount(): number {
   return subscribers.size;
+}
+
+/**
+ * Record an operator mark against the buffered copy of an event.
+ *
+ * The client holds the working copy and marks it optimistically, the same way
+ * it does every other action. This puts the same entry on the server's copy so
+ * `/api/metrics` measures over one record rather than asking each browser what
+ * it remembers.
+ *
+ * Idempotent per mark: an incident re-opened after a decision must not
+ * overwrite the moment it was first looked at, and a duplicate POST from a
+ * retry must not either. Returns false when the mark was already present or
+ * the event has aged out of the buffer, so the caller can tell the difference
+ * between "recorded" and "nothing to record".
+ */
+export function recordMark(
+  id: string,
+  mark: HistoryEntry['mark'],
+  at: string,
+  actor: string,
+  action: string,
+): boolean {
+  const event = recent.find((item) => item.id === id);
+  if (!event || event.history.some((entry) => entry.mark === mark))
+    return false;
+
+  event.history = [...event.history, { at, actor, action, mark }];
+  return true;
 }

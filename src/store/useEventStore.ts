@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 
 import { ageInSeconds } from '@/lib/format';
+import { SEEN_ACTION } from '@/lib/metrics';
 import { PRIORITIES, PRIORITY, type Priority } from '@/lib/priority';
-import type { DetectionEvent, Status } from '@/lib/schema';
+import type { DetectionEvent, Mark, Status } from '@/lib/schema';
 
 /*
  * The event store.
@@ -84,6 +85,8 @@ export interface EventStoreState {
   toggleMute: () => void;
   setMuted: (muted: boolean) => void;
   escalateOverdue: (now: number) => void;
+  /** Called once an incident has held the detail pane long enough to count as read. */
+  markSeen: (id: string) => void;
   advanceTick: () => void;
 }
 
@@ -96,6 +99,7 @@ function withHistory(
   actor: string,
   action: string,
   note?: string,
+  mark?: Mark,
 ): DetectionEvent {
   return {
     ...event,
@@ -106,8 +110,79 @@ function withHistory(
         actor,
         action,
         ...(note !== undefined ? { note } : {}),
+        ...(mark !== undefined ? { mark } : {}),
       },
     ],
+  };
+}
+
+/**
+ * Send a mark to the server so the buffered record carries it too.
+ *
+ * Fire-and-forget, and deliberately so: the operator's action has already
+ * taken effect locally, and blocking a keystroke on a metrics write would be
+ * the wrong trade in a tool whose whole argument is response time. A dropped
+ * mark costs one sample.
+ *
+ * The `window` guard keeps it out of the unit tests, which run in node and
+ * exercise the store directly.
+ */
+function postMark(id: string, mark: Mark, at: string, action: string): void {
+  if (typeof window === 'undefined') return;
+  void fetch('/api/events/mark', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, mark, at, actor: OPERATOR, action }),
+  }).catch(() => {
+    // Metrics are not worth a console error on an operator's screen.
+  });
+}
+
+/**
+ * The decision mark, if this is the first decision on the incident.
+ *
+ * Dispatching and dismissing are the two calls Pass A's journey map counts as
+ * deciding. Acknowledging is not one: it claims the incident and takes the
+ * lock, which is the *start* of deciding, not the end — counting it would make
+ * the number measure how fast an operator presses Enter.
+ *
+ * Returns undefined once a decision has already been recorded, so an
+ * undo-and-redo cannot rewrite the original timing.
+ */
+function decisionMark(
+  event: DetectionEvent,
+  id: string,
+  action: string,
+): Mark | undefined {
+  if (event.history.some((entry) => entry.mark === 'decided')) return undefined;
+  postMark(id, 'decided', new Date().toISOString(), action);
+  return 'decided';
+}
+
+/** Records `mark` against `id` once, locally and on the server. */
+function markOnce(
+  state: EventStoreState,
+  id: string,
+  mark: Mark,
+  action: string,
+): Partial<EventStoreState> {
+  const target = state.events.find((event) => event.id === id);
+  // Idempotent: an incident re-opened after a decision must not overwrite the
+  // moment it was first looked at.
+  if (!target || target.history.some((entry) => entry.mark === mark)) return {};
+
+  const at = new Date().toISOString();
+  postMark(id, mark, at, action);
+
+  return {
+    events: state.events.map((event) =>
+      event.id === id
+        ? {
+            ...event,
+            history: [...event.history, { at, actor: OPERATOR, action, mark }],
+          }
+        : event,
+    ),
   };
 }
 
@@ -208,12 +283,10 @@ export const useEventStore = create<EventStoreState>()((set) => ({
         if (event.id !== id || event.status === 'dispatched') return event;
         const unit = UNITS[Math.floor(Math.random() * UNITS.length)]!;
         const etaMinutes = 3 + Math.floor(Math.random() * 8);
+        const action = `Response dispatched · unit ${unit}, ETA ${etaMinutes} min`;
+        const mark = decisionMark(event, id, action);
         return {
-          ...withHistory(
-            event,
-            OPERATOR,
-            `Response dispatched · unit ${unit}, ETA ${etaMinutes} min`,
-          ),
+          ...withHistory(event, OPERATOR, action, undefined, mark),
           status: 'dispatched',
           assignedTo: event.assignedTo ?? OPERATOR,
           dispatch: { unit, etaMinutes },
@@ -223,24 +296,20 @@ export const useEventStore = create<EventStoreState>()((set) => ({
 
   dismiss: (id, reason) =>
     set((state) => ({
-      events: state.events.map((event) =>
-        event.id !== id
-          ? event
-          : {
-              ...withHistory(
-                event,
-                OPERATOR,
-                'Dismissed as false positive',
-                reason,
-              ),
-              status: 'dismissed',
-              dismissal: {
-                reason,
-                at: new Date().toISOString(),
-                previousStatus: event.status,
-              },
-            },
-      ),
+      events: state.events.map((event) => {
+        if (event.id !== id) return event;
+        const action = 'Dismissed as false positive';
+        const mark = decisionMark(event, id, action);
+        return {
+          ...withHistory(event, OPERATOR, action, reason, mark),
+          status: 'dismissed',
+          dismissal: {
+            reason,
+            at: new Date().toISOString(),
+            previousStatus: event.status,
+          },
+        };
+      }),
       // The detail pane should not keep showing an incident that just left.
       selectedId: state.selectedId === id ? null : state.selectedId,
     })),
@@ -300,6 +369,8 @@ export const useEventStore = create<EventStoreState>()((set) => ({
   toggleMute: () => set((state) => ({ muted: !state.muted })),
 
   setMuted: (muted) => set({ muted }),
+
+  markSeen: (id) => set((state) => markOnce(state, id, 'seen', SEEN_ACTION)),
 
   /**
    * "A new critical unacknowledged for 20s re-fires its banner and pushes to

@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test --project=chromium",
+    "baseline": "node scripts/baseline.mjs",
     "test:visual": "node scripts/visual.mjs",
     "test:visual:update": "node scripts/visual.mjs --update",
     "seed": "node scripts/seed.mjs",

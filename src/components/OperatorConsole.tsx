@@ -16,6 +16,7 @@ import { useAlertSound } from '@/hooks/useAlertSound';
 import { useEventStream } from '@/hooks/useEventStream';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useLiveClock } from '@/hooks/useLiveClock';
+import { useSeenMark } from '@/hooks/useSeenMark';
 import { useTabAlert } from '@/hooks/useTabAlert';
 import { FEED_COUNT } from '@/lib/cameras';
 import { formatClock, formatClockUtc, formatTimestamp } from '@/lib/format';
@@ -133,6 +134,11 @@ export function OperatorConsole() {
     () => selectLeavingEvents(allEvents, clock),
     [allEvents, clock],
   );
+
+  // Time to awareness starts ticking at server arrival and stops here, once
+  // this incident has held the pane long enough to have been read rather than
+  // cursored past.
+  useSeenMark(selectedId);
 
   // Buffering turns on as soon as an incident is open — an arrival must never
   // move what is being read.

@@ -62,6 +62,24 @@ curl -X POST -H 'Content-Type: application/json' -d '{}' http://localhost:3000/a
 Note what comes back: an id and a **priority the dashboard decided**. The detector posts what the
 camera saw — type, lane position, confidence — and never a priority.
 
+### The two numbers, measured
+
+The design thesis above argues from time to awareness and time to decision. Both are instrumented:
+
+```bash
+curl -s http://localhost:3000/api/metrics
+```
+
+p50 and p95 for each, over the replay buffer, as plain JSON with the sample count included — a p95
+over four samples is noise and the endpoint says so rather than letting you assume otherwise.
+
+The marks live on the incident's own audit trail, so there is one timeline rather than a parallel
+store. "Seen" is the interesting definition: `↑↓` previews into the detail pane, so selection _is_
+the render — an incident only counts as seen once it has held the pane for 500ms. Cursoring through
+a queue marks nothing, which is asserted both ways in `e2e/metrics.spec.ts`.
+[ADR-0004](docs/adr/0004-instrumenting-the-two-numbers.md) explains why, and carries the baseline
+readings.
+
 ### Keyboard
 
 Press `?` in the app for the live list. It renders from the same table the key handler dispatches
@@ -268,6 +286,8 @@ human call, and an honest list of what the AI got wrong and how each was caught.
 | `pnpm lint`                 | oxlint + ESLint, including the design-adherence rules |
 | `pnpm typecheck`            | `tsc --noEmit`                                        |
 | `pnpm test`                 | Vitest                                                |
-| `pnpm test:e2e`             | Playwright                                            |
+| `pnpm test:e2e`             | Playwright — journey, accessibility, metrics          |
+| `pnpm test:visual`          | Visual regression, in the pinned Playwright container |
 | `pnpm seed`                 | The 90-second scenario                                |
+| `pnpm baseline`             | Measurement run — produces a reading, not a pass/fail |
 | `pnpm format`               | Prettier                                              |
