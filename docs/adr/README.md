@@ -17,3 +17,4 @@ infrastructure, or commits the project to something awkward to reverse. Everythi
 | [0002](0002-filmstrip-blocked-on-frame-sources.md) | The snapshot filmstrip is blocked on frame sources that do not exist |
 | [0003](0003-visual-regression.md)                  | Visual regression against the state matrix — roadmap #5              |
 | [0004](0004-instrumenting-the-two-numbers.md)      | Instrumenting the two numbers the design argues from — roadmap #4    |
+| [0005](0005-virtualising-the-queue.md)             | Virtualising the queue — roadmap #3                                  |

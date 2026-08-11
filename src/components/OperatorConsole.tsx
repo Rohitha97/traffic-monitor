@@ -152,14 +152,13 @@ export function OperatorConsole() {
     for (const event of queue) preloadSnapshot(event.snapshotUrl);
   }, [queue]);
 
-  // Keep the keyboard selection in view as ↑↓ walks past the fold.
-  const listRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!selectedId) return;
-    listRef.current
-      ?.querySelector(`[data-event-id="${CSS.escape(selectedId)}"]`)
-      ?.scrollIntoView({ block: 'nearest' });
-  }, [selectedId]);
+  /*
+   * Keeping the selection in view is QueueList's job now that the queue is
+   * windowed. It used to be done here by querying the DOM for the selected
+   * row — which only works while every row is mounted. Past a few hundred
+   * incidents the selected row usually is not, so the virtualiser scrolls by
+   * index instead.
+   */
 
   const onGenerate = useCallback((critical: boolean) => {
     void fetch('/api/events/ingest', {
@@ -258,30 +257,25 @@ export function OperatorConsole() {
             </div>
           )}
 
-          <div
-            ref={listRef}
-            className="min-h-0 flex-1 overflow-y-auto"
-            onScroll={(event) =>
-              setScrolledAway(
-                event.currentTarget.scrollTop > 0 || selectedId !== null,
-              )
-            }
-          >
-            {queue.length === 0 && leaving.length === 0 ? (
-              <div className="p-3">
-                <EmptyQueue feeds={{ online: FEED_COUNT, total: FEED_COUNT }} />
-              </div>
-            ) : (
-              <QueueList
-                events={queue}
-                leaving={leaving}
-                selectedId={selectedId}
-                now={clock}
-                onSelect={select}
-                onUndoDismiss={undoDismiss}
-              />
-            )}
-          </div>
+          {queue.length === 0 && leaving.length === 0 ? (
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+              <EmptyQueue feeds={{ online: FEED_COUNT, total: FEED_COUNT }} />
+            </div>
+          ) : (
+            <QueueList
+              events={queue}
+              leaving={leaving}
+              selectedId={selectedId}
+              now={clock}
+              onSelect={select}
+              onUndoDismiss={undoDismiss}
+              // Scrolling off the top buffers arrivals, and so does having an
+              // incident open — an arrival must never move what is being read.
+              onScrolledAwayChange={(away) =>
+                setScrolledAway(away || selectedId !== null)
+              }
+            />
+          )}
         </section>
 
         <IncidentDetail

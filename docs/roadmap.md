@@ -32,12 +32,6 @@ compare-and-set on the event record, and the loser needs a specific rejection re
 Blocked on identity. It does **not** need a full auth system; a position identity held in a cookie
 is enough to make a lock meaningful.
 
-### 3 · Virtualise the queue
-
-Twelve rows is the design target, but a bad hour is hundreds. `IncidentRow` is fixed-height and
-every age counter already reads one shared tick, so windowing is a wrapper rather than a rewrite.
-The risk is entirely in the keyboard path: `↑↓` must move through rows that are not mounted.
-
 ### 6 · The reopen rule
 
 Pass A specifies that a dismissed incident re-detecting within three minutes returns tagged "seen
@@ -68,6 +62,28 @@ interpolating frames the detector never produced. See
   currently means an audit line and nothing else.
 
 ## Shipped
+
+### 3 · Virtualise the queue — phase 8
+
+`@tanstack/react-virtual` around `QueueList`. 500 incidents keep `↑↓` at a median of ~14ms —
+under one frame — with fewer than 50 rows mounted. The keyboard specs were **not touched**, which
+was the brief's own test of whether the refactor changed behaviour.
+
+Two things needed care beyond the wrapper: the selection is brought into view with `scrollToIndex`
+rather than `scrollIntoView`, because past the first screenful the selected row is not mounted; and
+a layout effect anchors the scroll offset when a critical prepends, or inserting at index 0 would
+shift every row under the operator — breaking the guarantee buffering exists to protect, in a place
+the original rule never had to consider.
+[ADR-0005](adr/0005-virtualising-the-queue.md) has the before/after metrics.
+
+Implementing it added one thing to the list:
+
+- **Snapshot preloading still warms the whole queue, not the window.** Virtualisation did not
+  change it: the effect iterates every queued incident, so 500 incidents warm 500 snapshots
+  regardless of what is mounted. Harmless today only by accident — snapshots are one SVG per event
+  type, so they resolve to six URLs the browser dedupes — but with real per-incident imagery it
+  becomes 500 fetches to open one pane. Should follow the window plus a margin ahead of the
+  selection. Prerequisite for #7.
 
 ### 4 · Instrument time-to-awareness and time-to-decision — phase 8
 

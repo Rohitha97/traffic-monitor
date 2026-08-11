@@ -26,6 +26,22 @@ interface IncidentRowProps {
   /** A critical that has just landed, before the tint settles. */
   arriving?: boolean;
   onSelect?: () => void;
+  /**
+   * How many incidents the queue holds, and this row's position in it.
+   *
+   * Required by a windowed list: only a handful of options are rendered out of
+   * however many exist, so without these a screen reader announces the count it
+   * can see rather than the count that is there.
+   */
+  setSize?: number;
+  posInSet?: number;
+  /**
+   * False for a row that is on its way out — resolved and fading.
+   *
+   * It drops out of the listbox and the tab order entirely, because it is no
+   * longer something the operator can choose.
+   */
+  interactive?: boolean;
   className?: string;
 }
 
@@ -56,6 +72,9 @@ export function IncidentRow({
   dispatch,
   arriving = false,
   onSelect,
+  setSize,
+  posInSet,
+  interactive = true,
   className = '',
 }: IncidentRowProps) {
   const { strip, fill, label } = PRIORITY[priority];
@@ -73,27 +92,35 @@ export function IncidentRow({
 
   return (
     <div
-      role="option"
-      aria-selected={selected}
-      /*
-       * Roving tabindex: only the selected row is in the tab order, so Tab
-       * moves past the queue rather than through every incident in it. Moving
-       * *within* the queue is ↑↓, handled globally — one keyboard axis, no
-       * modes. (Pass A §04)
-       */
-      tabIndex={selected ? 0 : -1}
-      onClick={onSelect}
-      onKeyDown={(event) => {
-        // Space selects without acknowledging; Enter is bound globally to
-        // acknowledge, so it is deliberately not handled here.
-        if (event.key === ' ') {
-          event.preventDefault();
-          onSelect?.();
-        }
-      }}
-      className={`flex h-10 cursor-pointer items-center gap-2 border-b border-border-hairline px-2.5 outline-none transition-colors duration-(--duration-state) hover:shadow-row-hover focus-visible:shadow-row-focus ${
-        selected ? 'bg-raised' : arriving ? 'bg-critical-tint' : ''
-      } ${className}`}
+      {...(interactive
+        ? {
+            role: 'option',
+            'aria-selected': selected,
+            /*
+             * Roving tabindex: only the selected row is in the tab order, so
+             * Tab moves past the queue rather than through every incident in
+             * it. Moving *within* the queue is ↑↓, handled globally — one
+             * keyboard axis, no modes. (Pass A §04)
+             */
+            tabIndex: selected ? 0 : -1,
+            ...(setSize !== undefined ? { 'aria-setsize': setSize } : {}),
+            ...(posInSet !== undefined ? { 'aria-posinset': posInSet } : {}),
+            onClick: onSelect,
+            onKeyDown: (event: React.KeyboardEvent) => {
+              // Space selects without acknowledging; Enter is bound globally
+              // to acknowledge, so it is deliberately not handled here.
+              if (event.key === ' ') {
+                event.preventDefault();
+                onSelect?.();
+              }
+            },
+          }
+        : { 'aria-hidden': true })}
+      className={`flex h-10 items-center gap-2 border-b border-border-hairline px-2.5 outline-none transition-colors duration-(--duration-state) ${
+        interactive
+          ? 'cursor-pointer hover:shadow-row-hover focus-visible:shadow-row-focus'
+          : ''
+      } ${selected ? 'bg-raised' : arriving ? 'bg-critical-tint' : ''} ${className}`}
     >
       <span
         aria-hidden="true"
