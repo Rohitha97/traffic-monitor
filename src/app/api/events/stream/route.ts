@@ -1,6 +1,6 @@
-import { publish, replayAfter, snapshot, subscribe } from '@/lib/event-bus';
+import { busHealth, publish, readFrom, subscribe } from '@/lib/event-bus';
+import type { BusEntry } from '@/lib/event-bus';
 import { generateEvent } from '@/lib/generator';
-import type { DetectionEvent } from '@/lib/schema';
 
 /*
  * Server-Sent Events.
@@ -14,7 +14,9 @@ import type { DetectionEvent } from '@/lib/schema';
  *
  *  - `Last-Event-ID`. The browser sends it automatically on reconnect, and the
  *    stream replays anything published in the gap. Without it a dropped
- *    connection silently loses incidents.
+ *    connection silently loses incidents. The id on the wire is the *bus
+ *    cursor* — a Redis stream ID, or a sequence number in memory — not the
+ *    event's own id, so a reconnect is a range query rather than a search.
  *  - A heartbeat. Proxies close idle connections, and on a quiet shift this
  *    stream is idle by design. A comment line every 15s keeps it open without
  *    being an event.
@@ -27,8 +29,8 @@ const SIM_INTERVAL_MS = Number(process.env.SIM_INTERVAL_MS ?? 20_000);
 const SIM_MODE = process.env.SIM_MODE ?? 'internal';
 const HEARTBEAT_MS = 15_000;
 
-function frame(event: DetectionEvent): string {
-  return `id: ${event.id}\nevent: detection\ndata: ${JSON.stringify(event)}\n\n`;
+function frame(entry: BusEntry): string {
+  return `id: ${entry.cursor}\nevent: detection\ndata: ${JSON.stringify(entry.event)}\n\n`;
 }
 
 export function GET(request: Request): Response {
@@ -40,7 +42,7 @@ export function GET(request: Request): Response {
   let simulator: ReturnType<typeof setTimeout> | undefined;
 
   const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
+    async start(controller) {
       let closed = false;
       const send = (chunk: string) => {
         if (closed) return;
@@ -51,20 +53,32 @@ export function GET(request: Request): Response {
         }
       };
 
-      // Tell the client the stream is alive before anything happens on it, so
-      // the connection indicator can go Live on a quiet shift rather than
-      // sitting at "connecting" until the first incident.
+      /*
+       * Tell the client the stream is alive before anything happens on it, so
+       * the connection indicator can go Live on a quiet shift rather than
+       * sitting at "connecting" until the first incident.
+       *
+       * It carries the bus's health too. `degraded` here means a broker was
+       * configured and is not answering — the stream itself is fine, which is
+       * exactly why it cannot be reported as a connection problem.
+       */
+      const health = await busHealth();
       send(
-        `event: ready\ndata: ${JSON.stringify({ at: new Date().toISOString() })}\n\n`,
+        `event: ready\ndata: ${JSON.stringify({
+          at: new Date().toISOString(),
+          history: health.degraded ? 'local' : 'shared',
+        })}\n\n`,
       );
 
-      // A reconnect gets the delta it missed; a fresh load gets the current
-      // open queue. Sending nothing to a fresh load would show an operator an
-      // empty screen while incidents are live.
-      const initial = lastEventId ? replayAfter(lastEventId) : snapshot();
-      for (const event of initial) send(frame(event));
+      /*
+       * A reconnect gets the delta it missed; a fresh load gets the current
+       * open queue. One call, because "everything after nothing" correctly
+       * returns nothing and would show an operator an empty screen while
+       * incidents are live.
+       */
+      for (const entry of await readFrom(lastEventId)) send(frame(entry));
 
-      unsubscribe = subscribe((event) => send(frame(event)));
+      unsubscribe = await subscribe((entry) => send(frame(entry)));
 
       heartbeat = setInterval(() => send(`: keep-alive\n\n`), HEARTBEAT_MS);
 
@@ -80,7 +94,7 @@ export function GET(request: Request): Response {
           simulator = setTimeout(
             () => {
               if (closed) return;
-              publish(generateEvent());
+              void publish(generateEvent());
               scheduleNext();
             },
             Math.max(2000, delay),

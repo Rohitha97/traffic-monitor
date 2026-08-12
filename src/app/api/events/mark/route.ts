@@ -53,7 +53,14 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const { id, mark, at, actor, action, dismissalReason } = parsed.data;
-  const recorded = recordMark(id, mark, at, actor, action, dismissalReason);
+  const recorded = await recordMark(
+    id,
+    mark,
+    at,
+    actor,
+    action,
+    dismissalReason,
+  );
 
   // 200 either way. "Already marked" and "aged out of the buffer" are both
   // normal, and neither is the client's problem to handle.

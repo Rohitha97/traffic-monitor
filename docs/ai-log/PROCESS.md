@@ -40,17 +40,18 @@ The AI stopped and asked rather than picking, because each would have changed th
 
 Every one of these was found by _running_ something, not by reading code:
 
-| What                                                                                                                                         | How it surfaced                                                                                                                                          |
-| -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **A read-modify-write race in the store** silently dropped events — measured at five of twenty-one surviving                                 | The queue looked plausibly short rather than obviously broken. Found by instrumenting `ingest` and seeing two consecutive calls both report `have: 0`    |
-| **The production build was broken for two phases** — a server component passing a function to a client one                                   | `pnpm build` had been dropped from the verification loop in phases 4 and 5. Playwright's `webServer` ran a real build and failed immediately             |
-| **The design system's adherence lint did nothing** — oxlint does not implement `no-restricted-syntax`, so all three rules were silent no-ops | A deliberate probe file full of violations linted clean                                                                                                  |
-| **The critical banner left a permanent red rule** across a quiet screen, and its buttons stayed tabbable while invisible                     | Measuring the collapsed banner in the browser                                                                                                            |
-| **A fresh page load showed an empty queue** while incidents were live                                                                        | Replaying "after nothing" correctly returns nothing; a first load needs a snapshot                                                                       |
-| **The stream hook leaked EventSources**, six open against a browser cap of six                                                               | Reading the network panel while debugging something else                                                                                                 |
-| **Small text failed WCAG AA contrast** at 3.17–3.45:1                                                                                        | An axe pass, not an opinion. Pass B had documented the constraint; the implementation had ignored it                                                     |
-| **The reopen rule was correct and could never fire** — nothing ever told the server an incident had been dismissed                           | Unit tests passed on a rule with no dismissals to find. Only the end-to-end test, which drives an actual dismissal, showed it                            |
-| **The "seen before" tag cost every untagged row a millisecond** of keystroke latency, against a budget already at ~16 of 16.7ms              | The virtualisation frame-budget test failed. Attributed by re-measuring the stashed tree, because run-to-run noise is ±4ms and eyeballing proves nothing |
+| What                                                                                                                                                            | How it surfaced                                                                                                                                          |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A read-modify-write race in the store** silently dropped events — measured at five of twenty-one surviving                                                    | The queue looked plausibly short rather than obviously broken. Found by instrumenting `ingest` and seeing two consecutive calls both report `have: 0`    |
+| **The production build was broken for two phases** — a server component passing a function to a client one                                                      | `pnpm build` had been dropped from the verification loop in phases 4 and 5. Playwright's `webServer` ran a real build and failed immediately             |
+| **The design system's adherence lint did nothing** — oxlint does not implement `no-restricted-syntax`, so all three rules were silent no-ops                    | A deliberate probe file full of violations linted clean                                                                                                  |
+| **The critical banner left a permanent red rule** across a quiet screen, and its buttons stayed tabbable while invisible                                        | Measuring the collapsed banner in the browser                                                                                                            |
+| **A fresh page load showed an empty queue** while incidents were live                                                                                           | Replaying "after nothing" correctly returns nothing; a first load needs a snapshot                                                                       |
+| **The stream hook leaked EventSources**, six open against a browser cap of six                                                                                  | Reading the network panel while debugging something else                                                                                                 |
+| **Small text failed WCAG AA contrast** at 3.17–3.45:1                                                                                                           | An axe pass, not an opinion. Pass B had documented the constraint; the implementation had ignored it                                                     |
+| **The reopen rule was correct and could never fire** — nothing ever told the server an incident had been dismissed                                              | Unit tests passed on a rule with no dismissals to find. Only the end-to-end test, which drives an actual dismissal, showed it                            |
+| **The "seen before" tag cost every untagged row a millisecond** of keystroke latency, against a budget already at ~16 of 16.7ms                                 | The virtualisation frame-budget test failed. Attributed by re-measuring the stashed tree, because run-to-run noise is ±4ms and eyeballing proves nothing |
+| **The Redis reader started from `$`**, so an event published between connecting and the first blocking read was skipped — and skipped again on every read after | Two or three conformance tests failing per run, a different set each time. The flakiness _was_ the bug: the window is exactly as wide as the race        |
 
 Two smaller ones worth recording because they were the AI's own false trails: a long stretch spent
 chasing "vanishing" criticals that turned out to be accumulated state across Fast Refresh resets,
@@ -70,7 +71,8 @@ are exactly the phases that shipped bugs.
 
 ## Verification, at the end
 
-- 76 unit tests — priority derivation, the store, the metrics percentiles, event correlation
+- 94 unit tests — priority derivation, the store, the metrics percentiles, event correlation, and a
+  bus conformance suite run against both the ring buffer and Redis Streams
 - 19 Playwright specs — journey, metrics, virtualisation, correlation, and 4 axe audits at
   WCAG 2.1 AA with zero violations
 - 28 visual-regression captures of the component state matrix, diffed in a pinned container
@@ -78,3 +80,7 @@ are exactly the phases that shipped bugs.
 - `docker compose up` verified from a clean state, both services, dependency ordering working
 
 The first two lines read 47 and 11 at the end of phase 6. Phase 8 is where the rest came from.
+
+`pnpm test`, `pnpm test:e2e` and `docker compose up` all run with no infrastructure. That is a rule
+of phase 8 rather than a happy accident: `pnpm test:bus` is the one command that wants a broker, and
+it starts and disposes of its own.

@@ -16,6 +16,14 @@ services:
       NODE_ENV: production
       # The detector is its own service, so the in-process simulator stands down.
       SIM_MODE: external
+      # Defaults, so `docker compose up` on its own needs no broker and never
+      # mentions one. There is deliberately no `depends_on: redis` — the plain
+      # command must not pull a service into the graph it does not use.
+      #
+      #   docker compose up                                  in-memory
+      #   EVENT_BUS=redis docker compose --profile redis up   Redis Streams
+      EVENT_BUS: ${EVENT_BUS:-memory}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
     # 127.0.0.1 rather than localhost: the image's /etc/hosts maps localhost to
     # both 127.0.0.1 and ::1, busybox wget tries ::1 first, and Next's
     # standalone server binds IPv4 only. Against localhost this never goes
@@ -36,5 +44,65 @@ services:
       SIM_INTERVAL_MS: '20000'
     depends_on:
       dashboard:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Opt-in. Behind a profile so it is absent from the default graph entirely
+  # rather than merely unused — `docker compose up` should not pull an image a
+  # reviewer did not ask for.
+  redis:
+    profiles: ['redis']
+    image: redis:7-alpine
+    # Retention is bounded by MAXLEN on the stream, so persistence buys nothing
+    # here and costs a volume to explain. Losing the buffer on a broker restart
+    # is the same outcome the in-memory bus has every restart, and the point of
+    # this option is surviving a *dashboard* restart.
+    command: ['redis-server', '--save', '', '--appendonly', 'no']
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # A second instance and a round-robin proxy in front of both. Exists to make
+  # one claim checkable rather than merely asserted: with Redis behind the bus
+  # it does not matter which instance a browser lands on. Without it, the same
+  # proxy shows two different queues.
+  #
+  #   EVENT_BUS=redis docker compose --profile redis --profile cluster up
+  #   → the dashboard on :3100 is served by whichever instance answers
+  dashboard-b:
+    profiles: ['cluster']
+    build:
+      context: .
+      target: runner
+    environment:
+      NODE_ENV: production
+      # Only one instance runs the ambient simulator, or the demo produces
+      # events at twice the rate and neither instance is the obvious culprit.
+      SIM_MODE: external
+      EVENT_BUS: ${EVENT_BUS:-memory}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/api/health']
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  proxy:
+    profiles: ['cluster']
+    image: nginx:1.27-alpine
+    ports:
+      - '3100:80'
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      dashboard:
+        condition: service_healthy
+      dashboard-b:
         condition: service_healthy
     restart: unless-stopped

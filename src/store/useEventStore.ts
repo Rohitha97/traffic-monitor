@@ -52,6 +52,19 @@ export interface EventStoreState {
    */
   selectedId: string | null;
   connection: ConnectionState;
+  /**
+   * Whether the server's history is shared across instances or only this one's.
+   *
+   * Distinct from `connection` on purpose. The feed can be perfectly live while
+   * the broker behind it is down: incidents still arrive, but replay and the
+   * queue this instance shows have stopped being authoritative. Folding that
+   * into the connection state would tell an operator their feed had dropped
+   * when it had not.
+   *
+   * Always `shared` when no broker is configured — the default deployment is
+   * one instance, which is not a degraded anything.
+   */
+  history: 'shared' | 'local';
   /** Frozen at the moment the feed dropped, so "as of" never lies. */
   dataAsOf: string | null;
   /** Bumped once a second by a single shared interval — never one timer per row. */
@@ -79,6 +92,7 @@ export interface EventStoreState {
   resolve: (id: string) => void;
   undoDismiss: (id: string) => void;
   setConnection: (state: ConnectionState) => void;
+  setHistory: (history: 'shared' | 'local') => void;
   setScrolledAway: (value: boolean) => void;
   toggleFilter: (priority: Priority) => void;
   clearFilters: () => void;
@@ -208,6 +222,7 @@ export const useEventStore = create<EventStoreState>()((set) => ({
   buffered: [],
   selectedId: null,
   connection: 'live',
+  history: 'shared',
   dataAsOf: null,
   tick: 0,
   filters: new Set<Priority>(),
@@ -369,6 +384,8 @@ export const useEventStore = create<EventStoreState>()((set) => ({
           ? null
           : (state.dataAsOf ?? new Date().toISOString()),
     })),
+
+  setHistory: (history) => set({ history }),
 
   setScrolledAway: (scrolledAway) => set({ scrolledAway }),
 

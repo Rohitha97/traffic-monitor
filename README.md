@@ -175,10 +175,12 @@ but cannot encode, and every place the design and the brief disagreed. It was wr
 ## Architecture
 
 ```
-detector-sim ──POST──► /api/events/ingest ──► derivePriority ──► event bus (ring buffer)
-  (container)              (the boundary)         (pure)                 │
-                                                                        │ SSE
-                                                                        ▼
+detector-sim ──POST──► /api/events/ingest ──► derivePriority ──► event bus
+  (container)              (the boundary)         (pure)          ring buffer (default)
+                                                                  or Redis Streams
+                                                                         │
+                                                                         │ SSE
+                                                                         ▼
                         Zustand store ◄── useEventStream ◄── /api/events/stream
                               │
               one shared 1s tick ─── queue · detail · pinned band · tab + favicon
@@ -190,8 +192,12 @@ Ten lines on why:
   set its own severity and the triage rules stay auditable.
 - **SSE, not WebSockets.** Every message flows detector → operator. One-way needs no custom server,
   reconnects itself, and passes through Docker unchanged.
-- **A small ring buffer** on the server means a reconnect fetches the delta it missed and a fresh
-  load gets the current queue — a monitoring tool cannot silently lose an incident.
+- **A small bounded log** on the server means a reconnect fetches the delta it missed and a fresh
+  load gets the current queue — a monitoring tool cannot silently lose an incident. The `id` on the
+  wire is the log's own cursor, so `Last-Event-ID` is a position rather than a value to search for.
+- **The log has two implementations behind one interface** — an in-process ring buffer by default,
+  Redis Streams when asked. Append, read-from-cursor and bounded retention were already the ring
+  buffer's semantics, which is why the swap is a wrapper and not a redesign.
 - **One store, one interval.** Every age counter ticks from a single shared field, so a
   once-a-second clock is one render pass rather than a dozen drifting timers.
 - **Arrivals buffer rather than reorder** whenever an incident is open, except criticals, which
@@ -262,14 +268,56 @@ serving perfectly — and `detector-sim` would wait on it forever.
 `compose.dev.yml` gives hot reload. Its two anonymous volumes on `node_modules` and `.next` are
 load-bearing: without them the host bind mount shadows the container's installed dependencies.
 
+## Running with a broker
+
+The event bus has two implementations behind one interface. The default needs nothing:
+
+```bash
+docker compose up
+```
+
+`EVENT_BUS=memory`, a ring buffer in the dashboard process. `docker compose config --services` on
+that command lists `dashboard` and `detector-sim` and nothing else — Redis is behind a profile and
+there is no `depends_on` edge to it, so the default graph cannot pull in a broker.
+
+Redis Streams is opt-in:
+
+```bash
+EVENT_BUS=redis docker compose --profile redis up
+```
+
+Now the log survives a dashboard restart. Add the second instance and a round-robin proxy on `:3100`
+to see that it is genuinely shared:
+
+```bash
+EVENT_BUS=redis docker compose --profile redis --profile cluster up
+```
+
+`XADD` appends, `XRANGE` reads from the cursor, `MAXLEN ~` bounds retention, and the SSE
+`Last-Event-ID` is the stream ID — no second cursor scheme. Stream entries are immutable and
+operator marks are not, so an amended copy of each incident lives in a keyed value beside the
+stream and reads prefer it. `pnpm test:bus` starts a throwaway broker and runs the conformance
+suite against both implementations; `pnpm test` runs it against memory alone, so a clean clone needs
+no infrastructure to test.
+
+**When the broker is unreachable** the dashboard degrades rather than failing. Every operation falls
+back to the in-process bus, `/api/health` reports `degraded: true` and still returns `ok` — going
+unhealthy would have an orchestrator restart a process that is working — and the status bar shows a
+`HISTORY LOCAL` tag beside the feed count.
+
+That tag is deliberately not one of the three connection states. The feed is _live_: incidents keep
+arriving. What has stopped is sharing — events published during the outage are visible on this
+instance and nowhere else until the broker returns. Calling that "reconnecting" would be a false
+alarm about the one thing the status bar exists to be trusted about.
+
 ## What I deliberately did not build
 
 - **Multi-operator presence.** Acknowledging takes a lock and the owner's initials show on the row,
   but there is one position and one operator name. Real ownership needs auth and a server-side
   lock; the UI is already shaped for it.
-- **Persistence.** The event bus is in-memory. It does not survive a restart and is not shared
-  between instances. A real deployment needs a broker and a store — but that is backend work the
-  brief explicitly scoped out.
+- **Persistence beyond the replay window.** `EVENT_BUS=redis` makes the log survive a dashboard
+  restart and shared across instances, but retention is still a hundred events. A shift log that
+  outlives a deployment is a different problem, and a database is backend work the brief scoped out.
 - **Snapshot filmstrip.** Pass A note 2 mentions "a strip of frames either side of the trigger".
   Only the single trigger frame is shown.
 - **Real imagery.** Snapshots are committed SVG stills per event type, drawn in the design's own
@@ -302,7 +350,8 @@ human call, and an honest list of what the AI got wrong and how each was caught.
 | `pnpm build` / `pnpm start` | Production build and serve                            |
 | `pnpm lint`                 | oxlint + ESLint, including the design-adherence rules |
 | `pnpm typecheck`            | `tsc --noEmit`                                        |
-| `pnpm test`                 | Vitest                                                |
+| `pnpm test`                 | Vitest — the Redis conformance block skips            |
+| `pnpm test:bus`             | Bus conformance against both implementations          |
 | `pnpm test:e2e`             | Playwright — journey, accessibility, metrics          |
 | `pnpm test:visual`          | Visual regression, in the pinned Playwright container |
 | `pnpm seed`                 | The two-minute scenario                               |

@@ -10,6 +10,8 @@ import type { Priority } from '@/lib/priority';
 
 interface StatusBarProps {
   connection: ConnectionState;
+  /** Whether the server's history is shared across instances. See ConnectionIndicator. */
+  history?: 'shared' | 'local';
   feeds: { online: number; total: number };
   counts: Record<Priority, number>;
   /** Wall clocks, pre-formatted. Both are shown: a motorway log is kept in UTC. */
@@ -34,6 +36,7 @@ const NO_FILTERS: ReadonlySet<Priority> = new Set<Priority>();
  */
 export function StatusBar({
   connection,
+  history = 'shared',
   feeds,
   counts,
   localTime,
@@ -48,7 +51,7 @@ export function StatusBar({
       aria-label="System status"
       className="flex h-12 flex-none items-center gap-5 border-b border-border-hairline bg-panel px-4"
     >
-      <ConnectionIndicator state={connection} feeds={feeds} />
+      <ConnectionIndicator state={connection} feeds={feeds} history={history} />
 
       <span
         aria-hidden="true"

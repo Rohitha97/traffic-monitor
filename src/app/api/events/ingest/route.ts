@@ -52,7 +52,7 @@ export async function POST(request: Request): Promise<Response> {
         ? { type: 'wrong_way_driver', lanePosition: 'live_lane' }
         : {},
     );
-    publish(event);
+    await publish(event);
     return Response.json(
       { id: event.id, priority: event.priority },
       { status: 202 },
@@ -76,7 +76,7 @@ export async function POST(request: Request): Promise<Response> {
    * this camera reported something like this recently — so they take one
    * snapshot of the buffer between them.
    */
-  const history = snapshot();
+  const history = await snapshot();
   const seen: Observation = {
     cameraId: observation.camera.id,
     type: observation.type,
@@ -135,7 +135,7 @@ export async function POST(request: Request): Promise<Response> {
     ],
   };
 
-  publish(event);
+  await publish(event);
 
   return Response.json(
     {

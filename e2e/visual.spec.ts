@@ -29,6 +29,7 @@ const CAPTURED = [
   'status-bar/live',
   'status-bar/reconnecting',
   'status-bar/offline',
+  'status-bar/history-local',
   'status-bar/unmuted',
 
   'priority-chip/critical',

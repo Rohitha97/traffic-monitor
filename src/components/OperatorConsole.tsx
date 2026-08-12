@@ -46,6 +46,7 @@ export function OperatorConsole() {
 
   const tick = useEventStore((state) => state.tick);
   const connection = useEventStore((state) => state.connection);
+  const history = useEventStore((state) => state.history);
   const dataAsOf = useEventStore((state) => state.dataAsOf);
   const buffered = useEventStore((state) => state.buffered);
   const selectedId = useEventStore((state) => state.selectedId);
@@ -193,6 +194,7 @@ export function OperatorConsole() {
     <div className="flex h-dvh flex-col overflow-hidden bg-ground">
       <StatusBar
         connection={connection}
+        history={history}
         feeds={{
           online: connection === 'offline' ? 0 : FEED_COUNT,
           total: FEED_COUNT,

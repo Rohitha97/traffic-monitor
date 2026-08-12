@@ -16,6 +16,6 @@ import { computeMetrics } from '@/lib/metrics';
 
 export const dynamic = 'force-dynamic';
 
-export function GET(): Response {
-  return Response.json(computeMetrics(snapshot()));
+export async function GET(): Promise<Response> {
+  return Response.json(computeMetrics(await snapshot()));
 }

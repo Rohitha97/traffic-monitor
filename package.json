@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test --project=chromium",
+    "test:bus": "node scripts/test-bus.mjs",
     "baseline": "node scripts/baseline.mjs",
     "test:visual": "node scripts/visual.mjs",
     "test:visual:update": "node scripts/visual.mjs --update",
@@ -32,6 +33,7 @@
     "next": "^15.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "redis": "^6.2.1",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },

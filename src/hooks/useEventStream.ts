@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 
+import { z } from 'zod';
+
 import { detectionEventSchema } from '@/lib/schema';
 import { useEventStore } from '@/store/useEventStore';
 
@@ -20,6 +22,18 @@ import { useEventStore } from '@/store/useEventStore';
  * loudly at the boundary is cheaper than debugging that.
  */
 
+/**
+ * The stream's opening handshake.
+ *
+ * Defaulted rather than required: an older server that does not send `history`
+ * is reporting nothing wrong, and the honest reading of "no news" here is that
+ * the queue is fine.
+ */
+const readySchema = z.object({
+  at: z.iso.datetime(),
+  history: z.enum(['shared', 'local']).default('shared'),
+});
+
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30_000;
 /** Attempts before the indicator stops saying "reconnecting" and admits it is down. */
@@ -28,6 +42,7 @@ const OFFLINE_AFTER_ATTEMPTS = 3;
 export function useEventStream(url = '/api/events/stream'): void {
   const ingest = useEventStore((state) => state.ingest);
   const setConnection = useEventStore((state) => state.setConnection);
+  const setHistory = useEventStore((state) => state.setHistory);
 
   // Refs, not state: changing these must never re-render, and the cleanup path
   // has to see the current values rather than a closed-over snapshot.
@@ -52,9 +67,21 @@ export function useEventStream(url = '/api/events/stream'): void {
       const source = new EventSource(url);
       sourceRef.current = source;
 
-      source.addEventListener('ready', () => {
+      source.addEventListener('ready', (message) => {
         attemptsRef.current = 0;
         setConnection('live');
+
+        /*
+         * The handshake carries the server's own state, not just the fact that
+         * it answered: whether its history is shared across instances or is
+         * only this process's. A stream can be perfectly live while the broker
+         * behind it is down, and the operator is entitled to know that the
+         * queue has stopped being authoritative.
+         */
+        const parsed = readySchema.safeParse(
+          JSON.parse((message as MessageEvent<string>).data),
+        );
+        setHistory(parsed.success ? parsed.data.history : 'shared');
       });
 
       source.addEventListener('detection', (message) => {
@@ -105,5 +132,5 @@ export function useEventStream(url = '/api/events/stream'): void {
       sourceRef.current?.close();
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [url, ingest, setConnection]);
+  }, [url, ingest, setConnection, setHistory]);
 }

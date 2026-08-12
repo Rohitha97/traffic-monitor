@@ -167,6 +167,22 @@ export default function ComponentStatesPage() {
               />
             </State>
           ))}
+          <State
+            id="status-bar/history-local"
+            label="history local"
+            width="flex-1 min-w-0"
+          >
+            <StatusBar
+              connection="live"
+              history="local"
+              feeds={{ online: 18, total: 18 }}
+              counts={{ critical: 1, high: 2, medium: 5, low: 4 }}
+              localTime="02:19:44"
+              utcTime="01:19:44"
+              muted
+            />
+          </State>
+
           <State id="status-bar/unmuted" label="unmuted" width="flex-1 min-w-0">
             <StatusBar
               connection="live"

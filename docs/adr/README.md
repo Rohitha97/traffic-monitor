@@ -19,3 +19,4 @@ infrastructure, or commits the project to something awkward to reverse. Everythi
 | [0004](0004-instrumenting-the-two-numbers.md)      | Instrumenting the two numbers the design argues from — roadmap #4    |
 | [0005](0005-virtualising-the-queue.md)             | Virtualising the queue — roadmap #3                                  |
 | [0006](0006-the-reopen-rule.md)                    | The reopen rule — roadmap #6                                         |
+| [0007](0007-redis-streams-behind-the-event-bus.md) | Redis Streams behind the event bus — roadmap #1                      |

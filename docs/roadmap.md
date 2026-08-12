@@ -14,15 +14,6 @@ Phase 8 — the Next block below.
 
 ## Next
 
-### 1 · Redis Streams behind the event bus
-
-The in-memory ring buffer does not survive a restart and is not shared between instances.
-`src/lib/event-bus.ts` already has exactly the semantics Redis Streams provides — append,
-read-from-offset, bounded retention — so this is a swap behind an existing interface rather than a
-redesign. The SSE `Last-Event-ID` cursor maps onto a stream ID directly.
-
-The ring buffer stays the default. `docker compose up` must never require a broker.
-
 ### 2 · Server-side incident ownership
 
 Acknowledging currently takes a lock in client state. Two positions can dispatch the same call —
@@ -56,6 +47,35 @@ interpolating frames the detector never produced. See
   currently means an audit line and nothing else.
 
 ## Shipped
+
+### 1 · Redis Streams behind the event bus — phase 8
+
+`EVENT_BUS=redis` puts the log in Redis Streams; `memory` is the default and stays the default.
+`XADD` appends, `XRANGE` reads from a cursor, `MAXLEN ~` bounds retention, and the SSE
+`Last-Event-ID` now carries the bus cursor — a stream ID — rather than the event's own id, so a
+reconnect is a range query instead of a search. A dashboard restart loses **0** events where the
+memory bus loses all of them, and two instances behind a round-robin proxy return byte-identical
+queues. [ADR-0007](adr/0007-redis-streams-behind-the-event-bus.md).
+
+A broker that is down degrades rather than fails: every operation falls back to an in-process bus,
+`/api/health` still returns `ok`, and the status bar shows `HISTORY LOCAL` — its own signal, not a
+fourth connection state, because the feed really is live.
+
+The conformance suite is the point of the exercise: 18 assertions run against both implementations,
+and they caught a real bug. The reader started from `$`, which the server resolves when the XREAD
+_executes_ — so an event published in the gap between connecting and that first read was skipped,
+and skipped again on every subsequent read. Present in the stream, invisible to live subscribers.
+
+Implementing it added three things to the list:
+
+- **The mark rule now exists twice**, in TypeScript and in Lua. Only the conformance suite keeps
+  them in step. A third backend should mean moving the rule somewhere both can call.
+- **`/api/metrics` computes over one instance's read.** The window is shared now, but two instances
+  asked at the same moment can still differ by whatever is in flight.
+- **Amended copies live on a TTL beside the stream.** If the key expires while its stream entry is
+  still retained, an operator's mark silently disappears from replay. An hour against a
+  hundred-event window is not close, but it is a coupling between two retention policies that
+  nothing currently checks.
 
 ### 6 · The reopen rule — phase 8
 
