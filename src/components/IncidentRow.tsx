@@ -31,6 +31,15 @@ interface IncidentRowProps {
    * operator does not re-litigate a judgement already made.
    */
   seenBefore?: { reason: string };
+  /**
+   * This position's attempt to take the incident.
+   *
+   * `pending` is the optimistic beat — the keystroke landed, the server has not
+   * answered yet. `rejected` is the answer that makes the optimism honest: it
+   * names the position that got there first, so the operator knows to move on
+   * rather than pressing Enter again.
+   */
+  claim?: { state: 'pending' } | { state: 'rejected'; by: string };
   /** A critical that has just landed, before the tint settles. */
   arriving?: boolean;
   onSelect?: () => void;
@@ -79,6 +88,7 @@ export function IncidentRow({
   owner,
   dispatch,
   seenBefore,
+  claim,
   arriving = false,
   onSelect,
   setSize,
@@ -178,6 +188,37 @@ export function IncidentRow({
       </span>
 
       <span className="flex flex-none items-center gap-1.5">
+        {/*
+         * The reconciliation, rendered.
+         *
+         * `pending` is a word rather than a spinner: this resolves in a few
+         * milliseconds on a healthy network, and a spinner that flashes for one
+         * frame reads as a glitch. If it is slow enough to notice, the operator
+         * should be able to read *what* is slow.
+         *
+         * The refusal names the position. "Could not acknowledge" would leave
+         * an operator pressing Enter again; "Taken by position 3" tells them the
+         * call is handled and by whom.
+         */}
+        {claim?.state === 'pending' && (
+          <span className="text-micro rounded-control border border-border-component px-1.25 py-0.5 font-semibold text-text-secondary">
+            Claiming…
+          </span>
+        )}
+
+        {/*
+         * Primary text against the same border the SLA tag uses. The refusal is
+         * more urgent than "SLA" but it is still system state, not severity —
+         * and colour on this screen belongs to priority. Weight and contrast
+         * carry the difference, which is the same move the age column makes
+         * when it breaches. (Pass C frame 4)
+         */}
+        {claim?.state === 'rejected' && (
+          <span className="text-micro rounded-control border border-border-component px-1.25 py-0.5 font-semibold text-text-primary">
+            Taken by {claim.by.toLowerCase()}
+          </span>
+        )}
+
         {slaBreached && (
           <span className="text-micro rounded-control border border-border-component px-1.25 py-0.5 font-semibold text-text-secondary">
             SLA

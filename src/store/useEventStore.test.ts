@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { generateEvent, makeRandom } from '@/lib/generator';
 import type { DetectionEvent, Priority } from '@/lib/schema';
@@ -191,37 +191,189 @@ describe('keyboard selection', () => {
   });
 });
 
-describe('decisions', () => {
-  it('acknowledging takes the lock and writes the audit trail', () => {
+/*
+ * Acknowledging is the one action the server decides, so the store's job
+ * changed with it: `acknowledge` now *asks*, and `applyClaim` is what actually
+ * takes the incident. These tests follow that split rather than pretending the
+ * old synchronous contract still holds — the lock is only worth anything if the
+ * client cannot grant it to itself.
+ */
+describe('claiming', () => {
+  /**
+   * Answer the claim request with whatever the server would have said.
+   *
+   * Stubbed rather than skipped: the branch worth testing is the one where the
+   * answer is *no*, and a store that never issues the request cannot have it.
+   */
+  function answerWith(
+    status: number,
+    body: Record<string, unknown>,
+  ): ReturnType<typeof vi.fn> {
+    const stub = vi.fn(() =>
+      Promise.resolve({
+        ok: status >= 200 && status < 300,
+        status,
+        json: () => Promise.resolve(body),
+      }),
+    );
+    vi.stubGlobal('fetch', stub);
+    return stub;
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('acknowledging marks the row pending rather than taking it', () => {
+    answerWith(200, { ok: true, owner: 'Position 1' });
+    const incident = event();
+    useEventStore.getState().ingest(incident);
+
+    useEventStore.getState().acknowledge(incident.id);
+
+    // Synchronously after the keystroke, before the server has answered.
+    expect(useEventStore.getState().claims[incident.id]).toEqual({
+      state: 'pending',
+    });
+    // Crucially *not* acknowledged: nothing has been granted yet.
+    expect(useEventStore.getState().events[0]!.status).toBe('new');
+  });
+
+  it('a granted request resolves to the lock', async () => {
+    answerWith(200, { ok: true, owner: 'Position 4' });
+    const incident = event();
+    useEventStore.getState().ingest(incident);
+
+    useEventStore.getState().acknowledge(incident.id);
+    await vi.waitFor(() =>
+      expect(useEventStore.getState().events[0]!.status).toBe('acknowledged'),
+    );
+
+    expect(useEventStore.getState().events[0]!.assignedTo).toBe('Position 4');
+    expect(useEventStore.getState().claims[incident.id]).toBeUndefined();
+  });
+
+  it('a 409 resolves to a refusal naming the position that won', async () => {
+    answerWith(409, { ok: false, reason: 'taken', owner: 'Position 3' });
+    const incident = event();
+    useEventStore.getState().ingest(incident);
+
+    useEventStore.getState().acknowledge(incident.id);
+    await vi.waitFor(() =>
+      expect(useEventStore.getState().claims[incident.id]).toEqual({
+        state: 'rejected',
+        by: 'Position 3',
+      }),
+    );
+  });
+
+  it('a failed request rolls back without inventing a rival', async () => {
+    // "The request did not arrive" is not "somebody else has it", and telling
+    // an operator the wrong one of those is worse than telling them neither.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new Error('offline'))),
+    );
+    const incident = event();
+    useEventStore.getState().ingest(incident);
+
+    useEventStore.getState().acknowledge(incident.id);
+    await vi.waitFor(() =>
+      expect(useEventStore.getState().claims[incident.id]).toBeUndefined(),
+    );
+
+    const after = useEventStore.getState().events[0]!;
+    expect(after.status).toBe('new');
+    expect(after.assignedTo).toBeUndefined();
+  });
+
+  it('a granted claim takes the lock and writes the audit trail', () => {
     const incident = event();
     useEventStore.getState().ingest(incident);
     const before = incident.history.length;
 
-    useEventStore.getState().acknowledge(incident.id);
+    useEventStore
+      .getState()
+      .applyClaim(incident.id, 'Position 2', '2026-08-12T09:00:00.000Z');
 
     const after = useEventStore.getState().events[0]!;
     expect(after.status).toBe('acknowledged');
-    expect(after.assignedTo).toBe(OPERATOR);
+    expect(after.assignedTo).toBe('Position 2');
     expect(after.history).toHaveLength(before + 1);
     expect(after.history.at(-1)).toMatchObject({
-      actor: OPERATOR,
+      actor: 'Position 2',
       action: 'Acknowledged',
     });
+    // The pending marker clears once the answer is in.
+    expect(useEventStore.getState().claims[incident.id]).toBeUndefined();
   });
 
-  it('acknowledging is idempotent — a second press does not re-lock', () => {
+  it('a refused claim leaves the incident alone and names the holder', () => {
     const incident = event();
     useEventStore.getState().ingest(incident);
-    useEventStore.getState().acknowledge(incident.id);
-    const afterFirst = useEventStore.getState().events[0]!.history.length;
+    const before = incident.history.length;
+
+    useEventStore.getState().rejectClaim(incident.id, 'Position 3');
+
+    expect(useEventStore.getState().claims[incident.id]).toEqual({
+      state: 'rejected',
+      by: 'Position 3',
+    });
+
+    const after = useEventStore.getState().events[0]!;
+    // The owner is recorded even though this position lost: the refusal is
+    // transient and the lock is not, so the row must keep showing who has it
+    // after the operator has read the rejection and moved on.
+    expect(after.assignedTo).toBe('Position 3');
+    // No audit entry — this position did not do anything to the incident.
+    expect(after.history).toHaveLength(before);
+  });
+
+  it('a claim that arrives for an incident somebody already holds is ignored', () => {
+    // Two notices for the same incident, or a notice racing a resync. The
+    // first owner wins, or the lock would not be a lock.
+    const incident = event();
+    useEventStore.getState().ingest(incident);
+
+    useEventStore
+      .getState()
+      .applyClaim(incident.id, 'Position 2', '2026-08-12T09:00:00.000Z');
+    useEventStore
+      .getState()
+      .applyClaim(incident.id, 'Position 5', '2026-08-12T09:00:01.000Z');
+
+    expect(useEventStore.getState().events[0]!.assignedTo).toBe('Position 2');
+  });
+
+  it('does not stack requests behind a repeated keypress', () => {
+    const incident = event();
+    useEventStore.getState().ingest(incident);
 
     useEventStore.getState().acknowledge(incident.id);
+    useEventStore.getState().acknowledge(incident.id);
 
+    expect(useEventStore.getState().claims[incident.id]).toEqual({
+      state: 'pending',
+    });
     expect(useEventStore.getState().events[0]!.history).toHaveLength(
-      afterFirst,
+      incident.history.length,
     );
   });
 
+  it('will not claim an incident that is already owned', () => {
+    const incident = event();
+    useEventStore.getState().ingest(incident);
+    useEventStore
+      .getState()
+      .applyClaim(incident.id, 'Position 2', '2026-08-12T09:00:00.000Z');
+
+    useEventStore.getState().acknowledge(incident.id);
+
+    expect(useEventStore.getState().claims[incident.id]).toBeUndefined();
+  });
+});
+
+describe('decisions', () => {
   it('dispatching attaches a unit and an ETA', () => {
     const incident = event();
     useEventStore.getState().ingest(incident);
@@ -254,7 +406,9 @@ describe('decisions', () => {
     // to claim.
     const incident = event();
     useEventStore.getState().ingest(incident);
-    useEventStore.getState().acknowledge(incident.id);
+    useEventStore
+      .getState()
+      .applyClaim(incident.id, OPERATOR, '2026-08-12T09:00:00.000Z');
     useEventStore.getState().dismiss(incident.id, 'Camera artefact');
 
     useEventStore.getState().undoDismiss(incident.id);
@@ -303,7 +457,9 @@ describe('derived state', () => {
     useEventStore.getState().ingest(urgent);
     expect(selectCriticalAlert(useEventStore.getState())?.id).toBe(urgent.id);
 
-    useEventStore.getState().acknowledge(urgent.id);
+    useEventStore
+      .getState()
+      .applyClaim(urgent.id, OPERATOR, '2026-08-12T09:00:00.000Z');
     expect(selectCriticalAlert(useEventStore.getState())).toBeUndefined();
   });
 
@@ -381,7 +537,9 @@ describe('auto-escalation', () => {
   it('does not escalate once acknowledged — someone owns it', () => {
     const incident = overdue(25);
     useEventStore.getState().ingest(incident);
-    useEventStore.getState().acknowledge(incident.id);
+    useEventStore
+      .getState()
+      .applyClaim(incident.id, OPERATOR, '2026-08-12T09:00:00.000Z');
 
     useEventStore.getState().escalateOverdue(Date.now());
 

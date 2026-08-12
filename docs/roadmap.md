@@ -10,43 +10,93 @@ Numbering is by priority, not by execution order. Phase 8 builds them in a diffe
 
 ## Now
 
-Phase 8 — the Next block below.
+**Real camera frames.** Everything else in Next is waiting on it.
+
+Snapshots today are one committed SVG per _event type_ — a single still, shared across every camera
+and every incident of that type. It is the largest gap between what the evidence panel claims and
+what it shows, it blocks #7 outright, and two more items below get better the moment it lands.
+
+This moved up from Later because phase 8 finished everything that did not depend on it.
 
 ## Next
-
-### 2 · Server-side incident ownership
-
-Acknowledging currently takes a lock in client state. Two positions can dispatch the same call —
-the failure Pass A names explicitly — and only the server can actually prevent it. Needs a
-compare-and-set on the event record, and the loser needs a specific rejection rendered on the row.
-
-Blocked on identity. It does **not** need a full auth system; a position identity held in a cookie
-is enough to make a lock meaningful.
 
 ### 7 · Snapshot filmstrip
 
 Pass A note 2 asks for "a strip of frames either side of the trigger". Only the trigger frame is
 shown today.
 
-**Blocked.** This needs multiple timestamped frames per camera. Snapshots are currently one SVG per
-_event type_ (`/snapshots/{type}.svg`) — a single frame, shared across every camera and every
-incident of that type. Building a filmstrip on that would mean showing the same still five times, or
-interpolating frames the detector never produced. See
+**Blocked on Now.** A filmstrip needs multiple timestamped frames per camera, and there is one
+frame per event type. Building it on that would mean showing the same still five times or
+interpolating frames the detector never produced.
 [ADR-0002](adr/0002-filmstrip-blocked-on-frame-sources.md).
+
+### 8 · Hand an incident back
+
+Acknowledging takes the lock and nothing releases it. That is deliberate — an incident does not
+become unowned because an operator walked away, and a timeout nobody sees fire would be worse than
+no release at all — but it means a position that claims something by mistake, or goes off shift
+holding it, has no way to give it up. Needs an action and a supervisor override, both of which want
+#9 underneath them.
+
+### 9 · Real authentication
+
+[ADR-0008](adr/0008-position-identity-and-the-ownership-lock.md) records why this was deliberately
+not built to unblock ownership: a lock needs to know which desk is asking, not who the person is. A
+position identity is a cookie and is not proof of anything, which is honest for an internal tool on
+an internal network and not sufficient for anything else. This is the clean addition that decision
+left room for, and it would also let positions be bound to workstations rather than counted upward
+forever.
+
+### 10 · Snapshot preloading should follow the window
+
+The effect still warms every queued incident rather than the rendered window, so 500 incidents warm
+500 snapshots. Harmless today only by accident — the six shared URLs dedupe — and it becomes 500
+fetches to open one pane the moment real imagery lands. Prerequisite for Now, in practice.
 
 ## Later
 
-- **Real imagery.** Snapshots are committed SVG stills drawn in the design's own surface values.
-  Real frames — or at least several per camera with source timestamps — would unblock #7 and make
-  the evidence panel mean what it claims.
 - **Multi-operator presence.** Beyond the lock in #2: seeing which positions are online and what
   each is looking at.
 - **Persistence beyond the buffer.** #1 gives replay and fan-out; a shift log that survives a
   deployment is a different problem.
 - **A supervisor view.** Pass A's auto-escalation "pushes to the supervisor position", which
   currently means an audit line and nothing else.
+- **The mark and claim rules exist twice**, in TypeScript and in Lua. The conformance suite keeps
+  them in step and has caught one divergence already. A third storage backend should mean moving
+  each rule somewhere all of them can call.
+- **`/api/metrics` computes over one instance's read.** The window is shared under #1, but two
+  instances asked at the same moment can still differ by whatever is in flight.
 
 ## Shipped
+
+### 2 · Server-side incident ownership — phase 8
+
+Acknowledging is now a compare-and-set on the server: a synchronous check-and-set in memory, a Lua
+script against Redis. Exactly one of two positions racing `Enter` takes the incident and the other
+is told `Taken by position 3` — on the row and in the detail pane, not as a generic error.
+[ADR-0008](adr/0008-position-identity-and-the-ownership-lock.md).
+
+**No authentication was built, deliberately.** A lock needs to know which desk is asking, not who
+the person is. The server assigns a workstation number when the stream opens and keeps it in an
+httpOnly cookie; that is enough for the compare-and-set and enough for the audit trail, and it
+leaves real auth as a clean addition rather than a half-built one. It is not proof of identity, and
+the README says so.
+
+This is also the item that made "optimistic" mean something: acknowledging is the one action that
+can be refused, so the row shows `Claiming…` and then either confirms or rolls back with the reason.
+A failed request rolls back **without** naming a rival — "the request did not arrive" is not
+"somebody else has it".
+
+Implementing it added three things to the list:
+
+- **A position is never released.** `assignedTo` is set by acknowledging and never cleared, and
+  there is no way to hand an incident back. Deliberate — an incident does not become unowned because
+  an operator walked away — but it needs an action, not a timeout nobody sees fire.
+- **Positions count upward forever and are never reused.** Fine for a demo, wrong for a control room
+  with eight physical desks, where the number should be bound to the workstation.
+- **The claim rule now exists twice**, like the mark rule before it: `applyClaim` in TypeScript and
+  a Lua transliteration. The conformance suite is the only thing keeping them in step, and it has
+  already caught one divergence.
 
 ### 1 · Redis Streams behind the event bus — phase 8
 

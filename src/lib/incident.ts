@@ -83,7 +83,7 @@ export function toRowView(event: DetectionEvent, now: number): RowView {
   };
 }
 
-/** "Rohitha" → "JK". The row has 20px for ownership; a name does not fit. */
+/** "Position 3" → "P3". The row has 20px for ownership; a name does not fit. */
 export function initialsOf(name: string): string {
   return name
     .split(/[\s.]+/)

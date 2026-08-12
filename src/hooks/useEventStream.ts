@@ -32,6 +32,15 @@ import { useEventStore } from '@/store/useEventStore';
 const readySchema = z.object({
   at: z.iso.datetime(),
   history: z.enum(['shared', 'local']).default('shared'),
+  /** This workstation's number. The cookie that carries it is httpOnly. */
+  position: z.string().min(1).optional(),
+});
+
+/** Somebody took an incident — possibly at another desk, possibly another instance. */
+const claimSchema = z.object({
+  id: z.string().min(1),
+  owner: z.string().min(1),
+  at: z.iso.datetime(),
 });
 
 const BASE_DELAY_MS = 1000;
@@ -43,6 +52,8 @@ export function useEventStream(url = '/api/events/stream'): void {
   const ingest = useEventStore((state) => state.ingest);
   const setConnection = useEventStore((state) => state.setConnection);
   const setHistory = useEventStore((state) => state.setHistory);
+  const setPosition = useEventStore((state) => state.setPosition);
+  const applyClaim = useEventStore((state) => state.applyClaim);
 
   // Refs, not state: changing these must never re-render, and the cleanup path
   // has to see the current values rather than a closed-over snapshot.
@@ -82,6 +93,26 @@ export function useEventStream(url = '/api/events/stream'): void {
           JSON.parse((message as MessageEvent<string>).data),
         );
         setHistory(parsed.success ? parsed.data.history : 'shared');
+        if (parsed.success && parsed.data.position) {
+          setPosition(parsed.data.position);
+        }
+      });
+
+      /*
+       * A lock taken anywhere, shown everywhere.
+       *
+       * Without this the only two positions that would learn an incident had
+       * been claimed are the two that raced for it — every other desk would go
+       * on showing it as free, which is the exact confusion the lock exists to
+       * remove.
+       */
+      source.addEventListener('claim', (message) => {
+        const parsed = claimSchema.safeParse(
+          JSON.parse((message as MessageEvent<string>).data),
+        );
+        if (parsed.success) {
+          applyClaim(parsed.data.id, parsed.data.owner, parsed.data.at);
+        }
       });
 
       source.addEventListener('detection', (message) => {
@@ -132,5 +163,5 @@ export function useEventStream(url = '/api/events/stream'): void {
       sourceRef.current?.close();
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [url, ingest, setConnection, setHistory]);
+  }, [url, ingest, setConnection, setHistory, setPosition, applyClaim]);
 }

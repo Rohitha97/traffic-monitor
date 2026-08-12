@@ -120,12 +120,29 @@ for (const implementation of IMPLEMENTATIONS) {
         await bus.close();
       });
 
-      it('reports which implementation is answering, undegraded', () => {
-        expect(bus.health()).toMatchObject({
-          kind: implementation.name,
-          degraded: false,
-        });
-      });
+      /*
+       * Waited for rather than demanded instantly, on an infrastructure-sized
+       * budget rather than the suite's usual one.
+       *
+       * Startup blocks on the broker only for a bounded moment before carrying
+       * on in the background, so a cold container can legitimately have the bus
+       * come up degraded and recover — which is the designed behaviour. A first
+       * connect to a freshly started container has been measured at 17 seconds
+       * on this machine, and how long Docker takes to accept a socket is not a
+       * property of this application.
+       */
+      it(
+        'reports which implementation is answering, undegraded',
+        { timeout: 40_000 },
+        async () => {
+          await until(() => !bus.health().degraded, 35_000);
+
+          expect(bus.health()).toMatchObject({
+            kind: implementation.name,
+            degraded: false,
+          });
+        },
+      );
 
       it('returns a cursor for every publish, and they are distinct', async () => {
         const first = await bus.publish(event());
@@ -389,6 +406,150 @@ for (const implementation of IMPLEMENTATIONS) {
          * the memory bus happens to satisfy.
          */
         expect(entries.length).toBeLessThanOrEqual((RETENTION + 20) * 2);
+      });
+
+      it('grants a claim on a free incident', async () => {
+        const published = event();
+        await bus.publish(published);
+
+        const result = await bus.claim(
+          published.id,
+          'Position 1',
+          '2026-08-12T09:00:00.000Z',
+        );
+
+        expect(result).toMatchObject({ ok: true, owner: 'Position 1' });
+
+        const [entry] = await bus.readFrom(null);
+        expect(entry!.event.status).toBe('acknowledged');
+        expect(entry!.event.assignedTo).toBe('Position 1');
+        expect(entry!.event.history.at(-1)).toMatchObject({
+          actor: 'Position 1',
+          action: 'Acknowledged',
+        });
+      });
+
+      it('refuses a second position and names the holder', async () => {
+        // The whole item. Two positions dispatching the same call is the
+        // failure Pass A names, and this is the assertion that it cannot
+        // happen — with the loser told who won rather than merely told no.
+        const published = event();
+        await bus.publish(published);
+
+        const first = await bus.claim(
+          published.id,
+          'Position 1',
+          '2026-08-12T09:00:00.000Z',
+        );
+        const second = await bus.claim(
+          published.id,
+          'Position 3',
+          '2026-08-12T09:00:00.500Z',
+        );
+
+        expect(first.ok).toBe(true);
+        expect(second).toEqual({ ok: false, owner: 'Position 1' });
+      });
+
+      it('lets a position re-claim what it already holds', async () => {
+        // A retried request must not report an operator as their own rival.
+        const published = event();
+        await bus.publish(published);
+
+        await bus.claim(published.id, 'Position 1', '2026-08-12T09:00:00.000Z');
+        const again = await bus.claim(
+          published.id,
+          'Position 1',
+          '2026-08-12T09:00:01.000Z',
+        );
+
+        expect(again).toMatchObject({ ok: true, owner: 'Position 1' });
+
+        // And it wrote nothing the second time: one acknowledgement, not two.
+        const [entry] = await bus.readFrom(null);
+        expect(
+          entry!.event.history.filter((h) => h.action === 'Acknowledged'),
+        ).toHaveLength(1);
+      });
+
+      it('exactly one of a concurrent burst wins', async () => {
+        /*
+         * Eight positions pressing Enter at once. In memory this is trivially
+         * safe and the assertion is nearly free; against Redis it is the
+         * reason the compare-and-set is a Lua script rather than a
+         * read-modify-write in TypeScript.
+         */
+        const published = event();
+        await bus.publish(published);
+
+        const results = await Promise.all(
+          Array.from({ length: 8 }, (_, index) =>
+            bus.claim(
+              published.id,
+              `Position ${index + 1}`,
+              '2026-08-12T09:00:00.000Z',
+            ),
+          ),
+        );
+
+        const winners = results.filter((result) => result.ok);
+        expect(winners).toHaveLength(1);
+
+        // And every loser was told the same thing: the one winner's name.
+        const owner = winners[0]!.owner;
+        for (const result of results.filter((r) => !r.ok)) {
+          expect(result.owner).toBe(owner);
+        }
+      });
+
+      it('reports nothing to claim for an unknown incident', async () => {
+        expect(
+          await bus.claim(
+            'never-published',
+            'Position 1',
+            '2026-08-12T09:00:00.000Z',
+          ),
+        ).toEqual({ ok: false, owner: null });
+      });
+
+      it('tells subscribers when an incident is claimed', async () => {
+        // So a position that was not racing still sees the lock. Without this
+        // every other desk goes on showing the incident as free.
+        const seen: { id: string; owner: string }[] = [];
+        bus.subscribeClaims((notice) =>
+          seen.push({ id: notice.id, owner: notice.owner }),
+        );
+
+        const published = event();
+        await bus.publish(published);
+        await bus.claim(published.id, 'Position 2', '2026-08-12T09:00:00.000Z');
+
+        await until(() => seen.length > 0);
+        expect(seen).toEqual([{ id: published.id, owner: 'Position 2' }]);
+      });
+
+      it('does not announce a claim that changed nothing', async () => {
+        const seen: string[] = [];
+        const published = event();
+        await bus.publish(published);
+        await bus.claim(published.id, 'Position 2', '2026-08-12T09:00:00.000Z');
+
+        bus.subscribeClaims((notice) => seen.push(notice.owner));
+        await bus.claim(published.id, 'Position 2', '2026-08-12T09:00:01.000Z');
+        await bus.claim(published.id, 'Position 5', '2026-08-12T09:00:02.000Z');
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        expect(seen).toEqual([]);
+      });
+
+      it('hands out distinct positions', async () => {
+        const assigned = await Promise.all([
+          bus.nextPosition(),
+          bus.nextPosition(),
+          bus.nextPosition(),
+        ]);
+
+        expect(new Set(assigned).size).toBe(3);
       });
 
       it('reports local subscriber count', () => {

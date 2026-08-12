@@ -107,6 +107,26 @@ from, so it cannot drift from what actually works.
 needs a key. That is Pass A's state machine, and one of eleven places the design and the build
 brief disagree — all enumerated in [`DESIGN_INVENTORY.md`](docs/DESIGN_INVENTORY.md) §6.
 
+### Who owns an incident
+
+Acknowledging takes a lock, and it is the only action the server can refuse. Everything else an
+operator does acts on an incident they already hold, so it applies locally and reports afterwards;
+this is a claim on a shared resource, and Pass A names the failure it prevents — two positions
+dispatching the same call.
+
+So the row shows `Claiming…` and then resolves. If another position got there first it rolls back
+and says `Taken by position 3`, on the row and in the detail pane, rather than a generic error. If
+the request simply failed it rolls back and names nobody: "the request did not arrive" is not
+"somebody else has it".
+
+The decision is a compare-and-set on the stored record — a synchronous check-and-set in memory, a
+Lua script against Redis — so two browsers cannot both win, including when they are talking to
+different instances. A position that was not racing sees the lock appear too, over the stream.
+
+Each dashboard is assigned a workstation number when its stream opens, held in an httpOnly cookie.
+That is as much identity as a lock needs and is explicitly not authentication — see
+[Non-goals](#non-goals).
+
 ### Component states
 
 `/dev/states` renders every component in every state Pass C draws, with the design's own captions
@@ -223,17 +243,21 @@ phases, each written when the decision was made. The ones worth stating up front
 
 ## Verification
 
-|               |                                                                                       |
-| ------------- | ------------------------------------------------------------------------------------- |
-| Unit          | 47 tests — `derivePriority` exhaustively, and the store's buffering, locking and undo |
-| E2E           | 11 Playwright specs — the full journey driven from the keyboard                       |
-| Accessibility | 4 axe audits at WCAG 2.1 AA across four states, **zero violations**                   |
-| Lighthouse    | performance **100**, accessibility **100**, best practices **100**, SEO **100**       |
-| Visual        | 26 component states — 25 captured as images, 1 checked dimensionally                  |
+|               |                                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------- |
+| Unit          | 109 tests — `derivePriority` exhaustively, the store, metrics percentiles, event correlation      |
+| Bus           | one conformance suite run against **both** the ring buffer and Redis Streams                      |
+| E2E           | 21 Playwright specs — the journey from the keyboard, correlation, virtualisation, a two-desk race |
+| Accessibility | 4 axe audits at WCAG 2.1 AA across four states, **zero violations**                               |
+| Lighthouse    | performance **100**, accessibility **100**, best practices **100**, SEO **100**                   |
+| Visual        | 31 component states — 30 captured as images, 1 checked dimensionally                              |
 
 ```bash
 pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e
 ```
+
+`pnpm test:bus` is the one command that wants infrastructure, and it starts and disposes of its own
+broker. Everything above runs on a clean clone with nothing provisioned.
 
 Visual regression runs separately, because screenshots are not portable: font rasterisation differs
 enough between platforms that a snapshot taken on a laptop will never match CI. Capture and
@@ -310,32 +334,35 @@ arriving. What has stopped is sharing — events published during the outage are
 instance and nowhere else until the broker returns. Calling that "reconnecting" would be a false
 alarm about the one thing the status bar exists to be trusted about.
 
-## What I deliberately did not build
+## Non-goals
 
-- **Multi-operator presence.** Acknowledging takes a lock and the owner's initials show on the row,
-  but there is one position and one operator name. Real ownership needs auth and a server-side
-  lock; the UI is already shaped for it.
+Things this does not do, and the reason each is a boundary rather than an omission.
+
+- **Authentication.** The ownership lock needs to know which _desk_ is asking, not who the person
+  is. The server assigns a workstation number when the stream opens and keeps it in an httpOnly
+  cookie — enough for a compare-and-set and enough for the audit trail. It is **not proof of
+  identity**: anything that can send a request can send a cookie. That is an accurate description of
+  an internal tool on an internal network, and it is the wrong answer for anything facing a hostile
+  one. [ADR-0008](docs/adr/0008-position-identity-and-the-ownership-lock.md) records the decision
+  rather than leaving a half-built login behind.
 - **Persistence beyond the replay window.** `EVENT_BUS=redis` makes the log survive a dashboard
-  restart and shared across instances, but retention is still a hundred events. A shift log that
+  restart and be shared across instances, but retention is still a hundred events. A shift log that
   outlives a deployment is a different problem, and a database is backend work the brief scoped out.
-- **Snapshot filmstrip.** Pass A note 2 mentions "a strip of frames either side of the trigger".
-  Only the single trigger frame is shown.
-- **Real imagery.** Snapshots are committed SVG stills per event type, drawn in the design's own
-  surface values so they sit in the evidence well without a seam.
+- **Real camera imagery.** Snapshots are committed SVG stills per event type, drawn in the design's
+  own surface values so they sit in the evidence well without a seam. One frame per _type_, not per
+  incident — which is also what blocks the filmstrip below.
+- **Snapshot filmstrip.** Pass A note 2 asks for "a strip of frames either side of the trigger", and
+  there are no such frames to show.
+  [ADR-0002](docs/adr/0002-filmstrip-blocked-on-frame-sources.md).
+- **Releasing a lock.** Acknowledging takes an incident and nothing gives it back. Deliberate — an
+  incident does not become unowned because an operator walked away, and a timeout nobody sees fire
+  would be worse — but it does mean a mistaken claim is permanent.
 
 ## What I would do next
 
-1. **Make the ring buffer a real broker.** Redis Streams would give the replay semantics already
-   relied on, plus fan-out across instances — the current design maps onto it almost unchanged.
-2. **Virtualise the queue.** Twelve rows is the design target, but a bad hour is hundreds. The row
-   is fixed-height, so windowing is cheap and the shared tick already keeps re-renders to one pass.
-3. **Server-side ownership.** The lock is currently a client-side field. Two positions dispatching
-   the same call is the failure Pass A names, and only the server can actually prevent it.
-4. **A visual regression pass.** `/dev/states` is a natural target for snapshot diffing against the
-   Pass C frames, which would catch drift the adherence lint cannot see.
-5. **Measure the two numbers.** The whole design argues from time-to-awareness and time-to-decision
-   but never instruments them. Recording arrival → first keystroke → decision would turn the thesis
-   into something falsifiable.
+[`docs/roadmap.md`](docs/roadmap.md) is the live list, with Now / Next / Later and a record of what
+each shipped item added to it. The short version: real camera frames are the top of the list and
+most of the rest is waiting on them.
 
 ## AI log
 

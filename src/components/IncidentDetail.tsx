@@ -41,6 +41,8 @@ export interface IncidentDetailData {
   acknowledgedBy?: string;
   /** "34s after arrival" */
   acknowledgedAfter?: string;
+  /** This position's attempt to take the incident. See IncidentRow. */
+  claim?: { state: 'pending' } | { state: 'rejected'; by: string };
   dispatched?: { unit: string; etaMinutes: number };
 }
 
@@ -108,16 +110,39 @@ export function IncidentDetail({
             {incident.camera} · {incident.location}
           </p>
         </div>
-        {incident.acknowledgedBy && (
+        {/*
+         * The claim outcome outranks the acknowledgement badge in the same
+         * slot: if this position was refused, "✓ Acknowledged — Position 3" is
+         * technically true and reads as though *they* had it.
+         */}
+        {incident.claim?.state === 'rejected' ? (
           <div className="flex-none text-right">
             <p className="text-kicker font-semibold text-text-primary">
-              ✓ Acknowledged
+              Taken by {incident.claim.by.toLowerCase()}
             </p>
             <p className="text-micro font-medium text-text-secondary">
-              {incident.acknowledgedBy}
-              {incident.acknowledgedAfter && ` · ${incident.acknowledgedAfter}`}
+              Already being handled
             </p>
           </div>
+        ) : incident.claim?.state === 'pending' ? (
+          <div className="flex-none text-right">
+            <p className="text-kicker font-semibold text-text-secondary">
+              Claiming…
+            </p>
+          </div>
+        ) : (
+          incident.acknowledgedBy && (
+            <div className="flex-none text-right">
+              <p className="text-kicker font-semibold text-text-primary">
+                ✓ Acknowledged
+              </p>
+              <p className="text-micro font-medium text-text-secondary">
+                {incident.acknowledgedBy}
+                {incident.acknowledgedAfter &&
+                  ` · ${incident.acknowledgedAfter}`}
+              </p>
+            </div>
+          )
         )}
       </header>
 

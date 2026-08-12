@@ -1,8 +1,12 @@
 import {
+  applyClaim,
   applyMark,
+  ownerOf,
   RETENTION,
   type BusEntry,
   type BusHealth,
+  type ClaimResult,
+  type ClaimSubscriber,
   type EventBus,
   type Subscriber,
 } from '@/lib/event-bus/types';
@@ -26,7 +30,9 @@ const HEALTH: BusHealth = { kind: 'memory', degraded: false };
 
 export function createMemoryBus(): EventBus {
   const subscribers = new Set<Subscriber>();
+  const claimSubscribers = new Set<ClaimSubscriber>();
   const entries: BusEntry[] = [];
+  let positions = 0;
 
   /*
    * Monotonic, zero-padded so cursors sort lexically the way Redis stream IDs
@@ -100,12 +106,65 @@ export function createMemoryBus(): EventBus {
       return Promise.resolve(true);
     },
 
+    claim(id: string, position: string, at: string): Promise<ClaimResult> {
+      const index = entries.findIndex((entry) => entry.event.id === id);
+      if (index === -1) return Promise.resolve({ ok: false, owner: null });
+
+      const entry = entries[index]!;
+      const claimed = applyClaim(entry.event, position, at);
+
+      /*
+       * Check and set with nothing awaited between them.
+       *
+       * This looks too easy for a lock, and it is correct for exactly one
+       * reason: JavaScript is single-threaded and there is no suspension point
+       * in here, so no other request can observe the gap. The Redis
+       * implementation has to do the same work in Lua precisely because that
+       * guarantee stops holding the moment the record leaves this process.
+       */
+      if (!claimed) {
+        return Promise.resolve({ ok: false, owner: ownerOf(entry.event)! });
+      }
+
+      /*
+       * Re-claiming what you already hold succeeds and changes nothing — so
+       * there is nothing to write and nobody to tell. Announcing it anyway
+       * would have every retry re-broadcast a lock that had not moved, which
+       * the conformance suite caught: the Lua script skips the notice on that
+       * path and this did not.
+       */
+      if (claimed === entry.event) {
+        return Promise.resolve({ ok: true, owner: position, event: claimed });
+      }
+
+      entries[index] = { cursor: entry.cursor, event: claimed };
+
+      const notice = { id, owner: position, at };
+      for (const subscriber of claimSubscribers) {
+        try {
+          subscriber(notice);
+        } catch {
+          claimSubscribers.delete(subscriber);
+        }
+      }
+
+      return Promise.resolve({ ok: true, owner: position, event: claimed });
+    },
+
+    subscribeClaims(subscriber: ClaimSubscriber): () => void {
+      claimSubscribers.add(subscriber);
+      return () => claimSubscribers.delete(subscriber);
+    },
+
+    nextPosition: () => Promise.resolve(String(++positions)),
+
     subscriberCount: () => subscribers.size,
 
     health: () => HEALTH,
 
     close: () => {
       subscribers.clear();
+      claimSubscribers.clear();
       entries.length = 0;
       return Promise.resolve();
     },

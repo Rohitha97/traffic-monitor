@@ -47,6 +47,7 @@ export function OperatorConsole() {
   const tick = useEventStore((state) => state.tick);
   const connection = useEventStore((state) => state.connection);
   const history = useEventStore((state) => state.history);
+  const claims = useEventStore((state) => state.claims);
   const dataAsOf = useEventStore((state) => state.dataAsOf);
   const buffered = useEventStore((state) => state.buffered);
   const selectedId = useEventStore((state) => state.selectedId);
@@ -268,6 +269,7 @@ export function OperatorConsole() {
               events={queue}
               leaving={leaving}
               selectedId={selectedId}
+              claims={claims}
               now={clock}
               onSelect={select}
               onUndoDismiss={undoDismiss}
@@ -281,7 +283,16 @@ export function OperatorConsole() {
         </section>
 
         <IncidentDetail
-          {...(selected ? { incident: toDetailView(selected) } : {})}
+          {...(selected
+            ? {
+                incident: {
+                  ...toDetailView(selected),
+                  ...(claims[selected.id]
+                    ? { claim: claims[selected.id] }
+                    : {}),
+                },
+              }
+            : {})}
           {...(selected
             ? {
                 onAcknowledge: () => acknowledge(selected.id),

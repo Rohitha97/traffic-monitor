@@ -126,7 +126,7 @@ const INCIDENT: IncidentDetailData = {
       action:
         'Unacknowledged 20s — banner re-fired, pushed to supervisor (system)',
     },
-    { at: '02:14:41', action: 'Acknowledged (Rohitha)' },
+    { at: '02:14:41', action: 'Acknowledged (Position 3)' },
   ],
 };
 
@@ -354,6 +354,37 @@ export default function ComponentStatesPage() {
           </State>
 
           <State
+            id="queue-row/claiming"
+            label="Claiming"
+            caption="Enter pressed, server not yet answered. The optimistic beat, with somewhere to land if the answer is no."
+          >
+            <IncidentRow
+              priority="critical"
+              camera="CAM-014"
+              summary="Wrong-way driver"
+              location="M6 N · Jct 8–9"
+              age="00:03"
+              unread
+              claim={{ state: 'pending' }}
+            />
+          </State>
+
+          <State
+            id="queue-row/taken"
+            label="Taken by another position"
+            caption="The rollback. Names the desk that got there first, so the operator moves on instead of pressing Enter again."
+          >
+            <IncidentRow
+              priority="critical"
+              camera="CAM-014"
+              summary="Wrong-way driver"
+              location="M6 N · Jct 8–9"
+              age="00:05"
+              claim={{ state: 'rejected', by: 'Position 3' }}
+            />
+          </State>
+
+          <State
             id="queue-row/seen-before"
             label="Seen before"
             caption="Re-detected within 3 min of being dismissed. The tag carries the original reason, so the call isn’t re-litigated."
@@ -495,7 +526,7 @@ export default function ComponentStatesPage() {
             <IncidentDetail
               incident={{
                 ...INCIDENT,
-                acknowledgedBy: 'Rohitha',
+                acknowledgedBy: 'Position 3',
                 acknowledgedAfter: '34s after arrival',
               }}
             />

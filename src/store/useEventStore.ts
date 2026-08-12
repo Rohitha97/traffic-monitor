@@ -33,8 +33,43 @@ export const DISMISS_UNDO_MS = 8000;
 /** A resolved row fades out over this long before leaving. (Pass A) */
 export const RESOLVED_FADE_MS = 3000;
 
-/** Who is at this position. Single-operator demo; a real deployment would auth. */
-export const OPERATOR = 'Rohitha';
+/**
+ * Who is at this position, before the server has said.
+ *
+ * The server assigns a workstation number when the stream opens and the store
+ * replaces this with it. This is only what the audit trail says in the gap
+ * before that arrives, and in the unit tests, which exercise the store directly
+ * with no stream at all.
+ */
+export const OPERATOR = 'Position 1';
+
+/**
+ * How a claim on an incident is going, from this position's point of view.
+ *
+ * Kept beside the events rather than on them, because it is not a fact about
+ * the incident — it is a fact about *this browser's* attempt to take it, and it
+ * must not survive being re-sent by the server on a resync.
+ */
+export type ClaimState =
+  { state: 'pending' } | { state: 'rejected'; by: string };
+
+/**
+ * The name this browser puts in the audit trail.
+ *
+ * Module-level rather than threaded through every action, because it is a
+ * property of the session and not of any one thing the operator does — and
+ * because the helpers that write history entries are free functions that would
+ * otherwise all need it passed in. Mirrors `state.position`, which is what the
+ * components render.
+ */
+let actingAs = OPERATOR;
+
+/** A copy of `record` without `key`. Destructuring-to-omit trips no-unused-vars. */
+function without<T>(record: Record<string, T>, key: string): Record<string, T> {
+  const next = { ...record };
+  delete next[key];
+  return next;
+}
 
 export interface EventStoreState {
   /** Insertion-ordered, newest first. */
@@ -65,6 +100,16 @@ export interface EventStoreState {
    * one instance, which is not a degraded anything.
    */
   history: 'shared' | 'local';
+  /** This workstation's number, as assigned by the server on connect. */
+  position: string;
+  /**
+   * In-flight and refused claims, keyed by incident.
+   *
+   * Empty for the overwhelming majority of incidents: an entry exists only
+   * while this position is trying to take one, or after it has been told it
+   * cannot.
+   */
+  claims: Record<string, ClaimState>;
   /** Frozen at the moment the feed dropped, so "as of" never lies. */
   dataAsOf: string | null;
   /** Bumped once a second by a single shared interval — never one timer per row. */
@@ -93,6 +138,13 @@ export interface EventStoreState {
   undoDismiss: (id: string) => void;
   setConnection: (state: ConnectionState) => void;
   setHistory: (history: 'shared' | 'local') => void;
+  setPosition: (position: string) => void;
+  /** A claim landed elsewhere — from this position's own request, or another's. */
+  applyClaim: (id: string, owner: string, at: string) => void;
+  /** The server refused: somebody else holds it. */
+  rejectClaim: (id: string, owner: string) => void;
+  /** Clear a refusal once the operator has moved on from it. */
+  clearClaim: (id: string) => void;
   setScrolledAway: (value: boolean) => void;
   toggleFilter: (priority: Priority) => void;
   clearFilters: () => void;
@@ -156,13 +208,56 @@ function postMark(
       id,
       mark,
       at,
-      actor: OPERATOR,
+      actor: actingAs,
       action,
       ...(dismissalReason !== undefined ? { dismissalReason } : {}),
     }),
   }).catch(() => {
     // Metrics are not worth a console error on an operator's screen.
   });
+}
+
+/**
+ * Ask the server for the incident, and reconcile whatever it says.
+ *
+ * Every branch has to land somewhere, because a claim left `pending` is a row
+ * that never resolves — the specific way optimistic UI fails when nobody wrote
+ * the unhappy path. A refusal names the winner; a network failure rolls back
+ * without inventing one, because "the request did not arrive" is not the same
+ * as "somebody else has it" and telling an operator the wrong one of those is
+ * worse than telling them neither.
+ *
+ * Unlike `postMark` this has no `window` guard. The mark is fire-and-forget
+ * metrics that a test has no reason to exercise; this is the reconciliation
+ * path, and a guard that skipped it under test would leave the only branch that
+ * really matters — what happens when the answer is no — permanently unrun.
+ */
+async function requestClaim(id: string): Promise<void> {
+  const { applyClaim, rejectClaim, clearClaim } = useEventStore.getState();
+
+  try {
+    const response = await fetch('/api/events/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+
+    const body = (await response.json()) as { ok?: boolean; owner?: string };
+
+    if (response.ok && body.ok && body.owner) {
+      applyClaim(id, body.owner, new Date().toISOString());
+      return;
+    }
+
+    if (response.status === 409 && body.owner) {
+      rejectClaim(id, body.owner);
+      return;
+    }
+
+    clearClaim(id);
+  } catch {
+    clearClaim(id);
+  }
 }
 
 /**
@@ -207,7 +302,7 @@ function markOnce(
       event.id === id
         ? {
             ...event,
-            history: [...event.history, { at, actor: OPERATOR, action, mark }],
+            history: [...event.history, { at, actor: actingAs, action, mark }],
           }
         : event,
     ),
@@ -217,12 +312,14 @@ function markOnce(
 /** Units a dispatch can draw on. A real deployment would ask a resourcing service. */
 const UNITS = ['12', '07', '31', '18', '25'];
 
-export const useEventStore = create<EventStoreState>()((set) => ({
+export const useEventStore = create<EventStoreState>()((set, get) => ({
   events: [],
   buffered: [],
   selectedId: null,
   connection: 'live',
   history: 'shared',
+  position: OPERATOR,
+  claims: {},
   dataAsOf: null,
   tick: 0,
   filters: new Set<Priority>(),
@@ -292,19 +389,81 @@ export const useEventStore = create<EventStoreState>()((set) => ({
       return { selectedId: rows[next]!.id };
     }),
 
-  acknowledge: (id) =>
+  /*
+   * Acknowledging is the one action that can be refused, so it is the one
+   * action that does not simply apply.
+   *
+   * Everything else an operator does acts on an incident they already hold, and
+   * can be applied locally and reported afterwards. This is a claim on a shared
+   * resource — Pass A's "two positions dispatch the same call" is the failure it
+   * exists to prevent — so the server decides and the row shows `pending` until
+   * it has.
+   *
+   * The optimism is still real: the row responds to the keystroke immediately.
+   * What changed is that it now has somewhere to land if the answer is no.
+   */
+  acknowledge: (id) => {
+    const state = get();
+    const target = state.events.find((event) => event.id === id);
+    if (!target || target.status !== 'new') return;
+    // Don't stack requests behind a keystroke an operator can repeat.
+    if (state.claims[id]?.state === 'pending') return;
+
+    set((current) => ({
+      claims: { ...current.claims, [id]: { state: 'pending' } },
+    }));
+
+    void requestClaim(id);
+  },
+
+  setPosition: (position) => {
+    actingAs = position;
+    set({ position });
+  },
+
+  applyClaim: (id, owner, at) =>
+    set((state) => {
+      return {
+        claims: without(state.claims, id),
+        events: state.events.map((event) =>
+          event.id !== id || event.assignedTo
+            ? event
+            : {
+                ...event,
+                status: 'acknowledged',
+                assignedTo: owner,
+                history: [
+                  ...event.history,
+                  { at, actor: owner, action: 'Acknowledged' },
+                ],
+              },
+        ),
+      };
+    }),
+
+  /*
+   * The rollback. The incident stays `new` — it was never this position's — and
+   * the row carries who took it instead.
+   *
+   * The owner is written onto the event as well as into the rejection, because
+   * the refusal is transient and the lock is not: once the operator has read
+   * "Taken by position 3" and moved on, the row must still show that position 3
+   * has it.
+   */
+  rejectClaim: (id, owner) =>
     set((state) => ({
+      claims: { ...state.claims, [id]: { state: 'rejected', by: owner } },
       events: state.events.map((event) =>
-        event.id !== id || event.status !== 'new'
+        event.id !== id || event.assignedTo
           ? event
-          : {
-              ...withHistory(event, OPERATOR, 'Acknowledged'),
-              status: 'acknowledged',
-              // Acknowledging takes the lock, and every other position sees it.
-              assignedTo: OPERATOR,
-            },
+          : { ...event, status: 'acknowledged', assignedTo: owner },
       ),
     })),
+
+  clearClaim: (id) =>
+    set((state) =>
+      state.claims[id] ? { claims: without(state.claims, id) } : {},
+    ),
 
   dispatchResponse: (id) =>
     set((state) => ({
@@ -315,9 +474,9 @@ export const useEventStore = create<EventStoreState>()((set) => ({
         const action = `Response dispatched · unit ${unit}, ETA ${etaMinutes} min`;
         const mark = decisionMark(event, id, action);
         return {
-          ...withHistory(event, OPERATOR, action, undefined, mark),
+          ...withHistory(event, actingAs, action, undefined, mark),
           status: 'dispatched',
-          assignedTo: event.assignedTo ?? OPERATOR,
+          assignedTo: event.assignedTo ?? actingAs,
           dispatch: { unit, etaMinutes },
         };
       }),
@@ -332,7 +491,7 @@ export const useEventStore = create<EventStoreState>()((set) => ({
         // carries forward if this camera reports the same thing again.
         const mark = decisionMark(event, id, action, reason);
         return {
-          ...withHistory(event, OPERATOR, action, reason, mark),
+          ...withHistory(event, actingAs, action, reason, mark),
           status: 'dismissed',
           dismissal: {
             reason,
@@ -353,7 +512,7 @@ export const useEventStore = create<EventStoreState>()((set) => ({
         // still locked to whoever had it, rather than reset to new for anyone
         // to claim.
         const restored: DetectionEvent = {
-          ...withHistory(event, OPERATOR, 'Dismissal undone'),
+          ...withHistory(event, actingAs, 'Dismissal undone'),
           status: event.dismissal?.previousStatus ?? 'new',
         };
         delete restored.dismissal;
@@ -367,7 +526,7 @@ export const useEventStore = create<EventStoreState>()((set) => ({
         event.id !== id
           ? event
           : {
-              ...withHistory(event, OPERATOR, 'Resolved'),
+              ...withHistory(event, actingAs, 'Resolved'),
               status: 'resolved',
               resolvedAt: new Date().toISOString(),
             },

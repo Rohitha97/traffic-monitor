@@ -2,13 +2,21 @@ import { createMemoryBus } from '@/lib/event-bus/memory';
 import type {
   BusEntry,
   BusHealth,
+  ClaimResult,
+  ClaimSubscriber,
   EventBus,
   Subscriber,
 } from '@/lib/event-bus/types';
 import type { DetectionEvent, HistoryEntry } from '@/lib/schema';
 
 export { RETENTION } from '@/lib/event-bus/types';
-export type { BusEntry, BusHealth, EventBus } from '@/lib/event-bus/types';
+export type {
+  BusEntry,
+  BusHealth,
+  ClaimNotice,
+  ClaimResult,
+  EventBus,
+} from '@/lib/event-bus/types';
 
 /*
  * The server-side fan-out between ingest and the SSE stream.
@@ -115,6 +123,31 @@ export async function recordMark(
     action,
     dismissalReason,
   );
+}
+
+/**
+ * Take an incident for a position, if nobody else holds it.
+ *
+ * The compare-and-set is server-side because that is the only place it can be
+ * authoritative: two positions pressing Enter in the same moment cannot be
+ * arbitrated by either of their browsers.
+ */
+export async function claim(
+  id: string,
+  position: string,
+  at: string,
+): Promise<ClaimResult> {
+  return (await getBus()).claim(id, position, at);
+}
+
+export async function subscribeClaims(
+  subscriber: ClaimSubscriber,
+): Promise<() => void> {
+  return (await getBus()).subscribeClaims(subscriber);
+}
+
+export async function nextPosition(): Promise<string> {
+  return (await getBus()).nextPosition();
 }
 
 export async function subscriberCount(): Promise<number> {

@@ -8,13 +8,25 @@ import { DismissedStrip } from '@/components/DismissedStrip';
 import { IncidentRow } from '@/components/IncidentRow';
 import { toRowView } from '@/lib/incident';
 import type { DetectionEvent } from '@/lib/schema';
-import { isBreachingSla, RESOLVED_FADE_MS } from '@/store/useEventStore';
+import {
+  isBreachingSla,
+  RESOLVED_FADE_MS,
+  type ClaimState,
+} from '@/store/useEventStore';
 
 interface QueueListProps {
   events: readonly DetectionEvent[];
   /** Incidents inside their undo window or resolved fade. */
   leaving: readonly DetectionEvent[];
   selectedId: string | null;
+  /**
+   * In-flight and refused claims, keyed by incident.
+   *
+   * Passed rather than read from the store so this component stays a pure
+   * function of its props — which is what lets `/dev/states` render every row
+   * state, including these two, without a store behind it.
+   */
+  claims: Record<string, ClaimState>;
   now: number;
   onSelect: (id: string) => void;
   onUndoDismiss: (id: string) => void;
@@ -54,6 +66,7 @@ export function QueueList({
   events,
   leaving,
   selectedId,
+  claims,
   now,
   onSelect,
   onUndoDismiss,
@@ -179,6 +192,7 @@ export function QueueList({
                   {...toRowView(event, now)}
                   selected={event.id === selectedId}
                   slaBreached={isBreachingSla(event, now)}
+                  {...(claims[event.id] ? { claim: claims[event.id] } : {})}
                   arriving={
                     event.priority === 'critical' && event.status === 'new'
                   }

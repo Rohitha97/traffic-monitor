@@ -1,6 +1,14 @@
-import { busHealth, publish, readFrom, subscribe } from '@/lib/event-bus';
-import type { BusEntry } from '@/lib/event-bus';
+import {
+  busHealth,
+  nextPosition,
+  publish,
+  readFrom,
+  subscribe,
+  subscribeClaims,
+} from '@/lib/event-bus';
+import type { BusEntry, ClaimNotice } from '@/lib/event-bus';
 import { generateEvent } from '@/lib/generator';
+import { positionCookie, positionFrom, positionLabel } from '@/lib/position';
 
 /*
  * Server-Sent Events.
@@ -33,11 +41,37 @@ function frame(entry: BusEntry): string {
   return `id: ${entry.cursor}\nevent: detection\ndata: ${JSON.stringify(entry.event)}\n\n`;
 }
 
-export function GET(request: Request): Response {
+/*
+ * Claims ride the stream but carry no `id:`.
+ *
+ * The SSE id is the *log's* cursor, and a claim is not a log entry — giving it
+ * one would put a claim's position into `Last-Event-ID` and make the next
+ * reconnect replay the wrong window of detections. A reconnecting client does
+ * not need these replayed anyway: the claim amends the stored event, so the
+ * resync already carries the owner on the record.
+ */
+function claimFrame(notice: ClaimNotice): string {
+  return `event: claim\ndata: ${JSON.stringify(notice)}\n\n`;
+}
+
+export async function GET(request: Request): Promise<Response> {
   const lastEventId = request.headers.get('last-event-id');
   const encoder = new TextEncoder();
 
+  /*
+   * A workstation identity, assigned on connect and kept.
+   *
+   * The stream is the right place for it because it is the one request every
+   * open dashboard makes exactly once, and it is the moment a position starts
+   * existing as far as the server is concerned. A reconnect keeps the number it
+   * already had — reassigning on every dropped connection would rename desks
+   * mid-shift and make "Taken by position 3" mean nothing.
+   */
+  const existing = positionFrom(request);
+  const position = existing ?? (await nextPosition());
+
   let unsubscribe: (() => void) | undefined;
+  let unsubscribeClaims: (() => void) | undefined;
   let heartbeat: ReturnType<typeof setInterval> | undefined;
   let simulator: ReturnType<typeof setTimeout> | undefined;
 
@@ -67,6 +101,10 @@ export function GET(request: Request): Response {
         `event: ready\ndata: ${JSON.stringify({
           at: new Date().toISOString(),
           history: health.degraded ? 'local' : 'shared',
+          // The cookie is httpOnly, so this frame is how a position learns its
+          // own name — which it needs in order to tell "mine" from "theirs"
+          // on a row that is already owned.
+          position: positionLabel(position),
         })}\n\n`,
       );
 
@@ -79,6 +117,13 @@ export function GET(request: Request): Response {
       for (const entry of await readFrom(lastEventId)) send(frame(entry));
 
       unsubscribe = await subscribe((entry) => send(frame(entry)));
+
+      // So a position that is not racing for an incident still sees it get
+      // taken. Without this the lock would only reach the two operators who
+      // collided, and every other desk would keep showing it as free.
+      unsubscribeClaims = await subscribeClaims((notice) =>
+        send(claimFrame(notice)),
+      );
 
       heartbeat = setInterval(() => send(`: keep-alive\n\n`), HEARTBEAT_MS);
 
@@ -105,17 +150,18 @@ export function GET(request: Request): Response {
     },
 
     cancel() {
-      unsubscribe?.();
-      if (heartbeat) clearInterval(heartbeat);
-      if (simulator) clearTimeout(simulator);
+      release();
     },
   });
 
-  request.signal.addEventListener('abort', () => {
+  request.signal.addEventListener('abort', release);
+
+  function release(): void {
     unsubscribe?.();
+    unsubscribeClaims?.();
     if (heartbeat) clearInterval(heartbeat);
     if (simulator) clearTimeout(simulator);
-  });
+  }
 
   return new Response(stream, {
     headers: {
@@ -125,6 +171,7 @@ export function GET(request: Request): Response {
       // Nginx and friends buffer by default, which would hold events until the
       // buffer fills — fatal for a stream whose whole value is immediacy.
       'X-Accel-Buffering': 'no',
+      'Set-Cookie': positionCookie(position),
     },
   });
 }

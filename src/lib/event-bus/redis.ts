@@ -5,6 +5,9 @@ import {
   RETENTION,
   type BusEntry,
   type BusHealth,
+  type ClaimNotice,
+  type ClaimResult,
+  type ClaimSubscriber,
   type EventBus,
   type Subscriber,
 } from '@/lib/event-bus/types';
@@ -33,7 +36,18 @@ import type { HistoryEntry } from '@/lib/schema';
  */
 
 const STREAM_KEY = 'incidents';
+const CLAIM_KEY = 'incident-claims';
+const POSITION_KEY = 'positions';
 const eventKey = (id: string) => `incident:${id}`;
+
+/**
+ * Claims are kept short.
+ *
+ * They exist to tell already-connected positions about a lock. A position that
+ * reconnects gets the owner from the event record itself, so there is nothing
+ * for a long claim history to serve.
+ */
+const CLAIM_RETENTION = 100;
 
 /**
  * How long an amended copy outlives the window it belongs to.
@@ -96,6 +110,44 @@ redis.call('SET', KEYS[1], cjson.encode(event), 'KEEPTTL')
 return 1
 `;
 
+/*
+ * Compare-and-set the lock, atomically.
+ *
+ * The whole item is this script. Two positions pressing Enter in the same
+ * moment is the failure Pass A names explicitly, and the only place it can be
+ * arbitrated is where the record lives — so the read, the comparison and the
+ * write have to be one operation the broker will not interleave.
+ *
+ * Returns the owner either way. `WATCH`/`MULTI` would also work and would mean
+ * a retry loop in TypeScript for a conflict that is already decided; a script
+ * settles it in one round trip and cannot livelock.
+ *
+ * Re-claiming an incident you already hold succeeds and writes nothing, so a
+ * retried request never reports an operator as their own rival.
+ */
+const CLAIM_SCRIPT = `
+local raw = redis.call('GET', KEYS[1])
+if not raw then return { 'missing', '' } end
+
+local event = cjson.decode(raw)
+local position, at = ARGV[1], ARGV[2]
+
+if event.assignedTo then
+  if event.assignedTo == position then return { 'held', position } end
+  return { 'taken', event.assignedTo }
+end
+
+event.status = 'acknowledged'
+event.assignedTo = position
+
+local history = event.history or {}
+history[#history + 1] = { at = at, actor = position, action = 'Acknowledged' }
+event.history = history
+
+redis.call('SET', KEYS[1], cjson.encode(event), 'KEEPTTL')
+return { 'claimed', position }
+`;
+
 function parseEvent(raw: string): DetectionEvent | undefined {
   try {
     const parsed = detectionEventSchema.safeParse(JSON.parse(raw));
@@ -129,6 +181,7 @@ async function connect(url: string): Promise<RedisClientType> {
 
 export async function createRedisBus(url: string): Promise<EventBus> {
   const subscribers = new Set<Subscriber>();
+  const claimSubscribers = new Set<ClaimSubscriber>();
 
   /*
    * The fallback is a real bus, not a buffer of retries.
@@ -141,6 +194,7 @@ export async function createRedisBus(url: string): Promise<EventBus> {
    */
   const fallback = createMemoryBus();
   fallback.subscribe((entry) => dispatch(entry));
+  fallback.subscribeClaims((notice) => dispatchClaim(notice));
 
   let health: BusHealth = { kind: 'redis', degraded: false };
   let client: RedisClientType | undefined;
@@ -153,6 +207,16 @@ export async function createRedisBus(url: string): Promise<EventBus> {
         subscriber(entry);
       } catch {
         subscribers.delete(subscriber);
+      }
+    }
+  }
+
+  function dispatchClaim(notice: ClaimNotice): void {
+    for (const subscriber of claimSubscribers) {
+      try {
+        subscriber(notice);
+      } catch {
+        claimSubscribers.delete(subscriber);
       }
     }
   }
@@ -237,26 +301,44 @@ export async function createRedisBus(url: string): Promise<EventBus> {
    * publishing instance a different ordering from every other, and double the
    * event on the instance the operator happened to be connected to.
    */
-  async function readLoop(from: string): Promise<void> {
+  async function readLoop(from: string, claimsFrom: string): Promise<void> {
+    // Both channels on one blocking read: two loops would mean two connections
+    // and two independent reconnect states to keep straight.
     let cursor = from;
+    let claimCursor = claimsFrom;
 
     while (!closed) {
       if (!reader) return;
       try {
         const reply = await reader.xRead(
-          { key: STREAM_KEY, id: cursor },
+          [
+            { key: STREAM_KEY, id: cursor },
+            { key: CLAIM_KEY, id: claimCursor },
+          ],
           { BLOCK: READ_BLOCK_MS, COUNT: RETENTION },
         );
         recover();
 
         for (const stream of reply ?? []) {
-          const entries = toEntries(
-            stream.messages as {
-              id: string;
-              message: Record<string, string>;
-            }[],
-          );
-          for (const entry of entries) {
+          const messages = stream.messages as {
+            id: string;
+            message: Record<string, string>;
+          }[];
+
+          if (stream.name === CLAIM_KEY) {
+            for (const { id, message } of messages) {
+              claimCursor = id;
+              const incident = message['id'];
+              const owner = message['owner'];
+              const at = message['at'];
+              if (incident && owner && at) {
+                dispatchClaim({ id: incident, owner, at });
+              }
+            }
+            continue;
+          }
+
+          for (const entry of toEntries(messages)) {
             cursor = entry.cursor;
             dispatch(entry);
           }
@@ -307,10 +389,11 @@ export async function createRedisBus(url: string): Promise<EventBus> {
          * Found by a conformance test that failed roughly one run in three,
          * which is exactly how wide that window is.
          */
-        const tail = await primary.xRevRange(STREAM_KEY, '+', '-', {
-          COUNT: 1,
-        });
-        void readLoop(tail[0]?.id ?? '0-0');
+        const [tail, claimTail] = await Promise.all([
+          primary.xRevRange(STREAM_KEY, '+', '-', { COUNT: 1 }),
+          primary.xRevRange(CLAIM_KEY, '+', '-', { COUNT: 1 }),
+        ]);
+        void readLoop(tail[0]?.id ?? '0-0', claimTail[0]?.id ?? '0-0');
         return;
       } catch (error) {
         degrade(error instanceof Error ? error.message : String(error));
@@ -412,6 +495,71 @@ export async function createRedisBus(url: string): Promise<EventBus> {
       );
     },
 
+    async claim(
+      id: string,
+      position: string,
+      at: string,
+    ): Promise<ClaimResult> {
+      return attempt(
+        async (redis) => {
+          const reply = (await redis.eval(CLAIM_SCRIPT, {
+            keys: [eventKey(id)],
+            arguments: [position, at],
+          })) as [string, string];
+
+          const [outcome, owner] = reply;
+          if (outcome === 'missing') return { ok: false, owner: null };
+          if (outcome === 'taken') return { ok: false, owner };
+
+          /*
+           * The notice goes on its own stream so every *connected* position
+           * sees the lock, not just the two that raced for it. Published after
+           * the CAS settled, so a notice can never announce a claim that did
+           * not happen.
+           *
+           * `held` skips it: re-claiming your own incident changed nothing and
+           * has nothing to tell anyone.
+           */
+          if (outcome === 'claimed') {
+            await redis.xAdd(
+              CLAIM_KEY,
+              '*',
+              { id, owner, at },
+              {
+                TRIM: {
+                  strategy: 'MAXLEN',
+                  strategyModifier: '~',
+                  threshold: CLAIM_RETENTION,
+                },
+              },
+            );
+          }
+
+          // Read back rather than reconstruct: the script is the authority on
+          // what the record now says, and guessing would be a second copy of
+          // the rule.
+          const raw = await redis.get(eventKey(id));
+          const event = raw ? parseEvent(raw) : undefined;
+          return event
+            ? { ok: true as const, owner, event }
+            : { ok: false as const, owner: null };
+        },
+        () => fallback.claim(id, position, at),
+      );
+    },
+
+    subscribeClaims(subscriber: ClaimSubscriber): () => void {
+      claimSubscribers.add(subscriber);
+      return () => claimSubscribers.delete(subscriber);
+    },
+
+    async nextPosition(): Promise<string> {
+      return attempt(
+        async (redis) => String(await redis.incr(POSITION_KEY)),
+        () => fallback.nextPosition(),
+      );
+    },
+
     subscriberCount: () => subscribers.size,
 
     health: () => health,
@@ -419,6 +567,7 @@ export async function createRedisBus(url: string): Promise<EventBus> {
     async close(): Promise<void> {
       closed = true;
       subscribers.clear();
+      claimSubscribers.clear();
       await Promise.allSettled([
         reader?.destroy(),
         client?.destroy(),
