@@ -1,3 +1,7 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
+
 export const CONNECTION_STATES = ['live', 'reconnecting', 'offline'] as const;
 
 export type ConnectionState = (typeof CONNECTION_STATES)[number];
@@ -8,18 +12,17 @@ export type ConnectionState = (typeof CONNECTION_STATES)[number];
  *
  * Motion is reserved for change, not for status — only `reconnecting` moves,
  * and it stops the instant the state resolves either way.
+ *
+ * The label moved into the message files; what stays here is the presentation,
+ * which is the same in every locale.
  */
-const CONNECTION: Record<
-  ConnectionState,
-  { label: string; dot: string; animate: string }
-> = {
-  live: { label: 'LIVE', dot: 'bg-live', animate: '' },
+const CONNECTION: Record<ConnectionState, { dot: string; animate: string }> = {
+  live: { dot: 'bg-live', animate: '' },
   reconnecting: {
-    label: 'RECONNECTING',
     dot: 'bg-reconnecting',
     animate: 'motion-safe:animate-pulse-status',
   },
-  offline: { label: 'OFFLINE', dot: 'bg-offline', animate: '' },
+  offline: { dot: 'bg-offline', animate: '' },
 };
 
 interface ConnectionIndicatorProps {
@@ -53,7 +56,9 @@ export function ConnectionIndicator({
   showLabel = false,
   history = 'shared',
 }: ConnectionIndicatorProps) {
-  const { label, dot, animate } = CONNECTION[state];
+  const t = useTranslations('statusBar');
+  const { dot, animate } = CONNECTION[state];
+  const label = t(`connection.${state}`);
 
   return (
     <div className="flex items-center gap-2">
@@ -68,7 +73,7 @@ export function ConnectionIndicator({
       )}
       {feeds && (
         <span className="text-caption font-medium text-text-primary">
-          {feeds.online} / {feeds.total} feeds live
+          {t('feeds', { online: feeds.online, total: feeds.total })}
         </span>
       )}
       {/*
@@ -77,7 +82,9 @@ export function ConnectionIndicator({
        * feed connection offline".
        */}
       {!showLabel && (
-        <span className="sr-only">Feed connection {label.toLowerCase()}</span>
+        <span className="sr-only">
+          {t('connectionAnnouncement', { state: label })}
+        </span>
       )}
 
       {/*
@@ -90,9 +97,9 @@ export function ConnectionIndicator({
       {history === 'local' && (
         <span
           className="text-micro rounded-control border border-border-component px-1.25 py-0.5 font-semibold text-text-secondary"
-          title="The event broker is unreachable. Incidents are still arriving, but this screen's history is local to one server and is not shared with other positions."
+          title={t('historyLocalDetail')}
         >
-          HISTORY LOCAL
+          {t('historyLocal')}
         </span>
       )}
     </div>

@@ -21,3 +21,4 @@ infrastructure, or commits the project to something awkward to reverse. Everythi
 | [0006](0006-the-reopen-rule.md)                          | The reopen rule — roadmap #6                                         |
 | [0007](0007-redis-streams-behind-the-event-bus.md)       | Redis Streams behind the event bus — roadmap #1                      |
 | [0008](0008-position-identity-and-the-ownership-lock.md) | Position identity and the ownership lock — roadmap #2                |
+| [0009](0009-next-intl-and-cookie-locale.md)              | next-intl, and a cookie instead of a `[locale]` route — phase 9      |

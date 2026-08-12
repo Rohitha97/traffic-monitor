@@ -1,6 +1,14 @@
+import createNextIntlPlugin from 'next-intl/plugin';
 import type { NextConfig } from 'next';
 
 const isProduction = process.env.NODE_ENV === 'production';
+
+/*
+ * Points next-intl at the request config. No middleware and no `[locale]`
+ * segment — the locale is a workstation setting read from a cookie, not part of
+ * the URL. (ADR-0009)
+ */
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const nextConfig: NextConfig = {
   // Traces exactly the dependencies the server needs into .next/standalone,
@@ -35,4 +43,4 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['127.0.0.1'],
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

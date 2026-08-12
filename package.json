@@ -19,7 +19,8 @@
     "test:visual": "node scripts/visual.mjs",
     "test:visual:update": "node scripts/visual.mjs --update",
     "seed": "node scripts/seed.mjs",
-    "lint": "oxlint --config .oxlintrc.json src && eslint",
+    "lint": "node scripts/check-messages.mjs && oxlint --config .oxlintrc.json src && eslint",
+    "check:messages": "node scripts/check-messages.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,css,md,json,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,css,md,json,yml}\""
   },
@@ -31,6 +32,7 @@
     "date-fns": "^4.4.0",
     "motion": "^13.0.0",
     "next": "^15.5.0",
+    "next-intl": "^4.13.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "redis": "^6.2.1",

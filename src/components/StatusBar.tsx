@@ -1,10 +1,13 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@/components/Button';
 import {
   ConnectionIndicator,
   type ConnectionState,
 } from '@/components/ConnectionIndicator';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { OpenCounts } from '@/components/OpenCounts';
 import type { Priority } from '@/lib/priority';
 
@@ -46,9 +49,11 @@ export function StatusBar({
   activeFilters = NO_FILTERS,
   onToggleFilter,
 }: StatusBarProps) {
+  const t = useTranslations('statusBar');
+
   return (
     <header
-      aria-label="System status"
+      aria-label={t('label')}
       className="flex h-12 flex-none items-center gap-5 border-b border-border-hairline bg-panel px-4"
     >
       <ConnectionIndicator state={connection} feeds={feeds} history={history} />
@@ -75,10 +80,10 @@ export function StatusBar({
        */}
       <div className="text-mono-meta flex items-baseline gap-4 font-mono font-medium text-text-secondary">
         <span>
-          {localTime} <span className="text-mono-micro">LOCAL</span>
+          {localTime} <span className="text-mono-micro">{t('localTime')}</span>
         </span>
         <span>
-          {utcTime} <span className="text-mono-micro">UTC</span>
+          {utcTime} <span className="text-mono-micro">{t('utcTime')}</span>
         </span>
       </div>
 
@@ -87,8 +92,14 @@ export function StatusBar({
        * makes noise before consent is hostile; the choice then persists.
        */}
       <Button size="xs" aria-pressed={muted} onClick={onToggleMute}>
-        {muted ? 'Unmute' : 'Mute'}
+        {muted ? t('unmute') : t('mute')}
       </Button>
+
+      {/*
+       * Beside the mute toggle, because they are the same kind of setting: a
+       * property of the desk rather than of the incident on screen.
+       */}
+      <LanguageSwitcher />
     </header>
   );
 }

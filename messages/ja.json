@@ -1,0 +1,23 @@
+{
+  "statusBar": {
+    "label": "システム状態",
+    "connection": {
+      "live": "受信中",
+      "reconnecting": "再接続中",
+      "offline": "切断"
+    },
+    "connectionAnnouncement": "映像受信 {state}",
+    "feeds": "{online} / {total, plural, other {# 台}} 受信中",
+    "historyLocal": "履歴ローカル",
+    "historyLocalDetail": "イベントブローカーに接続できません。事象の受信は継続していますが、この画面の履歴はこのサーバー内のみで、他の席とは共有されません。",
+    "localTime": "現地",
+    "utcTime": "UTC",
+    "mute": "消音",
+    "unmute": "消音解除"
+  },
+  "language": {
+    "label": "言語",
+    "en": "English",
+    "ja": "日本語"
+  }
+}

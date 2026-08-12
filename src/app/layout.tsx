@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { IBM_Plex_Mono, Public_Sans } from 'next/font/google';
+import { NextIntlClientProvider } from 'next-intl';
 
+import { resolveLocale } from '@/i18n/request';
 import '@/styles/globals.css';
 
 /*
@@ -42,15 +44,33 @@ export const viewport: Viewport = {
   colorScheme: 'dark',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await resolveLocale();
+
   return (
+    /*
+     * `lang` is the resolved locale, not a constant.
+     *
+     * Screen readers switch synthesiser voice on this attribute — left at "en"
+     * a Japanese interface is read aloud as English phonemes, which is not
+     * merely wrong but unusable. It is also what the `[lang="ja"]` token block
+     * hangs off, so the typography adjustments key on the same one fact.
+     */
     <html
-      lang="en"
+      lang={locale}
       className={`${publicSans.variable} ${ibmPlexMono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {/*
+         * Server Components below this read messages directly from the request
+         * config; this provider exists for the client components that cannot.
+         * The queue and the detail pane — the two largest render surfaces — do
+         * not cross a client boundary to be translated.
+         */}
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+      </body>
     </html>
   );
 }

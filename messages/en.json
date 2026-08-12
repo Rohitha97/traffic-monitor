@@ -1,0 +1,23 @@
+{
+  "statusBar": {
+    "label": "System status",
+    "connection": {
+      "live": "LIVE",
+      "reconnecting": "RECONNECTING",
+      "offline": "OFFLINE"
+    },
+    "connectionAnnouncement": "Feed connection {state}",
+    "feeds": "{online} / {total, plural, one {# feed} other {# feeds}} live",
+    "historyLocal": "HISTORY LOCAL",
+    "historyLocalDetail": "The event broker is unreachable. Incidents are still arriving, but this screen's history is local to one server and is not shared with other positions.",
+    "localTime": "LOCAL",
+    "utcTime": "UTC",
+    "mute": "Mute",
+    "unmute": "Unmute"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "ja": "日本語"
+  }
+}
