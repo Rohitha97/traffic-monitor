@@ -72,8 +72,10 @@ are exactly the phases that shipped bugs.
 
 ## Verification, at the end
 
-- 109 unit tests — priority derivation, the store, the metrics percentiles, event correlation, and a
-  bus conformance suite run against both the ring buffer and Redis Streams
+- 241 unit tests across 13 files — priority derivation, the store, metrics percentiles, event
+  correlation, the workstation identity, the formatters, the camera estate, the design-to-view
+  mapping, the generator, the keyboard table, the Zod contract, and a bus conformance suite run
+  against both the ring buffer and Redis Streams
 - 21 Playwright specs — journey, metrics, virtualisation, correlation, a two-desk ownership race,
   and 4 axe audits at WCAG 2.1 AA with zero violations
 - 31 visual-regression captures of the component state matrix, diffed in a pinned container

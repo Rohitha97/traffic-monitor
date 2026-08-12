@@ -1,9 +1,15 @@
 /*
  * The keyboard model, as data.
  *
- * The `?` overlay renders from this table and the handler dispatches from it,
- * so published bindings and working bindings cannot drift apart — the usual
- * failure mode for a help screen maintained by hand.
+ * The `?` overlay renders from this table. The handler is a switch over key
+ * literals rather than a loop over these rows — dispatching from data would
+ * mean an indirection for one caller — so the two *can* drift, and
+ * `shortcuts.test.ts` asserts in both directions that they have not: no
+ * published binding without a case, no working binding left unpublished.
+ *
+ * That check found `N` working as an alias for `Home` with nothing in the
+ * overlay saying so, which is the usual failure mode for a help screen
+ * maintained by hand.
  *
  * Where the design and the build brief disagree, the design wins
  * (DESIGN_INVENTORY.md §6). The important one: Pass A's state machine has
@@ -30,7 +36,7 @@ export const SHORTCUTS: readonly Shortcut[] = [
     action: 'Same, without leaving the home row',
     group: 'Move',
   },
-  { keys: 'Home', action: 'Load buffered new events', group: 'Move' },
+  { keys: 'Home / N', action: 'Load buffered new events', group: 'Move' },
   { keys: 'Esc', action: 'Close the detail pane', group: 'Move' },
 
   { keys: 'Enter', action: 'Acknowledge, and take the lock', group: 'Decide' },

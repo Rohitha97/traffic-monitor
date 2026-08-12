@@ -87,8 +87,12 @@ readings.
 
 ### Keyboard
 
-Press `?` in the app for the live list. It renders from the same table the key handler dispatches
-from, so it cannot drift from what actually works.
+Press `?` in the app for the live list. It renders from one table
+([`src/lib/shortcuts.ts`](src/lib/shortcuts.ts)), and a unit test holds the key handler to that same
+table in both directions — no published binding without a case, no working binding left unpublished.
+
+That test earned its place immediately: `N` had worked as an alias for `Home` since phase 2 and the
+overlay had never mentioned it.
 
 | Key                  |                                                  |
 | -------------------- | ------------------------------------------------ |
@@ -97,7 +101,7 @@ from, so it cannot drift from what actually works.
 | `D`                  | Dispatch a response — `Enter` confirms           |
 | `X`                  | Dismiss as a false positive, with a reason       |
 | `R`                  | Mark resolved                                    |
-| `Home`               | Load buffered new events                         |
+| `Home` (or `N`)      | Load buffered new events                         |
 | `Esc`                | Close the detail pane                            |
 | `1`–`4` / `0`        | Filter by priority / clear                       |
 | `M`                  | Mute / unmute the alert tone                     |
@@ -245,8 +249,8 @@ phases, each written when the decision was made. The ones worth stating up front
 
 |               |                                                                                                   |
 | ------------- | ------------------------------------------------------------------------------------------------- |
-| Unit          | 109 tests — `derivePriority` exhaustively, the store, metrics percentiles, event correlation      |
-| Bus           | one conformance suite run against **both** the ring buffer and Redis Streams                      |
+| Unit          | 241 tests across 13 files — every pure module, the store, and the Zod contract itself             |
+| Bus           | one conformance suite run against **both** the ring buffer and Redis Streams (`pnpm test:bus`)    |
 | E2E           | 21 Playwright specs — the journey from the keyboard, correlation, virtualisation, a two-desk race |
 | Accessibility | 4 axe audits at WCAG 2.1 AA across four states, **zero violations**                               |
 | Lighthouse    | performance **100**, accessibility **100**, best practices **100**, SEO **100**                   |
