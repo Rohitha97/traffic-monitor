@@ -62,7 +62,16 @@
       "camera_artefact": "Camera artefact",
       "already_known": "Already known"
     },
-    "marker": "Mile marker"
+    "marker": "Mile marker",
+    "latency": "{seconds}s",
+    "eta": "{minutes} min",
+    "dispatchLine": "Unit {unit} · ETA {eta}",
+    "facts": {
+      "location": "Location",
+      "marker": "Mile marker",
+      "latency": "Detection latency",
+      "confidence": "Confidence"
+    }
   },
   "language": {
     "label": "Language",

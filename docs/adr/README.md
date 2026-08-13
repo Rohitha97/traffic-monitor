@@ -25,3 +25,4 @@ infrastructure, or commits the project to something awkward to reverse. Everythi
 | [0010](0010-ime-composition-and-single-key-shortcuts.md) | IME composition and single-key shortcuts — phase 9                   |
 | [0011](0011-japanese-typography.md)                      | The Japanese typography layer — phase 9                              |
 | [0012](0012-japanese-domain-vocabulary.md)               | Japanese domain vocabulary, and the direction convention — phase 9   |
+| [0013](0013-locale-aware-formatting.md)                  | Locale-aware formatting, and the age counter — phase 9               |

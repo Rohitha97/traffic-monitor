@@ -108,6 +108,12 @@ const INCIDENT: IncidentDetailData = {
   description:
     'vehicle travelling against traffic flow in live lane 2 of 3, approaching Jct 9.',
   detectionLatency: '0.6s',
+  factLabels: {
+    location: 'Location',
+    marker: 'Mile marker',
+    latency: 'Detection latency',
+    confidence: 'Confidence',
+  },
   confidence: 0.96,
   capturedAt: '02:14:07',
   snapshotState: 'empty',
@@ -333,7 +339,7 @@ export default function ComponentStatesPage() {
               summary="Wrong-way driver"
               location="M6 N · Jct 8–9"
               age="04:12"
-              dispatch={{ unit: '12', eta: '4 min' }}
+              dispatch={{ summary: 'Unit 12 · ETA 4 min' }}
             />
           </State>
 

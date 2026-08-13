@@ -5,6 +5,20 @@ interface FactsPanelProps {
   detectionLatency: string;
   /** 0–1 from the detection model. */
   confidence: number;
+  /**
+   * The four field labels, resolved upstream.
+   *
+   * Props rather than a hook: this renders from a Server Component on
+   * `/dev/states`, and a hook here would blank the whole state matrix — the
+   * failure `PriorityChip` already found the hard way. Passing them also keeps
+   * the rule that no component invents a label.
+   */
+  labels: {
+    location: string;
+    marker: string;
+    latency: string;
+    confidence: string;
+  };
 }
 
 /**
@@ -23,12 +37,18 @@ export function FactsPanel({
   mileMarker,
   detectionLatency,
   confidence,
+  labels,
 }: FactsPanelProps) {
   const facts = [
-    { key: 'Location', value: location },
-    { key: 'Mile marker', value: mileMarker },
-    { key: 'Detection latency', value: detectionLatency },
-    { key: 'Confidence', value: `${Math.round(confidence * 100)}%` },
+    { key: labels.location, value: location },
+    { key: labels.marker, value: mileMarker },
+    { key: labels.latency, value: detectionLatency },
+    /*
+     * A percentage, in Western Arabic digits in both locales. Japanese
+     * technical interfaces do not use kanji numerals, and the tabular face this
+     * sets in has no glyphs for them.
+     */
+    { key: labels.confidence, value: `${Math.round(confidence * 100)}%` },
   ];
 
   return (

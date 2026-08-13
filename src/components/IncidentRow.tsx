@@ -22,8 +22,12 @@ interface IncidentRowProps {
   slaBreached?: boolean;
   /** Owner's initials once acknowledged — the lock is visible to every position. */
   owner?: string;
-  /** Set once dispatched; unit and ETA replace the raw description. */
-  dispatch?: { unit: string; eta: string };
+  /**
+   * Set once dispatched. The composed line — "Unit 12 · ETA 4 min" — arrives
+   * already built, because the unit word and the ordering are both locale
+   * decisions and neither belongs in a presentational component.
+   */
+  dispatch?: { summary: string };
   /**
    * The operator's earlier verdict on this same call, if it was dismissed and
    * re-detected inside the reopen window.
@@ -105,9 +109,7 @@ export function IncidentRow({
   const primaryLine = dispatch
     ? `${camera} · ${location}`
     : `${camera} · ${summary}`;
-  const secondaryLine = dispatch
-    ? `Unit ${dispatch.unit} · ETA ${dispatch.eta}`
-    : location;
+  const secondaryLine = dispatch ? dispatch.summary : location;
 
   const emphasised = unread || selected;
 

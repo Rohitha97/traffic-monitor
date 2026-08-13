@@ -24,6 +24,13 @@ export interface IncidentDetailData {
   /** One plain-English sentence from the detector. */
   description: string;
   detectionLatency: string;
+  /** Field labels for the facts panel, resolved upstream by `toDetailView`. */
+  factLabels: {
+    location: string;
+    marker: string;
+    latency: string;
+    confidence: string;
+  };
   confidence: number;
   snapshotUrl?: string;
   capturedAt: string;
@@ -190,6 +197,7 @@ export function IncidentDetail({
             mileMarker={incident.mileMarker}
             detectionLatency={incident.detectionLatency}
             confidence={incident.confidence}
+            labels={incident.factLabels}
           />
           <NearbyCameras
             cameras={incident.nearbyCameras}

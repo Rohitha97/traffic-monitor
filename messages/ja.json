@@ -62,7 +62,16 @@
       "camera_artefact": "映像ノイズ",
       "already_known": "既知事象"
     },
-    "marker": "キロポスト"
+    "marker": "キロポスト",
+    "latency": "{seconds}秒",
+    "eta": "{minutes}分",
+    "dispatchLine": "{unit} 号車 · 到着 {eta}",
+    "facts": {
+      "location": "地点",
+      "marker": "キロポスト",
+      "latency": "検知遅延",
+      "confidence": "確信度"
+    }
   },
   "language": {
     "label": "言語",

@@ -1,7 +1,9 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+
+import { formatTimestamp } from '@/lib/format';
 
 import {
   isDismissReason,
@@ -37,10 +39,35 @@ export interface DomainLabels {
   dismissReason(reason: string): string;
   /** The label, never the value: "キロポスト" against an untranslated "MM 42.3". */
   marker(): string;
+
+  /*
+   * Units and formatted values.
+   *
+   * Here rather than in a separate formatter because a unit *is* vocabulary in
+   * Japanese: 秒 and 分 are suffixes in the same family as the 件 and 台
+   * counters, and splitting "the words" from "the numbers" would put two halves
+   * of one sentence in two places.
+   *
+   * The digits themselves stay Western Arabic in both locales — Japanese
+   * technical interfaces do not use kanji numerals, and the tabular face the
+   * counters set in has no glyphs for them.
+   */
+  latency(seconds: number): string;
+  eta(minutes: number): string;
+  dispatchLine(unit: string, minutes: number): string;
+  /** "02:14:07". Identical in both conventions, but locale-driven regardless. */
+  time(iso: string): string;
+  facts: {
+    location: string;
+    marker: string;
+    latency: string;
+    confidence: string;
+  };
 }
 
 export function useDomainLabels(): DomainLabels {
   const t = useTranslations('domain');
+  const locale = useLocale();
 
   /*
    * Memoised on the translator. These are read once per row per render across
@@ -63,7 +90,19 @@ export function useDomainLabels(): DomainLabels {
       dismissReason: (reason) =>
         isDismissReason(reason) ? t(`dismissReason.${reason}`) : reason,
       marker: () => t('marker'),
+
+      latency: (seconds) => t('latency', { seconds: seconds.toFixed(1) }),
+      eta: (minutes) => t('eta', { minutes }),
+      dispatchLine: (unit, minutes) =>
+        t('dispatchLine', { unit, eta: t('eta', { minutes }) }),
+      time: (iso) => formatTimestamp(iso, locale),
+      facts: {
+        location: t('facts.location'),
+        marker: t('facts.marker'),
+        latency: t('facts.latency'),
+        confidence: t('facts.confidence'),
+      },
     }),
-    [t],
+    [t, locale],
   );
 }

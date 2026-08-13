@@ -5,7 +5,7 @@ import {
   formatAge,
   formatClock,
   formatClockUtc,
-  formatLatency,
+  latencySeconds,
   formatTimestamp,
 } from '@/lib/format';
 
@@ -77,27 +77,29 @@ describe('ageInSeconds', () => {
   });
 });
 
-describe('formatLatency', () => {
-  it('reports one decimal of a second', () => {
+describe('latencySeconds', () => {
+  it('reports one decimal of a second, as a number', () => {
+    // A number, not a string: the unit is a word, and "s" against "秒" is a
+    // locale decision that does not belong in a duration calculation.
     expect(
-      formatLatency('2026-08-12T09:00:00.000Z', '2026-08-12T09:00:00.600Z'),
-    ).toBe('0.6s');
+      latencySeconds('2026-08-12T09:00:00.000Z', '2026-08-12T09:00:00.600Z'),
+    ).toBe(0.6);
     expect(
-      formatLatency('2026-08-12T09:00:00.000Z', '2026-08-12T09:00:02.450Z'),
-    ).toBe('2.5s');
+      latencySeconds('2026-08-12T09:00:00.000Z', '2026-08-12T09:00:02.450Z'),
+    ).toBe(2.5);
   });
 
-  it('is 0.0s when the two moments coincide', () => {
+  it('is zero when the two moments coincide', () => {
     const iso = '2026-08-12T09:00:00.000Z';
-    expect(formatLatency(iso, iso)).toBe('0.0s');
+    expect(latencySeconds(iso, iso)).toBe(0);
   });
 
   it('clamps rather than reporting a negative pipeline latency', () => {
     // The detector's clock can legitimately be ahead of ours. "-0.4s of
     // latency" is not a thing to show an operator on a trust indicator.
     expect(
-      formatLatency('2026-08-12T09:00:01.000Z', '2026-08-12T09:00:00.600Z'),
-    ).toBe('0.0s');
+      latencySeconds('2026-08-12T09:00:01.000Z', '2026-08-12T09:00:00.600Z'),
+    ).toBe(0);
   });
 });
 

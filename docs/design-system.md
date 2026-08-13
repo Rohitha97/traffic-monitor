@@ -59,6 +59,21 @@ conversation.
 
 `src/i18n/messages.test.ts` asserts each of these against every string in `ja.json`.
 
+### Units and formatted values
+
+Units are vocabulary. 秒 and 分 are suffixes in the same family as the 件 and 台 counters, so they
+live in `domain` beside the terms rather than in a separate formatting layer.
+
+- **Compose whole lines upstream.** `Unit 12 · ETA 4 min` becomes `12 号車 · 到着 4分` — a different
+  order, not a different set of words. A component that joins `{unit}` and `{eta}` itself bakes the
+  English ordering into the markup.
+- **Cache formatters per locale.** `Intl.DateTimeFormat` is expensive and the clocks run on the
+  shared one-second tick across every visible row.
+- **The live age counter is `mm:ss` and stays that way.** Not `2分14秒`: a counter whose width
+  changes as it ticks makes the column beside it twitch, which is the reason it is set in tabular
+  figures. Digits and a colon need no translation.
+  [ADR-0013](adr/0013-locale-aware-formatting.md).
+
 ### Do not translate
 
 Identifiers and data, not text:
@@ -67,6 +82,7 @@ Identifiers and data, not text:
 - ISO timestamps in the audit trail's data layer
 - Log output and error codes
 - `/dev/states` state names, which a developer greps for
+- `/api/metrics` — a machine contract whose units are in the key names (`timeToAwarenessMs`)
 
 The _label_ beside a value may be translated — キロポスト against an untranslated `MM 42.3`.
 

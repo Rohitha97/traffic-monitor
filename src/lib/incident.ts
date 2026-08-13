@@ -1,6 +1,6 @@
 import type { DomainLabels } from '@/i18n/domain';
 import { markerValue, nearbyCameras } from '@/lib/cameras';
-import { formatAge, formatLatency, formatTimestamp } from '@/lib/format';
+import { formatAge, formatTimestamp, latencySeconds } from '@/lib/format';
 import {
   DISMISS_REASON_LABEL,
   EVENT_TYPE_LABEL,
@@ -29,6 +29,16 @@ const DEFAULT_LABELS: DomainLabels = {
   dismissReason: (reason) =>
     isDismissReason(reason) ? DISMISS_REASON_LABEL[reason] : reason,
   marker: () => 'Mile marker',
+  latency: (seconds) => `${seconds.toFixed(1)}s`,
+  eta: (minutes) => `${minutes} min`,
+  dispatchLine: (unit, minutes) => `Unit ${unit} · ETA ${minutes} min`,
+  time: (iso) => formatTimestamp(iso),
+  facts: {
+    location: 'Location',
+    marker: 'Mile marker',
+    latency: 'Detection latency',
+    confidence: 'Confidence',
+  },
 };
 
 /** Compass bearings, kept as compass bearings. See ADR-0012. */
@@ -87,7 +97,8 @@ export interface RowView {
   age: string;
   unread: boolean;
   owner?: string;
-  dispatch?: { unit: string; eta: string };
+  /** The composed secondary line once dispatched — "Unit 12 · ETA 4 min". */
+  dispatch?: { summary: string };
   seenBefore?: { reason: string };
 }
 
@@ -107,8 +118,10 @@ export function toRowView(
     ...(event.dispatch
       ? {
           dispatch: {
-            unit: event.dispatch.unit,
-            eta: `${event.dispatch.etaMinutes} min`,
+            summary: labels.dispatchLine(
+              event.dispatch.unit,
+              event.dispatch.etaMinutes,
+            ),
           },
         }
       : {}),
@@ -166,15 +179,18 @@ export function toDetailView(
       ? {
           seenBefore: {
             reason: labels.dismissReason(event.seenBefore.reason).toLowerCase(),
-            at: formatTimestamp(event.seenBefore.at),
+            at: labels.time(event.seenBefore.at),
           },
         }
       : {}),
     description: event.description,
-    detectionLatency: formatLatency(event.detectedAt, event.receivedAt),
+    detectionLatency: labels.latency(
+      latencySeconds(event.detectedAt, event.receivedAt),
+    ),
+    factLabels: labels.facts,
     confidence: event.confidence,
     snapshotUrl: event.snapshotUrl,
-    capturedAt: formatTimestamp(event.detectedAt),
+    capturedAt: labels.time(event.detectedAt),
     snapshotState: 'loaded' as const,
     ...(event.detectionBox
       ? {
@@ -188,7 +204,7 @@ export function toDetailView(
     })),
     ...(flowNote ? { flowNote } : {}),
     audit: event.history.map((entry) => ({
-      at: formatTimestamp(entry.at),
+      at: labels.time(entry.at),
       action:
         entry.actor === 'system'
           ? `${entry.action} (system)`

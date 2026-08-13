@@ -155,11 +155,16 @@ describe('toRowView', () => {
     );
   });
 
-  it('formats a dispatch as unit and ETA', () => {
+  it('composes the dispatched line upstream of the component', () => {
+    /*
+     * A whole line, not its parts. The unit word and the ordering are both
+     * locale decisions — Japanese sets it as "12 号車 · 到着 4分" — and neither
+     * belongs in a presentational row that would have to reassemble them.
+     */
     expect(
       toRowView(event({ dispatch: { unit: '12', etaMinutes: 4 } }), NOW)
         .dispatch,
-    ).toEqual({ unit: '12', eta: '4 min' });
+    ).toEqual({ summary: 'Unit 12 · ETA 4 min' });
   });
 
   it('resolves the seen-before reason key to a label', () => {

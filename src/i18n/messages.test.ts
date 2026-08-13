@@ -177,6 +177,40 @@ describe('the domain vocabulary', () => {
   });
 });
 
+describe('units and formatted values', () => {
+  it('localises the unit words rather than leaving "s" and "min"', () => {
+    expect(t.en('domain.latency', { seconds: '0.6' })).toBe('0.6s');
+    expect(t.ja('domain.latency', { seconds: '0.6' })).toBe('0.6秒');
+    expect(t.en('domain.eta', { minutes: 4 })).toBe('4 min');
+    expect(t.ja('domain.eta', { minutes: 4 })).toBe('4分');
+  });
+
+  it('reorders the dispatched line rather than translating it word for word', () => {
+    /*
+     * "Unit 12" is a label-then-number; Japanese counts vehicles with 号車 as a
+     * suffix. A placeholder-for-placeholder translation would produce
+     * "ユニット 12", which is English wearing katakana.
+     */
+    expect(t.en('domain.dispatchLine', { unit: '12', eta: '4 min' })).toBe(
+      'Unit 12 · ETA 4 min',
+    );
+    expect(t.ja('domain.dispatchLine', { unit: '12', eta: '4分' })).toBe(
+      '12 号車 · 到着 4分',
+    );
+  });
+
+  it('keeps every number in Western Arabic digits', () => {
+    for (const rendered of [
+      t.ja('domain.latency', { seconds: '12.5' }),
+      t.ja('domain.eta', { minutes: 30 }),
+      t.ja('domain.dispatchLine', { unit: '7', eta: '4分' }),
+    ]) {
+      expect(rendered).toMatch(/[0-9]/);
+      expect(rendered).not.toMatch(/[〇一二三四五六七八九十百]/);
+    }
+  });
+});
+
 describe('what is deliberately not translated', () => {
   /*
    * D2. These are identifiers and data, not text. A camera ID that changed

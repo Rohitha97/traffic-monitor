@@ -342,6 +342,87 @@ test('the queue renders Japanese domain vocabulary, not translated English', asy
   await expect(page.getByText('重大').first()).toBeVisible();
 });
 
+test('the age counter keeps a constant width as it ticks, in both locales', async ({
+  page,
+}) => {
+  /*
+   * The counter is `mm:ss` in both locales, and deliberately not localised into
+   * `2分14秒`.
+   *
+   * The phase brief asks for the relative-time output to localise. This
+   * interface never used `formatDistanceToNowStrict` — Pass B rejected it in
+   * phase 1 because a counter whose *width* changes as the words change makes
+   * the column beside it twitch once a second. `2分14秒` has exactly that
+   * problem (`1分5秒` is four characters shorter than `12分14秒`), so adopting
+   * it would trade a real design constraint for a cosmetic one.
+   *
+   * `mm:ss` needs no translation: it is digits and a colon, and it reads the
+   * same to both operators. The rule the brief is protecting — no English words
+   * leaking into a Japanese screen — is satisfied by there being no words at
+   * all. ADR-0013.
+   */
+  for (const locale of ['en', 'ja'] as const) {
+    await setLocaleCookie(page, locale);
+    await page.reload();
+
+    const response = await page.request.post('/api/events/ingest', {
+      data: {},
+    });
+    expect(response.status()).toBe(202);
+
+    const row = page.getByRole('listbox').getByRole('option').first();
+    await expect(row).toBeVisible();
+
+    const age = await row.evaluate((node) => {
+      const text = node.textContent ?? '';
+      return /\d{1,2}:\d{2}(:\d{2})?/.exec(text)?.[0] ?? '';
+    });
+
+    // Digits and a colon. No 分, no 秒, and nothing that changes width.
+    expect(age, `age counter in ${locale}`).toMatch(/^\d{2}:\d{2}$/);
+    expect(age).not.toMatch(/[分秒]/);
+  }
+});
+
+test('the latency arrow and units survive the Japanese font stack', async ({
+  page,
+}) => {
+  /*
+   * C4's leftover: the brief asks explicitly whether the arrow glyph and its
+   * spacing survive. `↓` and `↑` are in the flow legend and are exactly the
+   * kind of character a CJK fallback renders full-width, which would break the
+   * two-line legend's alignment.
+   */
+  await setLocaleCookie(page, 'ja');
+  await page.reload();
+
+  const measured = await page.evaluate(async () => {
+    const span = (family: string) => {
+      const node = document.createElement('span');
+      node.textContent = '↓↑';
+      node.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font:500 13px ${family}`;
+      document.body.append(node);
+      return node;
+    };
+    const inStack = span('var(--font-ui)');
+    const inLatin = span('var(--font-public-sans)');
+    await document.fonts.ready;
+
+    const result = {
+      stack: inStack.getBoundingClientRect().width,
+      latin: inLatin.getBoundingClientRect().width,
+    };
+    inStack.remove();
+    inLatin.remove();
+    return result;
+  });
+
+  // The design's own face answers for the arrows; a full-width CJK substitute
+  // would measure noticeably wider.
+  expect(measured.stack).toBeGreaterThan(0);
+  expect(measured.stack).toBeCloseTo(measured.latin, 1);
+});
+
 test('Japanese line breaking follows kinsoku rules', async ({ page }) => {
   await setLocaleCookie(page, 'ja');
   await page.reload();
