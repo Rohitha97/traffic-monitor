@@ -195,3 +195,48 @@ export const LANE_POSITION_LABEL: Record<LanePosition, string> = {
   off_carriageway: 'off carriageway',
   unknown: 'lane unconfirmed',
 };
+
+/**
+ * The false-positive reasons, as keys.
+ *
+ * Domain vocabulary, so it lives here with the other enums rather than being
+ * exported from the menu that happens to render it. The value is written onto
+ * the event, sent to the server, and handed back by the reopen rule — all of
+ * which cross desks, so it must not be one operator's language.
+ */
+export const DISMISS_REASONS = [
+  'shadow',
+  'spray',
+  'parked_hard_shoulder',
+  'camera_artefact',
+  'already_known',
+] as const;
+
+export type DismissReason = (typeof DISMISS_REASONS)[number];
+
+export function isDismissReason(value: string): value is DismissReason {
+  return (DISMISS_REASONS as readonly string[]).includes(value);
+}
+
+export const DISMISS_REASON_LABEL: Record<DismissReason, string> = {
+  shadow: 'Shadow',
+  spray: 'Spray',
+  parked_hard_shoulder: 'Parked on hard shoulder',
+  camera_artefact: 'Camera artefact',
+  already_known: 'Already known',
+};
+
+export const PRIORITY_LABEL: Record<Priority, string> = {
+  critical: 'CRITICAL',
+  high: 'HIGH',
+  medium: 'MEDIUM',
+  low: 'LOW',
+};
+
+export const STATUS_LABEL: Record<Status, string> = {
+  new: 'New',
+  acknowledged: 'Acknowledged',
+  dispatched: 'Dispatched',
+  resolved: 'Resolved',
+  dismissed: 'Dismissed',
+};

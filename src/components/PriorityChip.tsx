@@ -1,4 +1,21 @@
+'use client';
+
+/*
+ * A client island, and only because of the label.
+ *
+ * Everything else here is presentation and would render happily on the server.
+ * The priority word is shared vocabulary, though, and `useDomainLabels` is a
+ * hook — so the choice was between a client boundary on one small leaf or
+ * threading a resolved string down through every parent that renders a chip.
+ * The boundary is cheaper and keeps the vocabulary resolved in one place.
+ *
+ * It cost a broken `/dev/states` to find: the app renders this inside the
+ * console's client tree, so the behaviour suite passed, while the state matrix
+ * renders it from a Server Component and every capture went blank.
+ */
+
 import { PriorityGlyph } from '@/components/PriorityGlyph';
+import { useDomainLabels } from '@/i18n/domain';
 import { PRIORITY, type Priority } from '@/lib/priority';
 
 interface PriorityChipProps {
@@ -33,7 +50,8 @@ export function PriorityChip({
   size = 'md',
   onRaised = false,
 }: PriorityChipProps) {
-  const { label, text, fill, strip } = PRIORITY[priority];
+  const { text, fill, strip } = PRIORITY[priority];
+  const label = useDomainLabels().priority(priority);
   const labelColour = onRaised ? 'text-text-primary' : text;
 
   return (

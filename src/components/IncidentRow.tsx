@@ -1,6 +1,7 @@
 'use client';
 
 import { PriorityGlyph } from '@/components/PriorityGlyph';
+import { useDomainLabels } from '@/i18n/domain';
 import { PRIORITY, type Priority } from '@/lib/priority';
 
 interface IncidentRowProps {
@@ -96,7 +97,8 @@ export function IncidentRow({
   interactive = true,
   className = '',
 }: IncidentRowProps) {
-  const { strip, fill, label } = PRIORITY[priority];
+  const { strip, fill } = PRIORITY[priority];
+  const label = useDomainLabels().priority(priority);
 
   // Dispatched rows drop to a calm treatment: the location moves up to the
   // primary line and the responding unit takes the secondary one.

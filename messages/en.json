@@ -21,6 +21,49 @@
     "bufferedHint": "Press Home, or click to jump to newest",
     "bufferedCriticalHint": "Escalates even while the operator has scrolled away"
   },
+  "domain": {
+    "eventType": {
+      "stopped_vehicle": "Stopped vehicle",
+      "wrong_way_driver": "Wrong-way driver",
+      "debris": "Debris",
+      "congestion": "Congestion",
+      "pedestrian": "Pedestrian on carriageway",
+      "smoke_fire": "Smoke or fire"
+    },
+    "lanePosition": {
+      "live_lane": "live lane",
+      "hard_shoulder": "hard shoulder",
+      "off_carriageway": "off carriageway",
+      "unknown": "lane unconfirmed"
+    },
+    "priority": {
+      "critical": "CRITICAL",
+      "high": "HIGH",
+      "medium": "MEDIUM",
+      "low": "LOW"
+    },
+    "status": {
+      "new": "New",
+      "acknowledged": "Acknowledged",
+      "dispatched": "Dispatched",
+      "resolved": "Resolved",
+      "dismissed": "Dismissed"
+    },
+    "direction": {
+      "NB": "northbound",
+      "SB": "southbound",
+      "EB": "eastbound",
+      "WB": "westbound"
+    },
+    "dismissReason": {
+      "shadow": "Shadow",
+      "spray": "Spray",
+      "parked_hard_shoulder": "Parked on hard shoulder",
+      "camera_artefact": "Camera artefact",
+      "already_known": "Already known"
+    },
+    "marker": "Mile marker"
+  },
   "language": {
     "label": "Language",
     "en": "English",

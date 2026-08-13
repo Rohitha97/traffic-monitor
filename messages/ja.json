@@ -21,6 +21,49 @@
     "bufferedHint": "Home キー、またはクリックで最新へ",
     "bufferedCriticalHint": "画面をスクロールしていても通知"
   },
+  "domain": {
+    "eventType": {
+      "stopped_vehicle": "停止車両",
+      "wrong_way_driver": "逆走",
+      "debris": "落下物",
+      "congestion": "渋滞",
+      "pedestrian": "歩行者",
+      "smoke_fire": "火災・煙"
+    },
+    "lanePosition": {
+      "live_lane": "走行車線",
+      "hard_shoulder": "路肩",
+      "off_carriageway": "車道外",
+      "unknown": "位置不明"
+    },
+    "priority": {
+      "critical": "重大",
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "status": {
+      "new": "未対応",
+      "acknowledged": "確認済み",
+      "dispatched": "出動中",
+      "resolved": "対応完了",
+      "dismissed": "誤検知"
+    },
+    "direction": {
+      "NB": "北行",
+      "SB": "南行",
+      "EB": "東行",
+      "WB": "西行"
+    },
+    "dismissReason": {
+      "shadow": "影",
+      "spray": "水しぶき",
+      "parked_hard_shoulder": "路肩駐車",
+      "camera_artefact": "映像ノイズ",
+      "already_known": "既知事象"
+    },
+    "marker": "キロポスト"
+  },
   "language": {
     "label": "言語",
     "en": "English",

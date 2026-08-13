@@ -20,6 +20,7 @@ import { useSeenMark } from '@/hooks/useSeenMark';
 import { useTabAlert } from '@/hooks/useTabAlert';
 import { FEED_COUNT } from '@/lib/cameras';
 import { formatClock, formatClockUtc, formatTimestamp } from '@/lib/format';
+import { useDomainLabels } from '@/i18n/domain';
 import { preloadSnapshot, summaryOf, toDetailView } from '@/lib/incident';
 import { PRIORITY } from '@/lib/priority';
 import {
@@ -48,6 +49,7 @@ export function OperatorConsole() {
   const connection = useEventStore((state) => state.connection);
   const history = useEventStore((state) => state.history);
   const claims = useEventStore((state) => state.claims);
+  const labels = useDomainLabels();
   const dataAsOf = useEventStore((state) => state.dataAsOf);
   const buffered = useEventStore((state) => state.buffered);
   const selectedId = useEventStore((state) => state.selectedId);
@@ -88,7 +90,7 @@ export function OperatorConsole() {
    */
   useTabAlert({
     criticalCount: unacknowledgedCriticals,
-    summary: criticalAlert ? summaryOf(criticalAlert) : undefined,
+    summary: criticalAlert ? summaryOf(criticalAlert, labels) : undefined,
   });
 
   const [dispatchOpen, setDispatchOpen] = useState(false);
@@ -217,7 +219,7 @@ export function OperatorConsole() {
         present={criticalAlert !== undefined}
         headline={
           criticalAlert
-            ? `${summaryOf(criticalAlert)} — ${criticalAlert.camera.id}, ${criticalAlert.camera.name}`
+            ? `${summaryOf(criticalAlert, labels)} — ${criticalAlert.camera.id}, ${criticalAlert.camera.name}`
             : ''
         }
         detail={
@@ -286,7 +288,7 @@ export function OperatorConsole() {
           {...(selected
             ? {
                 incident: {
-                  ...toDetailView(selected),
+                  ...toDetailView(selected, labels),
                   ...(claims[selected.id]
                     ? { claim: claims[selected.id] }
                     : {}),
@@ -319,7 +321,7 @@ export function OperatorConsole() {
           ? {
               incident: {
                 priority: selected.priority,
-                summary: summaryOf(selected),
+                summary: summaryOf(selected, labels),
                 camera: selected.camera.id,
                 location: selected.camera.name,
                 priorityReason: selected.priorityReason,

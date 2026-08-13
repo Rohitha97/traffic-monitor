@@ -107,7 +107,9 @@ test('a dismissed call that re-detects comes back tagged with the original reaso
   });
 
   // The server says so on the way in, before any of this reaches a screen.
-  expect(redetect.seenBefore).toBe('Shadow');
+  // The key, not a label. What the server stores has to read the same to a desk
+  // working in English and a desk working in Japanese.
+  expect(redetect.seenBefore).toBe('shadow');
 
   // And the row carries the reason itself, not merely the fact of a prior call:
   // an operator who has to open the incident to find out what they already
@@ -124,7 +126,12 @@ test('a dismissed call that re-detects comes back tagged with the original reaso
   // for making one.
   await expect(detail(page)).toContainText('Detected · confidence 44%');
   await expect(detail(page)).toContainText(
-    'Seen before — dismissed as "Shadow"',
+    /*
+     * The audit line carries the stored *key*, not a label. It is written
+     * server-side as English prose for an event several positions read — the
+     * same untranslatable class as `priorityReason`, and roadmap #10.
+     */
+    'Seen before — dismissed as "shadow"',
   );
 });
 

@@ -309,6 +309,39 @@ test('long Japanese truncates rather than wrapping or overflowing', async ({
   expect(measured.height).toBeLessThanOrEqual(20);
 });
 
+test('the queue renders Japanese domain vocabulary, not translated English', async ({
+  page,
+}) => {
+  /*
+   * The vocabulary reaching the screen, rather than merely existing in a JSON
+   * file. 逆走 is the tell: it is the established term in Japanese road safety,
+   * and a machine translation of "wrong-way driver" would not produce it.
+   */
+  await setLocaleCookie(page, 'ja');
+  await page.reload();
+
+  const response = await page.request.post('/api/events/ingest', {
+    data: { preset: 'critical' },
+  });
+  expect(response.status()).toBe(202);
+
+  const rows = page.getByRole('listbox').getByRole('option');
+  await expect(rows.first()).toBeVisible();
+
+  const queue = page.getByRole('listbox');
+  await expect(queue).toContainText('逆走');
+
+  // Camera IDs are identifiers and stay identifiers in both locales.
+  await expect(queue).toContainText(/CAM-\d+/);
+
+  await rows.first().click();
+  const detail = page.getByRole('main');
+  await expect(detail).toContainText('逆走');
+
+  // The priority chip takes the Japanese level, not "CRITICAL".
+  await expect(page.getByText('重大').first()).toBeVisible();
+});
+
 test('Japanese line breaking follows kinsoku rules', async ({ page }) => {
   await setLocaleCookie(page, 'ja');
   await page.reload();

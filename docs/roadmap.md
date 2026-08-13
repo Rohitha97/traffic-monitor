@@ -47,7 +47,36 @@ an internal network and not sufficient for anything else. This is the clean addi
 left room for, and it would also let positions be bound to workstations rather than counted upward
 forever.
 
-### 10 · An intermittent failure in `journey.spec.ts`
+### 10 · `priorityReason` is English in both locales
+
+The most prominent line in the detail pane — "Critical — vehicle against traffic flow, live lane 2
+of 3" — is derived server-side by `derivePriority` as English prose and stored on the event. It
+cannot be translated where it sits: one string is computed once for an event that several positions
+read, and those positions may be in different languages.
+
+Localising it means `derivePriority` returns a **key and parameters** rather than a sentence, which
+changes the event contract, the ingest route, the generator, the schema, twenty priority tests and
+three components. A phase-8-sized item, not a vocabulary one, and doing it badly — a lookup from
+English sentences to Japanese ones — would be worse than leaving it.
+[ADR-0012](adr/0012-japanese-domain-vocabulary.md).
+
+The same applies, smaller, to the audit trail's `action` strings.
+
+### 11 · A native speaker has not reviewed the Japanese
+
+Phase 9's terminology is researched and internally consistent, and the terms most likely to be wrong
+are flagged in [ADR-0012](adr/0012-japanese-domain-vocabulary.md) — but researched is not reviewed,
+and terminology is where a confident non-speaker produces something plausible and wrong.
+
+The highest-value hour anyone with Japanese road-operations experience could spend on this codebase.
+
+### 12 · The lane model cannot express 走行 / 追越
+
+Japanese expressway operations distinguishes 走行車線 (cruising lane) from 追越車線 (overtaking
+lane). The schema has `laneNumber` but no lane _role_, so it cannot say which a lane is — 走行車線 is
+used for "live lane" and is slightly over-specific. A schema change, not a translation one.
+
+### 13 · An intermittent failure in `journey.spec.ts`
 
 `a critical event arrives, is reviewed, and a response is dispatched` fails perhaps one full-suite
 run in three, on `toHaveTitle(/^\(\d+\) CRITICAL · Incident Monitor$/)` — the title stays at rest
@@ -63,7 +92,7 @@ condition needs the whole run.
 Ruled out so far: the favicon draw blocking the title (the title is assigned first), and the IME
 spec as the polluter. Worth a trace capture on a failing run rather than more guessing.
 
-### 11 · Modifiers on the destructive shortcuts — a decision, not an omission
+### 14 · Modifiers on the destructive shortcuts — a decision, not an omission
 
 `D` opens a dispatch confirmation and `X` a dismissal reason picker, both on a single unmodified
 keypress. [ADR-0010](adr/0010-ime-composition-and-single-key-shortcuts.md) raises whether they
@@ -74,7 +103,7 @@ in a design whose keyboard model is explicitly "one axis, no modes".
 Revisit **if the confirmation step is ever removed for speed**. That is the change that would make a
 modifier necessary, and the two belong in the same conversation.
 
-### 12 · Snapshot preloading should follow the window
+### 15 · Snapshot preloading should follow the window
 
 The effect still warms every queued incident rather than the rendered window, so 500 incidents warm
 500 snapshots. Harmless today only by accident — the six shared URLs dedupe — and it becomes 500

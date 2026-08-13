@@ -6,6 +6,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
 import { DismissedStrip } from '@/components/DismissedStrip';
 import { IncidentRow } from '@/components/IncidentRow';
+import { useDomainLabels } from '@/i18n/domain';
 import { toRowView } from '@/lib/incident';
 import type { DetectionEvent } from '@/lib/schema';
 import {
@@ -74,6 +75,7 @@ export function QueueList({
 }: QueueListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
+  const labels = useDomainLabels();
 
   const virtualizer = useVirtualizer({
     count: events.length,
@@ -189,7 +191,7 @@ export function QueueList({
                 }}
               >
                 <IncidentRow
-                  {...toRowView(event, now)}
+                  {...toRowView(event, now, labels)}
                   selected={event.id === selectedId}
                   slaBreached={isBreachingSla(event, now)}
                   {...(claims[event.id] ? { claim: claims[event.id] } : {})}
@@ -230,7 +232,9 @@ export function QueueList({
               <DismissedStrip
                 key={event.id}
                 camera={event.camera.id}
-                reason={event.dismissal.reason.toLowerCase()}
+                reason={labels
+                  .dismissReason(event.dismissal.reason)
+                  .toLowerCase()}
                 onUndo={() => onUndoDismiss(event.id)}
               />
             ) : (
@@ -242,7 +246,10 @@ export function QueueList({
                   duration: reduced ? 0.1 : RESOLVED_FADE_MS / 1000,
                 }}
               >
-                <IncidentRow {...toRowView(event, now)} interactive={false} />
+                <IncidentRow
+                  {...toRowView(event, now, labels)}
+                  interactive={false}
+                />
               </motion.div>
             ),
           )}

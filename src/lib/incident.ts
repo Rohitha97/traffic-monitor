@@ -1,11 +1,43 @@
+import type { DomainLabels } from '@/i18n/domain';
 import { markerValue, nearbyCameras } from '@/lib/cameras';
 import { formatAge, formatLatency, formatTimestamp } from '@/lib/format';
 import {
+  DISMISS_REASON_LABEL,
   EVENT_TYPE_LABEL,
+  isDismissReason,
   LANE_POSITION_LABEL,
+  PRIORITY_LABEL,
+  STATUS_LABEL,
   type Camera,
   type DetectionEvent,
 } from '@/lib/schema';
+
+/**
+ * English, as a default argument.
+ *
+ * Every caller inside the app passes real labels from `useDomainLabels`. This
+ * exists so the pure mapping stays callable — and testable — without a React
+ * tree, and so `en.json` is not the only place the design's own wording lives.
+ * The two are held together by `src/i18n/messages.test.ts`.
+ */
+const DEFAULT_LABELS: DomainLabels = {
+  eventType: (type) => EVENT_TYPE_LABEL[type],
+  lanePosition: (position) => LANE_POSITION_LABEL[position],
+  priority: (priority) => PRIORITY_LABEL[priority],
+  status: (status) => STATUS_LABEL[status],
+  direction: (direction) => DIRECTION_LABEL[direction],
+  dismissReason: (reason) =>
+    isDismissReason(reason) ? DISMISS_REASON_LABEL[reason] : reason,
+  marker: () => 'Mile marker',
+};
+
+/** Compass bearings, kept as compass bearings. See ADR-0012. */
+const DIRECTION_LABEL: Record<Camera['direction'], string> = {
+  NB: 'northbound',
+  SB: 'southbound',
+  EB: 'eastbound',
+  WB: 'westbound',
+};
 
 /*
  * Turning a domain event into what the frames show.
@@ -22,12 +54,15 @@ import {
  * lane". Wrong-way drivers are the exception — the lane adds nothing to a
  * hazard that is defined by direction, and the frames render it bare.
  */
-export function summaryOf(event: DetectionEvent): string {
-  const label = EVENT_TYPE_LABEL[event.type];
+export function summaryOf(
+  event: DetectionEvent,
+  labels: DomainLabels = DEFAULT_LABELS,
+): string {
+  const label = labels.eventType(event.type);
   if (event.type === 'wrong_way_driver' || event.lanePosition === 'unknown') {
     return label;
   }
-  return `${label}, ${LANE_POSITION_LABEL[event.lanePosition]}`;
+  return `${label}, ${labels.lanePosition(event.lanePosition)}`;
 }
 
 /** "M6 NB · Jct 8–9", as the queue rows read in Pass C. */
@@ -56,11 +91,15 @@ export interface RowView {
   seenBefore?: { reason: string };
 }
 
-export function toRowView(event: DetectionEvent, now: number): RowView {
+export function toRowView(
+  event: DetectionEvent,
+  now: number,
+  labels: DomainLabels = DEFAULT_LABELS,
+): RowView {
   return {
     priority: event.priority,
     camera: event.camera.id,
-    summary: summaryOf(event),
+    summary: summaryOf(event, labels),
     location: locationOf(event.camera),
     age: formatAge(event.receivedAt, now),
     unread: event.status === 'new',
@@ -74,11 +113,19 @@ export function toRowView(event: DetectionEvent, now: number): RowView {
         }
       : {}),
     /*
-     * Lower-cased to read as prose inside the tag — "Seen before · sensor
-     * glare" — the same treatment the dismissal strip gives the reason.
+     * Translated here rather than stored translated. The reason on the event is
+     * a key so it crosses desks intact; what an operator reads is resolved in
+     * their own locale, at the moment it is rendered.
+     *
+     * Lower-cased so the tag reads as prose — "seen before · shadow", which is
+     * how Pass C sets it. A no-op in Japanese, which has no letter case.
      */
     ...(event.seenBefore
-      ? { seenBefore: { reason: event.seenBefore.reason.toLowerCase() } }
+      ? {
+          seenBefore: {
+            reason: labels.dismissReason(event.seenBefore.reason).toLowerCase(),
+          },
+        }
       : {}),
   };
 }
@@ -101,13 +148,16 @@ export function flowNoteFor(event: DetectionEvent): string | undefined {
   return event.type === 'wrong_way_driver' ? '↓ flow\n↑ wrong-way' : undefined;
 }
 
-export function toDetailView(event: DetectionEvent) {
+export function toDetailView(
+  event: DetectionEvent,
+  labels: DomainLabels = DEFAULT_LABELS,
+) {
   const neighbours = nearbyCameras(event.camera);
   const flowNote = flowNoteFor(event);
 
   return {
     priority: event.priority,
-    summary: summaryOf(event),
+    summary: summaryOf(event, labels),
     camera: event.camera.id,
     location: fullLocationOf(event.camera),
     mileMarker: event.camera.marker,
@@ -115,7 +165,7 @@ export function toDetailView(event: DetectionEvent) {
     ...(event.seenBefore
       ? {
           seenBefore: {
-            reason: event.seenBefore.reason.toLowerCase(),
+            reason: labels.dismissReason(event.seenBefore.reason).toLowerCase(),
             at: formatTimestamp(event.seenBefore.at),
           },
         }

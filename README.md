@@ -338,6 +338,33 @@ arriving. What has stopped is sharing — events published during the outage are
 instance and nowhere else until the broker returns. Calling that "reconnecting" would be a false
 alarm about the one thing the status bar exists to be trusted about.
 
+## Languages
+
+English and Japanese. Language is a **workstation setting**, not a URL — it lives in a cookie beside
+the mute preference, because a control-room position's language is a property of the desk rather
+than of what is on screen, and a deep link should not impose one operator's language on another.
+There is no `[locale]` route segment.
+[ADR-0009](docs/adr/0009-next-intl-and-cookie-locale.md).
+
+The switcher writes the cookie and refreshes; `<html lang>` follows the resolved locale, which is
+what makes a screen reader switch synthesiser voice.
+
+Domain terms use Japanese expressway vocabulary rather than translated British motorway English —
+逆走 for a wrong-way driver, 落下物 for debris, 路肩 for the hard shoulder. Compass bearings are
+kept and translated literally (北行) rather than mapped to 上り / 下り, because the estate is British
+motorways and 上り / 下り means "toward Tokyo", which is not a fact about the M6.
+[ADR-0012](docs/adr/0012-japanese-domain-vocabulary.md).
+
+> **The Japanese has not been reviewed by a native speaker.** It is researched, internally
+> consistent and asserted by tests, and the terms most likely to be wrong are named in ADR-0012 —
+> but that is not the same as review, and terminology is exactly where a confident non-speaker
+> produces something plausible and wrong. Treat it as a first draft awaiting a road-operations
+> engineer who reads Japanese.
+
+Two strings are still English in both locales: the derived priority reason on the detail pane, and
+the audit trail's action lines. Both are computed server-side for an event several positions read,
+so localising them is a contract change rather than a translation — roadmap #10.
+
 ## Non-goals
 
 Things this does not do, and the reason each is a boundary rather than an omission.

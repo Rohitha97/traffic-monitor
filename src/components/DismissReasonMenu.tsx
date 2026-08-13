@@ -1,5 +1,7 @@
 'use client';
 
+import { useDomainLabels } from '@/i18n/domain';
+import { DISMISS_REASONS, type DismissReason } from '@/lib/schema';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import type { ReactNode } from 'react';
 
@@ -11,15 +13,12 @@ import type { ReactNode } from 'react';
  * optional, and the reason is written into the audit trail and shown on the
  * collapsed row.
  */
-export const DISMISS_REASONS = [
-  'Shadow',
-  'Spray',
-  'Parked on hard shoulder',
-  'Camera artefact',
-  'Already known',
-] as const;
-
-export type DismissReason = (typeof DISMISS_REASONS)[number];
+/*
+ * The reasons themselves live in `@/lib/schema` with the other domain enums —
+ * they are vocabulary written onto the event, not a property of this menu.
+ * Re-exported here so the call sites that render the picker keep one import.
+ */
+export { DISMISS_REASONS, type DismissReason } from '@/lib/schema';
 
 interface DismissReasonMenuProps {
   open: boolean;
@@ -46,6 +45,8 @@ export function DismissReasonMenu({
   onSelect,
   children,
 }: DismissReasonMenuProps) {
+  const labels = useDomainLabels();
+
   return (
     <DropdownMenu.Root open={open} onOpenChange={onOpenChange}>
       <DropdownMenu.Trigger asChild>{children}</DropdownMenu.Trigger>
@@ -65,7 +66,7 @@ export function DismissReasonMenu({
               onSelect={() => onSelect(reason)}
               className="text-caption cursor-pointer px-3 py-1.5 font-medium text-text-body outline-none transition-colors duration-(--duration-state) data-highlighted:bg-text-primary/8 data-highlighted:text-text-primary"
             >
-              {reason}
+              {labels.dismissReason(reason)}
             </DropdownMenu.Item>
           ))}
         </DropdownMenu.Content>

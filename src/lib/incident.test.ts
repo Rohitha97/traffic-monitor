@@ -162,11 +162,22 @@ describe('toRowView', () => {
     ).toEqual({ unit: '12', eta: '4 min' });
   });
 
-  it('lower-cases the seen-before reason so the tag reads as prose', () => {
+  it('resolves the seen-before reason key to a label', () => {
+    // The event carries a key so the reason crosses desks intact; the label is
+    // resolved at render, in whatever language this screen is in.
     expect(
-      toRowView(event({ seenBefore: { reason: 'Shadow', at: T0 } }), NOW)
+      toRowView(event({ seenBefore: { reason: 'shadow', at: T0 } }), NOW)
         .seenBefore,
     ).toEqual({ reason: 'shadow' });
+  });
+
+  it('passes an unrecognised reason through rather than dropping the row', () => {
+    // A reason read off an older event, or one whose key was renamed. Showing
+    // the raw key beats failing to render an incident.
+    expect(
+      toRowView(event({ seenBefore: { reason: 'sensor_glare', at: T0 } }), NOW)
+        .seenBefore,
+    ).toEqual({ reason: 'sensor_glare' });
   });
 });
 
@@ -213,9 +224,10 @@ describe('toDetailView', () => {
 
   it('formats the seen-before note with its own timestamp', () => {
     const view = toDetailView(
-      event({ seenBefore: { reason: 'Sensor glare', at: T0 } }),
+      event({ seenBefore: { reason: 'camera_artefact', at: T0 } }),
     );
-    expect(view.seenBefore?.reason).toBe('sensor glare');
+    // Lower-cased for prose, the way the tag is drawn.
+    expect(view.seenBefore?.reason).toBe('camera artefact');
     expect(view.seenBefore?.at).toMatch(/^\d{2}:\d{2}:\d{2}$/);
   });
 
