@@ -75,8 +75,24 @@
    *
    * Both are self-hosted by next/font in src/app/layout.tsx.
    */
-  --font-ui: var(--font-public-sans), system-ui, sans-serif;
-  --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+  /*
+   * The Japanese face sits *after* the Latin one in both stacks, and before the
+   * generic — which is the whole mechanism.
+   *
+   * Font fallback is per glyph, not per string: Public Sans answers for every
+   * Latin character and every digit, so the CJK face is only ever reached by a
+   * glyph the design's own face does not have. That is what keeps numerals in
+   * the tabular figures the age counters depend on — a JP fallback capturing
+   * digits would make the counter reflow every time it ticked.
+   *
+   * Position matters twice over. After a generic (`sans-serif`, `monospace`)
+   * it would be unreachable, because the generic always resolves; before the
+   * Latin face it would capture Latin. Between them is the only correct place.
+   */
+  --font-ui:
+    var(--font-public-sans), var(--font-noto-sans-jp), system-ui, sans-serif;
+  --font-mono:
+    var(--font-ibm-plex-mono), var(--font-noto-sans-jp), ui-monospace, monospace;
 
   /*
    * UI scale. Never bolder than 600 — hierarchy is size and space.
@@ -181,4 +197,62 @@
       opacity: 0.5;
     }
   }
+}
+
+/*
+ * ── Japanese ───────────────────────────────────────────────────────────────
+ *
+ * Tokens, not components. Everything below retargets values the components
+ * already consume, so no component branches on locale and nothing has to be
+ * remembered when a new one is written.
+ *
+ * The binding constraint is the queue row. It is a fixed 40px — Pass A's
+ * "twelve rows at 40px visible at 1440×900 without scrolling", and the number
+ * the virtualiser measures against — and it stacks a caption over a micro line
+ * with a 2px gap. In English that is 18 + 2 + 16 = 36px inside 40. Any change
+ * here has to land under that ceiling or the density target the whole layout is
+ * built on quietly breaks.
+ */
+:root[lang='ja'],
+[lang='ja'] {
+  /*
+   * Dense row text: one size down, more leading.
+   *
+   * Japanese carries more meaning per character, so 13px Latin and 12px
+   * Japanese are close to equal legibility — and the size a CJK glyph actually
+   * needs is bought back as leading, which is what dense full-height glyphs
+   * are short of. 19 + 2 + 17 = 38px, still inside the 40px row.
+   */
+  --text-caption: 12px;
+  --text-caption--line-height: 19px;
+
+  --text-micro: 11px;
+  --text-micro--line-height: 17px;
+
+  --text-kicker: 12px;
+  --text-kicker--line-height: 18px;
+
+  /*
+   * Prose: leading up by roughly 0.15 of the ratio, size unchanged. These sizes
+   * are not inside a fixed-height box, so they can take the space CJK wants.
+   */
+  --text-ui--line-height: 23px;
+  --text-body--line-height: 26px;
+  --text-title--line-height: 28px;
+  --text-panel--line-height: 30px;
+  --text-dialog--line-height: 35px;
+
+  /*
+   * Tracking to zero.
+   *
+   * Every one of these was tuned to open up an uppercase Latin run, and kanji
+   * are already square and evenly set — positive tracking on them reads as a
+   * mistake rather than as emphasis. The cost is that the Latin acronyms which
+   * survive in a Japanese UI (LIVE, SLA, camera IDs) lose their tracking too,
+   * which is the smaller of the two wrongs and the one that does not look
+   * broken.
+   */
+  --tracking-label: 0;
+  --tracking-field: 0;
+  --tracking-kicker: 0;
 }

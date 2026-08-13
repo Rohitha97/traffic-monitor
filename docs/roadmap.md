@@ -47,7 +47,23 @@ an internal network and not sufficient for anything else. This is the clean addi
 left room for, and it would also let positions be bound to workstations rather than counted upward
 forever.
 
-### 10 · Modifiers on the destructive shortcuts — a decision, not an omission
+### 10 · An intermittent failure in `journey.spec.ts`
+
+`a critical event arrives, is reviewed, and a response is dispatched` fails perhaps one full-suite
+run in three, on `toHaveTitle(/^\(\d+\) CRITICAL · Incident Monitor$/)` — the title stays at rest
+while the assertion immediately before it, that the pinned banner shows the critical, has already
+passed. Both read the same store, so a banner with content and a count of zero should not be
+possible.
+
+Observed during phase 9 workstream C and **not caused by it**: the same failure reproduces with that
+workstream stashed. It does not reproduce when `journey.spec.ts` runs alone (3/3), nor with only the
+specs that precede it in the suite (accessibility, ime), which is what makes it awkward — the
+condition needs the whole run.
+
+Ruled out so far: the favicon draw blocking the title (the title is assigned first), and the IME
+spec as the polluter. Worth a trace capture on a failing run rather than more guessing.
+
+### 11 · Modifiers on the destructive shortcuts — a decision, not an omission
 
 `D` opens a dispatch confirmation and `X` a dismissal reason picker, both on a single unmodified
 keypress. [ADR-0010](adr/0010-ime-composition-and-single-key-shortcuts.md) raises whether they
@@ -58,7 +74,7 @@ in a design whose keyboard model is explicitly "one axis, no modes".
 Revisit **if the confirmation step is ever removed for speed**. That is the change that would make a
 modifier necessary, and the two belong in the same conversation.
 
-### 11 · Snapshot preloading should follow the window
+### 12 · Snapshot preloading should follow the window
 
 The effect still warms every queued incident rather than the rendered window, so 500 incidents warm
 500 snapshots. Harmless today only by accident — the six shared URLs dedupe — and it becomes 500

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { IBM_Plex_Mono, Public_Sans } from 'next/font/google';
+import { IBM_Plex_Mono, Noto_Sans_JP, Public_Sans } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 
 import { resolveLocale } from '@/i18n/request';
@@ -21,6 +21,30 @@ const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
   variable: '--font-ibm-plex-mono',
+  display: 'swap',
+});
+
+/*
+ * The Japanese face, in **both** locales.
+ *
+ * Not switched on the locale: a camera name or an operator note can be Japanese
+ * on an English screen, and a font stack that only carries kanji when the UI
+ * language is Japanese would render those as tofu. Per-glyph fallback does the
+ * work — Public Sans has no kanji, so kanji reach this face; this face never
+ * gets a Latin character or a digit, because Public Sans already answered.
+ *
+ * **Noto Sans JP rather than BIZ UDPGothic**, which the phase brief suggested.
+ * BIZ UD is a genuinely good universal-design face and the better answer on
+ * legibility grounds alone — but it ships only 400 and 700. This design encodes
+ * meaning in the 500 and 600 steps (an unread row is 600 where a read one is
+ * 500; a breaching age counter gains weight rather than a hue), and a face that
+ * cannot set them would either synthesise or collapse them, losing an encoding
+ * the interface reads at a glance. ADR-0011.
+ */
+const notoSansJp = Noto_Sans_JP({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-noto-sans-jp',
   display: 'swap',
 });
 
@@ -60,7 +84,7 @@ export default async function RootLayout({
      */
     <html
       lang={locale}
-      className={`${publicSans.variable} ${ibmPlexMono.variable}`}
+      className={`${publicSans.variable} ${ibmPlexMono.variable} ${notoSansJp.variable}`}
     >
       <body>
         {/*

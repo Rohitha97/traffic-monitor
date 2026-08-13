@@ -23,3 +23,4 @@ infrastructure, or commits the project to something awkward to reverse. Everythi
 | [0008](0008-position-identity-and-the-ownership-lock.md) | Position identity and the ownership lock — roadmap #2                |
 | [0009](0009-next-intl-and-cookie-locale.md)              | next-intl, and a cookie instead of a `[locale]` route — phase 9      |
 | [0010](0010-ime-composition-and-single-key-shortcuts.md) | IME composition and single-key shortcuts — phase 9                   |
+| [0011](0011-japanese-typography.md)                      | The Japanese typography layer — phase 9                              |
