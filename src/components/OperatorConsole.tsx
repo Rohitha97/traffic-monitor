@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -50,6 +51,7 @@ export function OperatorConsole() {
   const history = useEventStore((state) => state.history);
   const claims = useEventStore((state) => state.claims);
   const labels = useDomainLabels();
+  const a11y = useTranslations('a11y');
   const dataAsOf = useEventStore((state) => state.dataAsOf);
   const buffered = useEventStore((state) => state.buffered);
   const selectedId = useEventStore((state) => state.selectedId);
@@ -239,7 +241,7 @@ export function OperatorConsole() {
 
       <div className="flex min-h-0 flex-1">
         <section
-          aria-label="Incident queue"
+          aria-label={a11y('incidentQueue')}
           className="flex w-108 flex-none flex-col border-r border-border-hairline"
         >
           <div className="flex h-9 flex-none items-center justify-between border-b border-border-hairline px-3">

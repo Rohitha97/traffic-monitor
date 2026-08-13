@@ -1,3 +1,16 @@
+'use client';
+
+/*
+ * A client island.
+ *
+ * Its accessible name is translated, and `useTranslations` is a hook. Every
+ * surface that renders this in the running app is already inside the console's
+ * client tree — only `/dev/states` renders it from a Server Component, and a
+ * hook there blanks the state matrix. (ADR-0014)
+ */
+
+import { useTranslations } from 'next-intl';
+
 import { ActionBar } from '@/components/ActionBar';
 import { AuditTrail, type AuditEntry } from '@/components/AuditTrail';
 import type { DismissReason } from '@/components/DismissReasonMenu';
@@ -82,6 +95,7 @@ export function IncidentDetail({
   dismissOpen,
   onDismissOpenChange,
 }: IncidentDetailProps) {
+  const t = useTranslations('a11y');
   if (!incident) {
     /*
      * The live region is on both branches, not only the populated one. A live
@@ -90,12 +104,12 @@ export function IncidentDetail({
      */
     return (
       <main
-        aria-label="Incident detail"
+        aria-label={t('incidentDetail')}
         aria-live="polite"
         className="flex min-w-0 flex-1 items-center justify-center p-5"
       >
         <p className="text-micro tracking-label max-w-70 text-center font-semibold text-text-secondary uppercase">
-          Select an incident to review it
+          {t('emptyDetail')}
         </p>
       </main>
     );
@@ -103,7 +117,7 @@ export function IncidentDetail({
 
   return (
     <main
-      aria-label="Incident detail"
+      aria-label={t('incidentDetail')}
       aria-live="polite"
       className="flex min-w-0 flex-1 flex-col gap-3 p-5"
     >

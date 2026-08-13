@@ -1,3 +1,14 @@
+'use client';
+
+/*
+ * A client island.
+ *
+ * Its accessible name is translated, and `useTranslations` is a hook. Every
+ * surface that renders this in the running app is already inside the console's
+ * client tree — only `/dev/states` renders it from a Server Component, and a
+ * hook there blanks the state matrix. (ADR-0014)
+ */
+
 interface EmptyQueueProps {
   feeds: { online: number; total: number };
 }

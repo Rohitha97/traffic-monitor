@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { PriorityGlyph } from '@/components/PriorityGlyph';
 import { useDomainLabels } from '@/i18n/domain';
 import { PRIORITY, type Priority } from '@/lib/priority';
@@ -103,6 +105,7 @@ export function IncidentRow({
 }: IncidentRowProps) {
   const { strip, fill } = PRIORITY[priority];
   const label = useDomainLabels().priority(priority);
+  const t = useTranslations('a11y');
 
   // Dispatched rows drop to a calm treatment: the location moves up to the
   // primary line and the responding unit takes the secondary one.
@@ -248,7 +251,7 @@ export function IncidentRow({
                 aria-hidden="true"
                 className="size-1.25 flex-none rounded-full bg-text-primary"
               />
-              <span className="sr-only">Unread</span>
+              <span className="sr-only">{t('unread')}</span>
             </>
           )
         )}
@@ -267,7 +270,7 @@ export function IncidentRow({
           {age}
         </span>
         <span className="sr-only">
-          {label} priority, open {age}
+          {t('rowSummary', { priority: label, age })}
         </span>
       </span>
     </div>

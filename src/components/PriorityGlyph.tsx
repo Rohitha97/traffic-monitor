@@ -1,3 +1,17 @@
+'use client';
+
+/*
+ * A client island.
+ *
+ * Its accessible name is translated, and `useTranslations` is a hook. Every
+ * surface that renders this in the running app is already inside the console's
+ * client tree — only `/dev/states` renders it from a Server Component, and a
+ * hook there blanks the state matrix. (ADR-0014)
+ */
+
+import { useTranslations } from 'next-intl';
+
+import { useDomainLabels } from '@/i18n/domain';
 import { PRIORITY, type Priority } from '@/lib/priority';
 
 const GLYPH_SIZE = {
@@ -24,7 +38,9 @@ export function PriorityGlyph({
   size = 'sm',
   decorative = false,
 }: PriorityGlyphProps) {
-  const { fill, shape, label, meaning } = PRIORITY[priority];
+  const t = useTranslations('a11y');
+  const labels = useDomainLabels();
+  const { fill, shape, meaning } = PRIORITY[priority];
 
   return (
     <span className="flex-none">
@@ -34,7 +50,7 @@ export function PriorityGlyph({
       />
       {!decorative && (
         <span className="sr-only">
-          {label} priority — {meaning}
+          {t('glyphMeaning', { priority: labels.priority(priority), meaning })}
         </span>
       )}
     </span>

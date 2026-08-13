@@ -54,6 +54,7 @@ Every one of these was found by _running_ something, not by reading code:
 | **The Redis reader started from `$`**, so an event published between connecting and the first blocking read was skipped — and skipped again on every read after                                | Two or three conformance tests failing per run, a different set each time. The flakiness _was_ the bug: the window is exactly as wide as the race         |
 | **The in-memory bus announced a re-claim that had changed nothing**, where the Lua script correctly stayed silent                                                                              | The conformance suite, running the same assertions against both. Two implementations agreeing by inspection is a hope; agreeing under one suite is a fact |
 | **A hook in `PriorityChip`, which had no `'use client'`** — the console renders it inside a client tree so every behaviour spec passed, while `/dev/states` renders it from a Server Component | The visual suite: 31 captures came back blank. The only surface exercising a rendering context the app itself does not have                               |
+| **Every `aria-label` and `sr-only` string was still English** after three workstreams of translation — invisible on screen, and the entire interface to a Japanese screen-reader user          | The screen-reader pass in workstream F. Nothing had looked, because none of it renders visibly                                                            |
 
 Two smaller ones worth recording because they were the AI's own false trails: a long stretch spent
 chasing "vanishing" criticals that turned out to be accumulated state across Fast Refresh resets,
@@ -73,13 +74,15 @@ are exactly the phases that shipped bugs.
 
 ## Verification, at the end
 
-- 241 unit tests across 13 files — priority derivation, the store, metrics percentiles, event
+- 285 unit tests across 17 files — priority derivation, the store, metrics percentiles, event
   correlation, the workstation identity, the formatters, the camera estate, the design-to-view
   mapping, the generator, the keyboard table, the Zod contract, and a bus conformance suite run
   against both the ring buffer and Redis Streams
-- 21 Playwright specs — journey, metrics, virtualisation, correlation, a two-desk ownership race,
-  and 4 axe audits at WCAG 2.1 AA with zero violations
-- 31 visual-regression captures of the component state matrix, diffed in a pinned container
+- 41 Playwright specs — journey, metrics, virtualisation, correlation, a two-desk ownership race,
+  IME composition, Japanese typography, and 8 axe audits at WCAG 2.1 AA with zero violations in
+  both locales
+- 58 visual-regression captures — the component state matrix in both locales, diffed in a pinned
+  container
 - Lighthouse: performance 100, accessibility 100, best practices 100, SEO 100
 - `docker compose up` verified from a clean state, both services, dependency ordering working
 

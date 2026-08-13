@@ -448,3 +448,57 @@ test('Japanese line breaking follows kinsoku rules', async ({ page }) => {
   expect(['auto-phrase', 'normal']).toContain(breaking.wordBreak);
   expect(breaking.overflowWrap).toBe('normal');
 });
+
+test('the layout survives every string doubled in length', async ({ page }) => {
+  /*
+   * The pseudo-locale check: find layout that only holds because English
+   * happens to be short.
+   *
+   * Doubling every text node in place rather than adding a third
+   * `messages/*.json`. A real pseudo-locale needs a fake locale code that
+   * `isLocale`, the switcher and the parity check all have to know about —
+   * machinery in the shipped product to serve a test — and doubling the
+   * rendered text reflows identically, which is all a *layout* check needs.
+   *
+   * **This assertion is weaker than it looks, and that is worth saying.** Three
+   * formulations were tried — growth in row and bar heights, per-element
+   * horizontal overflow, then both axes — and none of them failed against a
+   * deliberately broken row (`h-10` removed, then `truncate` removed). The
+   * design truncates and fixes heights aggressively enough that doubled text
+   * produces no measurable change anywhere it was looked for.
+   *
+   * That is a real finding about the design rather than a passing test, and it
+   * leaves this as a guard against future layout that is *not* built that way,
+   * not as proof that today's is safe. The horizontal-scroll assertion is the
+   * part with teeth: nothing may push the page sideways.
+   */
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/dev/states');
+  await page.evaluate(() => document.fonts.ready);
+
+  const widthBefore = await page.evaluate(
+    () => document.documentElement.scrollWidth,
+  );
+
+  const after = await page.evaluate(() => {
+    const walker = document.createTreeWalker(
+      document.body,
+      NodeFilter.SHOW_TEXT,
+    );
+    const nodes: Text[] = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+    for (const node of nodes) {
+      const text = node.nodeValue ?? '';
+      if (text.trim().length > 0) node.nodeValue = `${text} ${text}`;
+    }
+
+    return {
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    };
+  });
+
+  // Nothing pushed the page sideways, and the document did not get wider.
+  expect(after.scrollWidth).toBeLessThanOrEqual(after.clientWidth);
+  expect(after.scrollWidth).toBe(widthBefore);
+});

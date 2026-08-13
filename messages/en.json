@@ -77,5 +77,19 @@
     "label": "Language",
     "en": "English",
     "ja": "日本語"
+  },
+  "a11y": {
+    "incidentDetail": "Incident detail",
+    "incidentQueue": "Incident queue",
+    "openIncidents": "Open incidents",
+    "recentlyClosed": "Recently closed",
+    "dismissMenu": "Dismiss as false positive",
+    "unread": "Unread",
+    "rowSummary": "{priority} priority, open {age}",
+    "glyphMeaning": "{priority} priority — {meaning}",
+    "countOpen": "{priority} open",
+    "countFiltered": "{priority} open, filtered to",
+    "emptyDetail": "Select an incident to review it",
+    "offline": "Feed connection lost. Showing data as of {at}. Reconnecting"
   }
 }

@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { motion, useReducedMotion } from 'motion/react';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
@@ -76,6 +78,7 @@ export function QueueList({
   const scrollRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
   const labels = useDomainLabels();
+  const t = useTranslations('a11y');
 
   const virtualizer = useVirtualizer({
     count: events.length,
@@ -162,7 +165,7 @@ export function QueueList({
     >
       <div
         role="listbox"
-        aria-label="Open incidents"
+        aria-label={t('openIncidents')}
         className="relative w-full"
         style={{ height: virtualizer.getTotalSize() }}
       >
@@ -226,7 +229,7 @@ export function QueueList({
        * an option the operator can still choose.
        */}
       {leaving.length > 0 && (
-        <div aria-label="Recently closed">
+        <div aria-label={t('recentlyClosed')}>
           {leaving.map((event) =>
             event.status === 'dismissed' && event.dismissal ? (
               <DismissedStrip

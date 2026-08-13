@@ -77,5 +77,19 @@
     "label": "言語",
     "en": "English",
     "ja": "日本語"
+  },
+  "a11y": {
+    "incidentDetail": "事象詳細",
+    "incidentQueue": "事象キュー",
+    "openIncidents": "未対応事象",
+    "recentlyClosed": "対応済み",
+    "dismissMenu": "誤検知として除外",
+    "unread": "未読",
+    "rowSummary": "優先度 {priority}、経過 {age}",
+    "glyphMeaning": "優先度 {priority} — {meaning}",
+    "countOpen": "{priority} 未対応",
+    "countFiltered": "{priority} 未対応、絞り込み中",
+    "emptyDetail": "事象を選択",
+    "offline": "映像受信が切断。{at} 時点のデータを表示。再接続中"
   }
 }

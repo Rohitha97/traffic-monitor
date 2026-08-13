@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 /*
  * Visual regression against the component state matrix.
@@ -74,6 +74,23 @@ const CAPTURED = [
  */
 const ZERO_HEIGHT = ['banner/collapsed'] as const;
 
+/**
+ * Both locales, every state.
+ *
+ * The cheapest way to catch Japanese text overflowing a component that was
+ * sized for English — and the reason phase 9 comes after phase 8 rather than
+ * before it, because the harness already existed.
+ *
+ * The state matrix's *sample data* stays English on purpose: it is lifted
+ * verbatim from Pass C so a reviewer can diff this page against the frames. So
+ * the `ja` captures exercise the localised chrome — priority chips, the status
+ * bar, the buffered bar, the dismissal menu — rather than Japanese row copy.
+ * Japanese *content* overflow is covered where it belongs, against real data,
+ * in `e2e/typography.spec.ts`.
+ */
+const LOCALES = ['en', 'ja'] as const;
+type Locale = (typeof LOCALES)[number];
+
 /*
  * Linux only, and deliberately so. Font rasterisation differs enough between
  * platforms that snapshots taken on Windows or macOS will never match CI. The
@@ -88,7 +105,20 @@ test.skip(
   'Visual snapshots are Linux-rasterised. Run `pnpm test:visual`, which runs this suite in the pinned Playwright container.',
 );
 
-test.beforeEach(async ({ page }) => {
+/**
+ * Everything a capture needs before the shutter opens, for one locale.
+ *
+ * The locale is a cookie, so it has to be set before the first navigation —
+ * `/dev/states` resolves it server-side and there is no client-side switch to
+ * flip afterwards.
+ */
+async function open(page: Page, locale: Locale): Promise<void> {
+  await page
+    .context()
+    .addCookies([
+      { name: 'locale', value: locale, url: 'http://localhost:3000' },
+    ]);
+
   /*
    * Motion off for the whole capture run. A pulsing reconnecting dot or a row
    * mid-transition must never be what decides whether a diff passes — and it
@@ -130,6 +160,19 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/dev/states');
 
   /*
+   * The locale is set against the origin that answered, then the page is
+   * reloaded — it is resolved server-side, so it has to be in place before the
+   * render that gets photographed. Setting it before the first navigation would
+   * mean guessing the port, which is not 3000 when 3000 is busy.
+   */
+  await page
+    .context()
+    .addCookies([
+      { name: 'locale', value: locale, url: new URL(page.url()).origin },
+    ]);
+  await page.reload();
+
+  /*
    * Font swap is the second-largest source of screenshot flake after motion:
    * capture during the fallback face and every glyph shifts.
    */
@@ -137,9 +180,10 @@ test.beforeEach(async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Component state matrix' }),
   ).toBeVisible();
-});
+}
 
 test('matches the state matrix exactly', async ({ page }) => {
+  await open(page, 'en');
   const expected = [...CAPTURED, ...ZERO_HEIGHT];
   const states = page.locator('[data-vrt]');
 
@@ -158,6 +202,7 @@ test('matches the state matrix exactly', async ({ page }) => {
 });
 
 test('banner/collapsed takes no space and paints no rule', async ({ page }) => {
+  await open(page, 'en');
   const banner = page.locator('[data-vrt="banner/collapsed"] [role="alert"]');
 
   await expect(banner).toHaveCSS('height', '0px');
@@ -167,10 +212,15 @@ test('banner/collapsed takes no space and paints no rule', async ({ page }) => {
   await expect(banner).toHaveCSS('border-bottom-width', '0px');
 });
 
-for (const state of CAPTURED) {
-  test(state, async ({ page }) => {
-    const target = page.locator(`[data-vrt="${state}"]`);
-    await expect(target).toBeVisible();
-    await expect(target).toHaveScreenshot(`${state.replace('/', '--')}.png`);
-  });
+for (const locale of LOCALES) {
+  for (const state of CAPTURED) {
+    test(`${state} · ${locale}`, async ({ page }) => {
+      await open(page, locale);
+      const target = page.locator(`[data-vrt="${state}"]`);
+      await expect(target).toBeVisible();
+      await expect(target).toHaveScreenshot(
+        `${state.replace('/', '--')}--${locale}.png`,
+      );
+    });
+  }
 }

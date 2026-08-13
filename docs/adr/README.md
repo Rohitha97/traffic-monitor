@@ -26,3 +26,4 @@ infrastructure, or commits the project to something awkward to reverse. Everythi
 | [0011](0011-japanese-typography.md)                      | The Japanese typography layer — phase 9                              |
 | [0012](0012-japanese-domain-vocabulary.md)               | Japanese domain vocabulary, and the direction convention — phase 9   |
 | [0013](0013-locale-aware-formatting.md)                  | Locale-aware formatting, and the age counter — phase 9               |
+| [0014](0014-verifying-two-locales.md)                    | Verifying two locales — phase 9                                      |

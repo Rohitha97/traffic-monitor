@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { PriorityGlyph } from '@/components/PriorityGlyph';
 import { useDomainLabels } from '@/i18n/domain';
 import { PRIORITY, PRIORITY_ORDER, type Priority } from '@/lib/priority';
@@ -27,6 +29,7 @@ interface OpenCountsProps {
 export function OpenCounts({ counts, active, onToggle }: OpenCountsProps) {
   const filtering = active.size > 0;
   const labels = useDomainLabels();
+  const t = useTranslations('a11y');
 
   return (
     <ul className="flex items-center gap-4">
@@ -48,7 +51,9 @@ export function OpenCounts({ counts, active, onToggle }: OpenCountsProps) {
                 {counts[priority]}
               </span>
               <span className="sr-only">
-                {labels.priority(priority)} open{on ? ', filtered to' : ''}
+                {on
+                  ? t('countFiltered', { priority: labels.priority(priority) })
+                  : t('countOpen', { priority: labels.priority(priority) })}
               </span>
             </button>
           </li>

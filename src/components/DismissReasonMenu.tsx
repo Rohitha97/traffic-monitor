@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { useDomainLabels } from '@/i18n/domain';
 import { DISMISS_REASONS, type DismissReason } from '@/lib/schema';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
@@ -46,6 +48,7 @@ export function DismissReasonMenu({
   children,
 }: DismissReasonMenuProps) {
   const labels = useDomainLabels();
+  const t = useTranslations('a11y');
 
   return (
     <DropdownMenu.Root open={open} onOpenChange={onOpenChange}>
@@ -54,7 +57,7 @@ export function DismissReasonMenu({
         <DropdownMenu.Content
           align="end"
           sideOffset={6}
-          aria-label="Dismiss as false positive"
+          aria-label={t('dismissMenu')}
           className="rounded-control flex w-fit flex-col border border-border-component bg-raised py-1 shadow-row-hover"
         >
           <DropdownMenu.Label className="text-micro tracking-field px-3 py-1 font-semibold text-text-secondary uppercase">
