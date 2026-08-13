@@ -3,7 +3,13 @@ import { fileURLToPath } from 'node:url';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { isTypingTarget, SHORTCUT_GROUPS, SHORTCUTS } from '@/lib/shortcuts';
+import {
+  createCompositionGuard,
+  isComposingKey,
+  isTypingTarget,
+  SHORTCUT_GROUPS,
+  SHORTCUTS,
+} from '@/lib/shortcuts';
 
 /*
  * The keyboard model.
@@ -108,6 +114,104 @@ describe('published bindings match the handler', () => {
         `the handler dispatches on '${key}' but nothing publishes it`,
       ).toBe(true);
     }
+  });
+});
+
+/*
+ * The IME guard.
+ *
+ * Typing 渋滞 is `j-u-u-t-a-i` and every one of those keystrokes fires a real
+ * keydown. `D` dispatches a safety crew. These assertions are the unit-level
+ * half of that; `e2e/ime.spec.ts` drives real composition in a real browser,
+ * because the browser behaviour is the actual thing under test.
+ */
+describe('isComposingKey', () => {
+  it('is true when the modern flag is set', () => {
+    expect(isComposingKey({ isComposing: true, keyCode: 68 })).toBe(true);
+  });
+
+  it('is true for the legacy 229 code, which some browsers use instead', () => {
+    // Checking only `isComposing` leaves those users unprotected.
+    expect(isComposingKey({ isComposing: false, keyCode: 229 })).toBe(true);
+  });
+
+  it('is false for an ordinary keystroke', () => {
+    expect(isComposingKey({ isComposing: false, keyCode: 68 })).toBe(false);
+  });
+});
+
+describe('createCompositionGuard', () => {
+  const key = (over: Partial<{ isComposing: boolean; keyCode: number }> = {}) =>
+    ({ isComposing: false, keyCode: 68, ...over }) as const;
+
+  it('lets ordinary keystrokes through', () => {
+    const guard = createCompositionGuard();
+    expect(guard.blocks(key(), 1000)).toBe(false);
+  });
+
+  it('blocks every keystroke between compositionstart and compositionend', () => {
+    const guard = createCompositionGuard();
+    guard.start();
+
+    // j-u-u-t-a-i, none of which is a command.
+    for (const keyCode of [74, 85, 85, 84, 65, 73]) {
+      expect(guard.blocks(key({ keyCode }), 1000)).toBe(true);
+    }
+    expect(guard.composing).toBe(true);
+  });
+
+  it('blocks a composing keystroke even without compositionstart', () => {
+    // The events can be missed — a field that stops propagation, an IME that
+    // does not emit them. The per-event flag is the independent signal.
+    const guard = createCompositionGuard();
+    expect(guard.blocks(key({ isComposing: true }), 1000)).toBe(true);
+    expect(guard.blocks(key({ keyCode: 229 }), 1000)).toBe(true);
+  });
+
+  it('keeps blocking briefly after composition ends', () => {
+    /*
+     * The committing keystroke is the dangerous one: in some browser and IME
+     * combinations `compositionend` lands before its `keydown`, so the Enter
+     * that finishes a word arrives with `isComposing` already false — and
+     * Enter acknowledges an incident.
+     */
+    const guard = createCompositionGuard(50);
+    guard.start();
+    guard.end(1000);
+
+    expect(guard.blocks(key({ keyCode: 13 }), 1000)).toBe(true);
+    expect(guard.blocks(key({ keyCode: 13 }), 1049)).toBe(true);
+  });
+
+  it('releases once the tail has passed', () => {
+    const guard = createCompositionGuard(50);
+    guard.start();
+    guard.end(1000);
+
+    expect(guard.blocks(key(), 1050)).toBe(false);
+    expect(guard.blocks(key(), 2000)).toBe(false);
+    expect(guard.composing).toBe(false);
+  });
+
+  it('does not block before any composition has ever happened', () => {
+    // The tail must start at negative infinity, not zero — otherwise the first
+    // keystroke of a session is swallowed.
+    const guard = createCompositionGuard(50);
+    expect(guard.blocks(key(), 0)).toBe(false);
+    expect(guard.blocks(key(), 10)).toBe(false);
+  });
+
+  it('re-arms across a second composition', () => {
+    const guard = createCompositionGuard(50);
+    guard.start();
+    guard.end(1000);
+    expect(guard.blocks(key(), 1100)).toBe(false);
+
+    guard.start();
+    expect(guard.blocks(key(), 1200)).toBe(true);
+    guard.end(1300);
+    expect(guard.blocks(key(), 1310)).toBe(true);
+    expect(guard.blocks(key(), 1400)).toBe(false);
   });
 });
 

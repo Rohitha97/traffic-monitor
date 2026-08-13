@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 
 import { PRIORITIES } from '@/lib/priority';
-import { isTypingTarget } from '@/lib/shortcuts';
+import { createCompositionGuard, isTypingTarget } from '@/lib/shortcuts';
 import { useEventStore } from '@/store/useEventStore';
 
 interface ShortcutHandlers {
@@ -35,8 +35,27 @@ export function useKeyboardShortcuts({
   suspended,
 }: ShortcutHandlers): void {
   useEffect(() => {
+    /*
+     * Two independent guards, in this order, before any binding is considered.
+     *
+     * `isTypingTarget` is the broad one: while focus is in a field, keystrokes
+     * belong to what is being typed. The composition guard is the narrow one,
+     * and it is not redundant — an IME can be composing with focus somewhere
+     * `isTypingTarget` does not recognise, and the keystroke that *commits* a
+     * conversion can arrive after `compositionend` has already fired.
+     *
+     * Neither is a Japanese feature. `D` firing a dispatch while an operator
+     * types has always been possible; Japanese input makes it the normal case
+     * rather than the rare one.
+     */
+    const composition = createCompositionGuard();
+
+    const onCompositionStart = () => composition.start();
+    const onCompositionEnd = () => composition.end();
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (isTypingTarget(event.target)) return;
+      if (composition.blocks(event)) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
 
       // `?` is the one binding that still works while a dialog is open, so the
@@ -143,8 +162,21 @@ export function useKeyboardShortcuts({
       }
     };
 
+    /*
+     * Composition events are captured on the window rather than bound to any
+     * one field, because the guard has to know an IME is active regardless of
+     * where it is composing — including the places `isTypingTarget` cannot
+     * recognise, which are exactly the places the broad guard already misses.
+     */
+    window.addEventListener('compositionstart', onCompositionStart);
+    window.addEventListener('compositionend', onCompositionEnd);
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('compositionstart', onCompositionStart);
+      window.removeEventListener('compositionend', onCompositionEnd);
+      window.removeEventListener('keydown', onKeyDown);
+    };
   }, [
     onDispatchRequest,
     onDismissRequest,

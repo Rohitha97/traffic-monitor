@@ -47,7 +47,18 @@ an internal network and not sufficient for anything else. This is the clean addi
 left room for, and it would also let positions be bound to workstations rather than counted upward
 forever.
 
-### 10 · Snapshot preloading should follow the window
+### 10 · Modifiers on the destructive shortcuts — a decision, not an omission
+
+`D` opens a dispatch confirmation and `X` a dismissal reason picker, both on a single unmodified
+keypress. [ADR-0010](adr/0010-ime-composition-and-single-key-shortcuts.md) raises whether they
+should require a modifier in all locales and recommends **not** changing them: the destructive act is
+already two deliberate keystrokes, dismissal is undoable for eight seconds, and modifiers are a mode
+in a design whose keyboard model is explicitly "one axis, no modes".
+
+Revisit **if the confirmation step is ever removed for speed**. That is the change that would make a
+modifier necessary, and the two belong in the same conversation.
+
+### 11 · Snapshot preloading should follow the window
 
 The effect still warms every queued incident rather than the rendered window, so 500 incidents warm
 500 snapshots. Harmless today only by accident — the six shared URLs dedupe — and it becomes 500

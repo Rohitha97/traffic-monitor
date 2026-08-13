@@ -15,6 +15,12 @@
     "mute": "消音",
     "unmute": "消音解除"
   },
+  "queue": {
+    "buffered": "新着 {count, plural, other {# 件}}",
+    "bufferedCritical": "新着 {count} 件 · 重大 {criticalCount} 件",
+    "bufferedHint": "Home キー、またはクリックで最新へ",
+    "bufferedCriticalHint": "画面をスクロールしていても通知"
+  },
   "language": {
     "label": "言語",
     "en": "English",

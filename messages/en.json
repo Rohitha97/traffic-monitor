@@ -15,6 +15,12 @@
     "mute": "Mute",
     "unmute": "Unmute"
   },
+  "queue": {
+    "buffered": "+{count, plural, one {# new event} other {# new events}}",
+    "bufferedCritical": "+{count} new · {criticalCount} critical",
+    "bufferedHint": "Press Home, or click to jump to newest",
+    "bufferedCriticalHint": "Escalates even while the operator has scrolled away"
+  },
   "language": {
     "label": "Language",
     "en": "English",

@@ -84,3 +84,88 @@ export function isTypingTarget(target: EventTarget | null): boolean {
   if (target.isContentEditable) return true;
   return ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
 }
+
+/*
+ * Input Method Editors, and why single-key shortcuts are dangerous.
+ *
+ * Japanese text entry goes through an IME. Typing 渋滞 means pressing
+ * `j-u-u-t-a-i` and then converting, and **every one of those keystrokes fires
+ * a real `keydown`**. This application binds `D` to dispatch and `X` to
+ * dismiss. Without a guard, an operator typing a Japanese dismissal note fires
+ * dispatch actions mid-word — in a system whose purpose is sending safety crews
+ * onto a live motorway.
+ *
+ * The bug exists in English too. Japanese only makes it constant instead of
+ * occasional, which is why the fix is a guard rather than a rebinding.
+ */
+
+/**
+ * Grace period after `compositionend`.
+ *
+ * The keystroke that *commits* a conversion is the problem case: the ordering
+ * of `compositionend` against that key's `keydown` is not consistent across
+ * browsers and IMEs, and in the orderings where `compositionend` lands first,
+ * the committing Enter arrives with `isComposing` already false. Enter
+ * acknowledges an incident.
+ *
+ * A few frames of suppression after composition ends closes that window. It can
+ * swallow a genuine keystroke pressed within 50ms of committing text — which is
+ * the right trade in both directions, because the alternative is dispatching a
+ * safety crew on the keypress that finished a word.
+ */
+const COMPOSITION_TAIL_MS = 50;
+
+/** The parts of a `keydown` that say whether an IME is mid-word. */
+export interface CompositionSignals {
+  isComposing: boolean;
+  /**
+   * Legacy, and still necessary: several browsers report `229` for every
+   * keystroke during composition rather than setting `isComposing`. Checking
+   * only the modern flag leaves those users unprotected.
+   */
+  keyCode: number;
+}
+
+export function isComposingKey(event: CompositionSignals): boolean {
+  return event.isComposing || event.keyCode === 229;
+}
+
+export interface CompositionGuard {
+  start(): void;
+  end(now?: number): void;
+  /** True when this keystroke is part of composing text, not a command. */
+  blocks(event: CompositionSignals, now?: number): boolean;
+  readonly composing: boolean;
+}
+
+/**
+ * Tracks whether an IME is mid-composition.
+ *
+ * Three overlapping signals rather than one, because no single one is reliable
+ * everywhere: the explicit `compositionstart`/`compositionend` pair, the
+ * per-event `isComposing` flag, and the legacy `229` key code. They are cheap
+ * and they fail in different browsers.
+ */
+export function createCompositionGuard(
+  tailMs: number = COMPOSITION_TAIL_MS,
+): CompositionGuard {
+  let composing = false;
+  let endedAt = Number.NEGATIVE_INFINITY;
+
+  return {
+    start() {
+      composing = true;
+    },
+    end(now = performance.now()) {
+      composing = false;
+      endedAt = now;
+    },
+    blocks(event, now = performance.now()) {
+      if (composing || isComposingKey(event)) return true;
+      return now - endedAt < tailMs;
+    },
+    get composing() {
+      return composing;
+    },
+  };
+}
