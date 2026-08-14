@@ -149,13 +149,50 @@ describe('detectionIngestSchema — what a detector may say', () => {
     ).toBe(false);
   });
 
-  it('rejects a detection box outside the frame', () => {
+  it('rejects a bounding box outside the frame', () => {
     expect(
       detectionIngestSchema.safeParse({
         ...OBSERVATION,
-        detectionBox: { x: 0.1, y: 0.1, w: 1.4, h: 0.2 },
+        boundingBoxes: [
+          { x: 0.1, y: 0.1, w: 1.4, h: 0.2, label: 'debris', confidence: 0.9 },
+        ],
       }).success,
     ).toBe(false);
+  });
+
+  it('rejects a box with no area', () => {
+    // Not a quiet detection — a malformed one. It draws nothing an operator can
+    // see, and the label placement divides by the height.
+    expect(
+      detectionIngestSchema.safeParse({
+        ...OBSERVATION,
+        boundingBoxes: [
+          { x: 0.1, y: 0.1, w: 0.2, h: 0, label: 'debris', confidence: 0.9 },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects an object class the overlay has no colour for', () => {
+    // The renderer switches on the class. An unknown one would either crash it
+    // or fall through to a silent default — both worse than refusing at the
+    // boundary, which is the whole reason the class is an enum.
+    expect(
+      detectionIngestSchema.safeParse({
+        ...OBSERVATION,
+        boundingBoxes: [
+          { x: 0.1, y: 0.1, w: 0.2, h: 0.2, label: 'cyclist', confidence: 0.9 },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('defaults the overlay to empty when the detector sends no boxes', () => {
+    // A detector that reports a lane closure without localising an object is
+    // making a legitimate call, not a malformed one.
+    const parsed = detectionIngestSchema.safeParse(OBSERVATION);
+    expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data.boundingBoxes).toEqual([]);
   });
 
   it('rejects a timestamp that is not ISO 8601', () => {

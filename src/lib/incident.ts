@@ -6,6 +6,7 @@ import {
   EVENT_TYPE_LABEL,
   isDismissReason,
   LANE_POSITION_LABEL,
+  OBJECT_CLASS_LABEL,
   PRIORITY_LABEL,
   STATUS_LABEL,
   type Camera,
@@ -26,6 +27,7 @@ const DEFAULT_LABELS: DomainLabels = {
   priority: (priority) => PRIORITY_LABEL[priority],
   status: (status) => STATUS_LABEL[status],
   direction: (direction) => DIRECTION_LABEL[direction],
+  objectClass: (objectClass) => OBJECT_CLASS_LABEL[objectClass],
   dismissReason: (reason) =>
     isDismissReason(reason) ? DISMISS_REASON_LABEL[reason] : reason,
   marker: () => 'Mile marker',
@@ -192,11 +194,25 @@ export function toDetailView(
     snapshotUrl: event.snapshotUrl,
     capturedAt: labels.time(event.detectedAt),
     snapshotState: 'loaded' as const,
-    ...(event.detectionBox
-      ? {
-          detection: { ...event.detectionBox, confidence: event.confidence },
-        }
-      : {}),
+    /*
+     * All of them, not one. Each box carries its own class and its own
+     * confidence; collapsing to a single rectangle was what made the frame read
+     * as a placeholder with a box on it rather than as detector output.
+     *
+     * The class is resolved here, like every other term, so the overlay stays a
+     * presentational component that cannot invent a label — and so the box in
+     * the Japanese detail pane says 車両 without `CameraSnapshot` knowing what
+     * a locale is.
+     */
+    boundingBoxes: event.boundingBoxes.map((box) => ({
+      x: box.x,
+      y: box.y,
+      w: box.w,
+      h: box.h,
+      label: labels.objectClass(box.label),
+      confidence: box.confidence,
+      ...(box.primary ? { primary: true as const } : {}),
+    })),
     nearbyCameras: neighbours.map((camera) => ({
       id: camera.id,
       mileMarker: markerValue(camera),

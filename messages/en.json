@@ -55,6 +55,13 @@
       "EB": "eastbound",
       "WB": "westbound"
     },
+    "objectClass": {
+      "vehicle": "vehicle",
+      "person": "person",
+      "debris": "debris",
+      "smoke": "smoke",
+      "obstruction": "obstruction"
+    },
     "dismissReason": {
       "shadow": "Shadow",
       "spray": "Spray",

@@ -83,14 +83,52 @@ export const historyEntrySchema = z.object({
 });
 
 /**
- * Where the detection model saw the hazard within the frame, as fractions of
- * the image. Drives the dashed overlay on the snapshot.
+ * What the detector says it saw, per object.
+ *
+ * A traffic photograph in a card reads as a placeholder. The same photograph
+ * with the model's own boxes on it reads as output from a vision system — which
+ * is what it is, and which is the difference between evidence an operator
+ * trusts and stock imagery they scroll past.
  */
-export const detectionBoxSchema = z.object({
+export const OBJECT_CLASSES = [
+  'vehicle',
+  'person',
+  'debris',
+  'smoke',
+  'obstruction',
+] as const;
+
+export const objectClassSchema = z.enum(OBJECT_CLASSES);
+export type ObjectClass = z.infer<typeof objectClassSchema>;
+
+export const boundingBoxSchema = z.object({
+  /** Fractions of the frame, 0–1, so the overlay scales with the container. */
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
-  w: z.number().min(0).max(1),
-  h: z.number().min(0).max(1),
+  /**
+   * Strictly positive. A zero-area box is not a quiet detection, it is a
+   * malformed one — it draws nothing an operator can see, and the label
+   * placement divides by the height to work out how far to clear the OSD plate.
+   */
+  w: z.number().gt(0).max(1),
+  h: z.number().gt(0).max(1),
+  label: objectClassSchema,
+  /**
+   * This object's confidence, which is **not** the event's.
+   *
+   * A model can be 0.95 sure it sees a vehicle and the incident still be a
+   * 0.4-confidence "is that stopped or just slow" call. Collapsing the two
+   * would let a certain observation launder an uncertain judgement.
+   */
+  confidence: z.number().min(0).max(1),
+  /**
+   * The object the incident is about, as opposed to the traffic around it.
+   *
+   * Exactly one box per event is primary; it takes the priority colour while
+   * the rest stay neutral, so the operator's eye lands on the thing that was
+   * detected rather than on whichever box happens to be largest.
+   */
+  primary: z.boolean().optional(),
 });
 
 export const detectionEventSchema = z.object({
@@ -109,7 +147,31 @@ export const detectionEventSchema = z.object({
   lanePosition: lanePositionSchema,
   laneNumber: z.number().int().positive().optional(),
   snapshotUrl: z.string().min(1),
-  detectionBox: detectionBoxSchema.optional(),
+  /**
+   * Every object the model reported in the frame, not just the incident's.
+   *
+   * Empty is legitimate — a congestion call is a property of the whole
+   * carriageway rather than of one object — so the overlay renders nothing
+   * rather than inventing a box to fill the space.
+   */
+  boundingBoxes: z.array(boundingBoxSchema).default([]),
+  /**
+   * Which extracted frame the snapshot is, and where it sits in the source
+   * clip.
+   *
+   * Optional because only the cameras with derived footage have one — the rest
+   * fall back to a per-event-type schematic that has no source to point at.
+   * The frames are sampled at a fixed spacing, so a snapshot is the nearest
+   * frame to the detection rather than the exact instant, and this field is
+   * what makes that auditable rather than merely admitted in a doc.
+   */
+  sourceFrame: z
+    .object({
+      camera: z.string().min(1),
+      index: z.number().int().min(0),
+      offsetSeconds: z.number().min(0),
+    })
+    .optional(),
   /** One plain-English sentence from the detector. */
   description: z.string().min(1),
   assignedTo: z.string().optional(),
@@ -175,7 +237,7 @@ export type Priority = z.infer<typeof prioritySchema>;
 export type Camera = z.infer<typeof cameraSchema>;
 export type HistoryEntry = z.infer<typeof historyEntrySchema>;
 export type Mark = z.infer<typeof markSchema>;
-export type DetectionBox = z.infer<typeof detectionBoxSchema>;
+export type BoundingBox = z.infer<typeof boundingBoxSchema>;
 export type DetectionEvent = z.infer<typeof detectionEventSchema>;
 export type DetectionIngest = z.infer<typeof detectionIngestSchema>;
 
@@ -224,6 +286,21 @@ export const DISMISS_REASON_LABEL: Record<DismissReason, string> = {
   parked_hard_shoulder: 'Parked on hard shoulder',
   camera_artefact: 'Camera artefact',
   already_known: 'Already known',
+};
+
+/**
+ * What the box says it is.
+ *
+ * Lower case: these are set inside a box label beside a percentage
+ * ("vehicle 94%"), not as a heading, and title case there reads as a proper
+ * noun for a car the model has never met.
+ */
+export const OBJECT_CLASS_LABEL: Record<ObjectClass, string> = {
+  vehicle: 'vehicle',
+  person: 'person',
+  debris: 'debris',
+  smoke: 'smoke',
+  obstruction: 'obstruction',
 };
 
 export const PRIORITY_LABEL: Record<Priority, string> = {

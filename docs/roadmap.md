@@ -10,25 +10,17 @@ Numbering is by priority, not by execution order. Phase 8 builds them in a diffe
 
 ## Now
 
-**Real camera frames.** Everything else in Next is waiting on it.
+**#7, the snapshot filmstrip.** It was blocked on real frames; real frames have landed, and it is now
+the only item with everything it needs sitting there unused.
 
-Snapshots today are one committed SVG per _event type_ — a single still, shared across every camera
-and every incident of that type. It is the largest gap between what the evidence panel claims and
-what it shows, it blocks #7 outright, and two more items below get better the moment it lands.
+Each camera has 20 timestamped stills and the manifest records the source second of each, which is
+exactly what [ADR-0002](adr/0002-filmstrip-blocked-on-frame-sources.md) said the filmstrip was
+missing. Picking the five nearest a trigger offset is now a lookup rather than a fabrication.
 
-This moved up from Later because phase 8 finished everything that did not depend on it.
+Do #15 first or alongside: snapshot preloading still warms every queued incident rather than the
+rendered window, and it stopped being harmless the moment the six shared SVGs became per-camera JPEGs.
 
 ## Next
-
-### 7 · Snapshot filmstrip
-
-Pass A note 2 asks for "a strip of frames either side of the trigger". Only the trigger frame is
-shown today.
-
-**Blocked on Now.** A filmstrip needs multiple timestamped frames per camera, and there is one
-frame per event type. Building it on that would mean showing the same still five times or
-interpolating frames the detector never produced.
-[ADR-0002](adr/0002-filmstrip-blocked-on-frame-sources.md).
 
 ### 8 · Hand an incident back
 
@@ -106,8 +98,67 @@ modifier necessary, and the two belong in the same conversation.
 ### 15 · Snapshot preloading should follow the window
 
 The effect still warms every queued incident rather than the rendered window, so 500 incidents warm
-500 snapshots. Harmless today only by accident — the six shared URLs dedupe — and it becomes 500
-fetches to open one pane the moment real imagery lands. Prerequisite for Now, in practice.
+500 snapshots.
+
+This was harmless by accident while snapshots were six shared SVGs the browser deduped. Real footage
+removed the accident: six cameras now serve 120 distinct JPEGs, so a full queue warms a hundred-odd
+images to open one pane. Should follow the window plus a margin ahead of the selection.
+
+### 16 · `maxDiffPixels` has never been measured
+
+The visual suite's tolerance is a ratio, so it scales with element area: 1% of a 432×40 queue row is
+173 pixels, and 1% of the 320×200 evidence frame is 640 — a whole line of 11px type. A regression
+under that on a large state will not be caught.
+
+The fix is an absolute `maxDiffPixels` floor alongside the ratio, since Playwright applies whichever
+is stricter. Choosing the number needs run-to-run antialiasing noise measured on the widest states
+first — guessing it low would introduce flake, and flake is how a team learns to run `--update`
+without looking.
+
+Nothing is known to have slipped through it. This was noticed while chasing a capture that would not
+update, which turned out to be an edit that never reached the file rather than anything to do with
+the tolerance — [ADR-0016](adr/0016-update-snapshots-can-keep-the-old-one.md) withdraws that
+diagnosis and keeps this observation, which is the part that was real.
+
+### 17 · The snapshot failure state is unreachable, and untranslated
+
+`toDetailView` hardcodes `snapshotState: 'loaded'`, so the "Snapshot unavailable / Retry" panel that
+Pass C frame 5 specifies can only be reached from the component gallery. Nothing detects a broken
+image, and the `Retry` button has no handler behind it.
+
+Its copy is also still English in both locales — noticed only when phase 7 added the frame to the
+visual matrix and the Japanese capture came back in English. The two are the same bug seen twice: a
+state the app cannot enter is a state nobody reviews.
+
+Fixing it is not three strings. `CameraSnapshot` is presentational and takes its words as props by
+design ([ADR-0014](adr/0014-verifying-two-locales.md) — a hook in it would blank the gallery), so it
+needs the copy passed down like `factLabels` already is, plus an `onError` on the image and a real
+retry. Worth doing with Now, when snapshots stop being six committed SVGs that cannot fail.
+
+### 18 · The boxes are not calibrated to the real frames
+
+`src/lib/detection.ts` places bounding boxes on an idealised carriageway — lanes running up the
+frame, hard shoulder at the left edge. That was right for the schematic SVGs it was written against.
+
+The frames now under it are a real road at an oblique angle, seen differently by each of the six
+crops. The boxes still agree with the _record_ — a hard-shoulder call still sits at the frame edge —
+but the frame edge is not where that camera's hard shoulder actually is.
+
+The fix is data, not logic: per-camera calibration in the manifest giving the carriageway's
+quadrilateral in frame coordinates and which side the shoulder is on, which `boundingBoxesFor` reads
+instead of its current constants. The crop rectangle is already recorded per camera, so the manifest
+is the right home for it.
+[ADR-0017](adr/0017-six-cameras-from-one-clip.md).
+
+### 19 · Four cameras have no footage
+
+`CAM-023`, `CAM-077`, `CAM-091` and `CAM-108` keep the per-event-type schematic, because every
+derived crop frames three lanes and those cameras are not all three-lane. Incidents on them look
+markedly worse than the rest now that the others are photographs.
+
+Deliberate rather than unfinished — a network with cameras down is a real network, and workstream B's
+offline tile needs one — but four in ten is more than a real network would have down at once. Either
+derive further crops, or re-map so the odd lane counts are the ones without feeds.
 
 ## Later
 
@@ -124,6 +175,63 @@ fetches to open one pane the moment real imagery lands. Prerequisite for Now, in
   instances asked at the same moment can still differ by whatever is in flight.
 
 ## Shipped
+
+### Real camera frames — phase 7
+
+Six camera feeds derived from one Creative Commons 4K clip by
+[`scripts/prepare-footage.sh`](../scripts/prepare-footage.sh), which runs once locally and commits
+its derivatives. The 482MB source is not in the repository; the script that turns it into 18MB of
+loops and stills is, so the derivation is auditable without anyone re-downloading it.
+[ADR-0017](adr/0017-six-cameras-from-one-clip.md), [docs/footage.md](footage.md),
+[ATTRIBUTION.md](../ATTRIBUTION.md).
+
+The licence was the thing that had blocked this, and it was blocked on tooling rather than on
+anything real: the watch page is client-rendered, but the licence is in the video's own metadata and
+yt-dlp prints it. "I cannot verify this" was true; "this cannot be verified" was not.
+
+Crops were chosen by rendering candidates and looking at them. A tidy 3×2 tiling of the 4K frame
+points three of its six "cameras" at grass, hatching and a maintenance shed — the traffic runs along
+one diagonal band. Each camera also takes a different 10-second window, so the wall does not cut on
+the same frame six times.
+
+Implementing it added three things to the list:
+
+- **The boxes are not calibrated to the frames** (#18). The geometry was written against schematic
+  roads and these are a real one at an angle.
+- **Four cameras still have no footage** (#19), because every crop frames three lanes.
+- **Snapshot preloading stopped being harmlessly wrong** (#15). Six deduped SVGs became 120 distinct
+  JPEGs.
+
+And it settled one measurement that contradicts the brief: **VP9 is not the smaller format here.** At
+matched quality it loses to H.264 outright on short, high-motion 720p.
+
+### Detection overlay on the evidence frame — phase 7
+
+The evidence frame now draws the detector's own boxes: the incident's object in the priority colour,
+context traffic in the neutral, each labelled with its class and its **own** confidence — which is
+not the event's, because a model can be 0.98 sure it sees a vehicle while the incident is a 0.6
+"stopped, or just slow?" call.
+
+Geometry is derived from the record rather than randomised. `src/lib/detection.ts` places a box from
+the same `lanePosition` and `laneNumber` the priority rules read, and the tests assert the agreement
+across every event type and lane position — a shoulder call clear of the carriageway, lane 1
+nearside of lane 2 nearside of lane 3, adjacent lanes non-overlapping. **An incoherent box is worse
+than no box:** an incident whose text says "hard shoulder" over a box mid-carriageway tells the
+operator the system cannot see straight.
+
+Congestion gets no primary box at all. It is a property of the whole carriageway, and singling out
+one car would be a claim the detector never made.
+[ADR-0015](adr/0015-detection-overlay-without-footage.md).
+
+Implementing it added two things to the list:
+
+- **The visual tolerance is a ratio, so it scales with element area** (#16). 1% of a 320×200 frame is
+  640 pixels where 1% of a queue row is 173. Surfaced while chasing a capture that would not update —
+  which turned out to be an edit that never reached the file, not the tolerance.
+  [ADR-0016](adr/0016-update-snapshots-can-keep-the-old-one.md) withdraws that diagnosis.
+- **`sourceFrame` is still missing from the schema.** Specified alongside the boxes, but it points at
+  a frame manifest that cannot exist without the footage. It lands with Now rather than sitting in
+  the contract as a permanently-absent field.
 
 ### 2 · Server-side incident ownership — phase 8
 

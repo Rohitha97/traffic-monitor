@@ -27,3 +27,6 @@ infrastructure, or commits the project to something awkward to reverse. Everythi
 | [0012](0012-japanese-domain-vocabulary.md)               | Japanese domain vocabulary, and the direction convention — phase 9   |
 | [0013](0013-locale-aware-formatting.md)                  | Locale-aware formatting, and the age counter — phase 9               |
 | [0014](0014-verifying-two-locales.md)                    | Verifying two locales — phase 9                                      |
+| [0015](0015-detection-overlay-without-footage.md)        | A detection overlay, built without the footage — phase 7             |
+| [0016](0016-update-snapshots-can-keep-the-old-one.md)    | Withdrawn: `--update-snapshots` was not the problem — phase 7        |
+| [0017](0017-six-cameras-from-one-clip.md)                | Six cameras from one clip — phase 7                                  |

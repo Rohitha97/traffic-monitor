@@ -14,7 +14,7 @@ import { useTranslations } from 'next-intl';
 import { ActionBar } from '@/components/ActionBar';
 import { AuditTrail, type AuditEntry } from '@/components/AuditTrail';
 import type { DismissReason } from '@/components/DismissReasonMenu';
-import { CameraSnapshot } from '@/components/CameraSnapshot';
+import { CameraSnapshot, type OverlayBox } from '@/components/CameraSnapshot';
 import { FactsPanel } from '@/components/FactsPanel';
 import { NearbyCameras, type NearbyCamera } from '@/components/NearbyCameras';
 import { PriorityChip } from '@/components/PriorityChip';
@@ -48,13 +48,8 @@ export interface IncidentDetailData {
   snapshotUrl?: string;
   capturedAt: string;
   snapshotState?: 'loaded' | 'failed' | 'empty';
-  detection?: {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-    confidence: number;
-  };
+  /** Every object the detector reported in the frame. Empty draws no overlay. */
+  boundingBoxes: readonly OverlayBox[];
   nearbyCameras: readonly NearbyCamera[];
   flowNote?: string;
   audit: readonly AuditEntry[];
@@ -198,7 +193,8 @@ export function IncidentDetail({
             camera={incident.camera}
             capturedAt={incident.capturedAt}
             {...(incident.snapshotUrl ? { src: incident.snapshotUrl } : {})}
-            {...(incident.detection ? { detection: incident.detection } : {})}
+            boundingBoxes={incident.boundingBoxes}
+            priority={incident.priority}
             {...(incident.snapshotState
               ? { state: incident.snapshotState }
               : {})}

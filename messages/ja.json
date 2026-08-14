@@ -55,6 +55,13 @@
       "EB": "東行",
       "WB": "西行"
     },
+    "objectClass": {
+      "vehicle": "車両",
+      "person": "人",
+      "debris": "落下物",
+      "smoke": "煙",
+      "obstruction": "障害物"
+    },
     "dismissReason": {
       "shadow": "影",
       "spray": "水しぶき",

@@ -113,3 +113,34 @@ contrast** instead.
 
 Priority is never encoded in colour alone: every level also carries a border weight, a shape from
 sign taxonomy, a glyph and a text label.
+
+## The evidence frame
+
+`CameraSnapshot` draws the detector's output over the still. It is presentational — it takes boxes
+whose class has already been resolved to a word by `toDetailView`, and never reaches for a locale
+itself, for the same reason `IncidentRow` does not.
+
+The overlay obeys the colour rule above rather than inventing a second language for it. The
+**primary** box — the object the incident is about, exactly one per event — takes the priority
+colour. Every other box is context traffic and stays on the neutral component border. A frame with
+four cars in it must not read as four incidents.
+
+Three placement rules, all of which exist because breaking them was tried first:
+
+- **The primary paints last.** Boxes and labels overlap; when they do, the thing the operator was
+  called here to look at has to be the one on top.
+- **A label clears the OSD plate.** The burned-in camera and timestamp is the one fixed object on
+  the frame, so a box whose top lands under it sets its label below the plate rather than above the
+  box. Running a label through it produced two lines of mono type interleaved into something neither
+  of them said.
+- **A label anchors right near the right edge**, or it runs out of a frame that clips it.
+
+Boxes are absolutely-positioned elements at percentage offsets, not SVG. The frame is
+container-fit, so an SVG would need `preserveAspectRatio="none"` to stay aligned to the crop, which
+distorts strokes and text — and labels have to set in the tabular numeric face, which SVG `<text>`
+can only reach by restating the type scale outside the tokens.
+[ADR-0015](adr/0015-detection-overlay-without-footage.md).
+
+Geometry is not a rendering concern. `src/lib/detection.ts` derives it from the same fields the
+priority rules read, because **an incoherent box is worse than no box** — a "hard shoulder" call
+drawn mid-carriageway tells the operator the system cannot see straight.

@@ -379,12 +379,16 @@ Things this does not do, and the reason each is a boundary rather than an omissi
 - **Persistence beyond the replay window.** `EVENT_BUS=redis` makes the log survive a dashboard
   restart and be shared across instances, but retention is still a hundred events. A shift log that
   outlives a deployment is a different problem, and a database is backend work the brief scoped out.
-- **Real camera imagery.** Snapshots are committed SVG stills per event type, drawn in the design's
-  own surface values so they sit in the evidence well without a seam. One frame per _type_, not per
-  incident — which is also what blocks the filmstrip below.
-- **Snapshot filmstrip.** Pass A note 2 asks for "a strip of frames either side of the trigger", and
-  there are no such frames to show.
-  [ADR-0002](docs/adr/0002-filmstrip-blocked-on-frame-sources.md).
+- **Camera coverage is partial.** Six of the ten cameras carry real footage, derived from one
+  Creative Commons clip by [`scripts/prepare-footage.sh`](scripts/prepare-footage.sh). The other four
+  keep the committed SVG still for their event type, because every derived crop frames three lanes
+  and those cameras do not all watch three.
+  [docs/footage.md](docs/footage.md), [ATTRIBUTION.md](ATTRIBUTION.md).
+- **The detection boxes are not calibrated to those frames.** Box geometry is derived from the same
+  fields the priority rules read, so it agrees with the record — a hard-shoulder call sits at the
+  frame edge. But the frames are a real road at an oblique angle, and the frame edge is not where a
+  given camera's hard shoulder actually is. Closing it means per-camera calibration in the manifest.
+  [ADR-0017](docs/adr/0017-six-cameras-from-one-clip.md).
 - **Releasing a lock.** Acknowledging takes an incident and nothing gives it back. Deliberate — an
   incident does not become unowned because an operator walked away, and a timeout nobody sees fire
   would be worse — but it does mean a mistaken claim is permanent.
@@ -392,8 +396,9 @@ Things this does not do, and the reason each is a boundary rather than an omissi
 ## What I would do next
 
 [`docs/roadmap.md`](docs/roadmap.md) is the live list, with Now / Next / Later and a record of what
-each shipped item added to it. The short version: real camera frames are the top of the list and
-most of the rest is waiting on them.
+each shipped item added to it. The short version: real camera frames have landed, which unblocks the
+snapshot filmstrip — each camera now has twenty stills with the source second of each recorded, so
+picking the five nearest a trigger is a lookup rather than a fabrication.
 
 ## AI log
 

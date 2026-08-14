@@ -2,3 +2,7 @@
 node_modules/
 pnpm-lock.yaml
 docs/design/
+
+# Written by scripts/prepare-footage.sh. Reformatting it here would make every
+# rebuild show up as a diff.
+public/footage/manifest.json

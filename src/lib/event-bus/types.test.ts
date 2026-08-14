@@ -37,6 +37,7 @@ function event(over: Partial<DetectionEvent> = {}): DetectionEvent {
     confidence: 0.9,
     description: 'Object in carriageway.',
     snapshotUrl: '/snapshots/debris.svg',
+    boundingBoxes: [],
     detectedAt: AT,
     receivedAt: AT,
     priority: 'high',

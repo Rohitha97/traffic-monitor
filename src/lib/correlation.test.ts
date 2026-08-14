@@ -71,6 +71,7 @@ function event(over: {
     confidence: 0.9,
     description: 'Object in carriageway.',
     snapshotUrl: '/snapshots/debris.svg',
+    boundingBoxes: [],
     detectedAt: new Date(receivedAt).toISOString(),
     receivedAt: new Date(receivedAt).toISOString(),
     priority: 'high',

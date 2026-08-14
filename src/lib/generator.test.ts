@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { cameraById } from '@/lib/cameras';
+import { hasFootage } from '@/lib/footage';
 import { generateEvent, makeRandom } from '@/lib/generator';
 import { derivePriority } from '@/lib/priority';
 import { detectionEventSchema } from '@/lib/schema';
@@ -176,5 +177,38 @@ describe('generateEvent', () => {
     );
     // Same `now` for all of them, so the id cannot be leaning on the clock.
     expect(ids.size).toBeGreaterThan(190);
+  });
+  it('shows a real frame from the camera that saw it, or none at all', () => {
+    /*
+     * The snapshot has to come from the incident's own camera. Reaching for
+     * another camera's still because it happened to be loaded would fabricate
+     * the one thing the operator is being asked to trust — so a camera without
+     * footage falls back to the per-type schematic rather than borrowing.
+     */
+    for (let seed = 0; seed < 200; seed += 1) {
+      const event = generateEvent({ random: makeRandom(seed), now: NOW });
+
+      if (hasFootage(event.camera.id)) {
+        expect(event.snapshotUrl).toContain(`/footage/${event.camera.id}/`);
+        expect(event.sourceFrame?.camera).toBe(event.camera.id);
+      } else {
+        expect(event.snapshotUrl).toBe(`/snapshots/${event.type}.svg`);
+        expect(event.sourceFrame).toBeUndefined();
+      }
+    }
+  });
+
+  it('traces a snapshot back to the second of the source it came from', () => {
+    // The frames are sampled at a fixed spacing, so a snapshot is the nearest
+    // frame to the detection rather than the exact instant. This field is what
+    // makes that checkable rather than merely admitted in a doc.
+    const withFootage = Array.from({ length: 200 }, (_, seed) =>
+      generateEvent({ random: makeRandom(seed), now: NOW }),
+    ).find((event) => event.sourceFrame !== undefined)!;
+
+    expect(withFootage.sourceFrame!.offsetSeconds).toBeGreaterThan(0);
+    expect(withFootage.snapshotUrl).toContain(
+      String(withFootage.sourceFrame!.index + 1).padStart(2, '0'),
+    );
   });
 });

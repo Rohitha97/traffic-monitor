@@ -1,15 +1,29 @@
 import Image from 'next/image';
 
 import { Button } from '@/components/Button';
+import { PRIORITY, type Priority } from '@/lib/priority';
 
-interface DetectionBox {
+/**
+ * The band the burned-in OSD plate occupies, as a fraction of frame height.
+ *
+ * A box whose top is inside it puts its label below itself instead of above.
+ * The plate is the one thing on this frame that is always in the same place,
+ * so it is the one collision worth designing around rather than detecting.
+ */
+const OSD_STRIP = 0.14;
+
+export interface OverlayBox {
   /** Fractions of the frame, 0–1, from the detection model. */
   x: number;
   y: number;
   w: number;
   h: number;
-  /** 0–1. Rendered as a percentage above the box. */
+  /** The object class, already resolved to this locale's word by `toDetailView`. */
+  label: string;
+  /** This object's own confidence — not the incident's. Rendered as a percentage. */
   confidence: number;
+  /** The object the incident is about. Exactly one box per event carries it. */
+  primary?: boolean;
 }
 
 interface CameraSnapshotProps {
@@ -17,7 +31,10 @@ interface CameraSnapshotProps {
   camera: string;
   /** Burned-in capture time, as a camera OSD would show it. */
   capturedAt: string;
-  detection?: DetectionBox;
+  /** Every object the detector reported in this frame. Empty draws nothing. */
+  boundingBoxes?: readonly OverlayBox[];
+  /** Colours the primary box. The context boxes stay neutral regardless. */
+  priority?: Priority;
   state?: 'loaded' | 'failed' | 'empty';
 }
 
@@ -37,7 +54,8 @@ export function CameraSnapshot({
   src,
   camera,
   capturedAt,
-  detection,
+  boundingBoxes = [],
+  priority,
   state = 'loaded',
 }: CameraSnapshotProps) {
   if (state === 'failed') {
@@ -74,9 +92,11 @@ export function CameraSnapshot({
     );
   }
 
+  const hasFrame = state === 'loaded' && Boolean(src);
+
   return (
     <div className="rounded-control relative h-full overflow-hidden border border-border-hairline bg-well">
-      {state === 'loaded' && src ? (
+      {hasFrame && src ? (
         /*
          * `unoptimized` deliberately: snapshots are committed local stills, and
          * every queued event's snapshot is warmed on ingest so that opening a
@@ -105,30 +125,118 @@ export function CameraSnapshot({
         {camera} · {capturedAt}
       </span>
 
-      {detection && (
-        <>
-          <span
-            aria-hidden="true"
-            className="rounded-control pointer-events-none absolute border-2 border-dashed border-critical"
-            style={{
-              left: `${detection.x * 100}%`,
-              top: `${detection.y * 100}%`,
-              width: `${detection.w * 100}%`,
-              height: `${detection.h * 100}%`,
-            }}
+      {/*
+       * The detector's output, drawn on the frame it came from.
+       *
+       * Hidden from assistive technology, and this is the considered call
+       * rather than the lazy one: everything the overlay encodes is already
+       * prose on this pane. The primary box's *class* is the summary line, its
+       * *place* is the priority reason ("live lane 2 of 3"), and its
+       * *confidence* is a labelled fact in the panel beside it. The context
+       * vehicles are scene, not evidence — announcing "vehicle 81%, vehicle
+       * 77%" would spend a screen-reader user's attention on traffic that no
+       * one is being asked to decide about.
+       */}
+      {hasFrame &&
+        paintOrder(boundingBoxes).map((box, index) => (
+          <DetectionBox
+            // Position is the identity: the detector sends no per-object id,
+            // and two boxes of the same class in one frame are ordinary.
+            key={`${box.x},${box.y},${index}`}
+            box={box}
+            {...(priority ? { priority } : {})}
           />
-          <span
-            aria-hidden="true"
-            className="text-mono-micro pointer-events-none absolute font-mono font-semibold text-critical"
-            style={{
-              left: `${detection.x * 100}%`,
-              top: `calc(${detection.y * 100}% - 1rem)`,
-            }}
-          >
-            {Math.round(detection.confidence * 100)}%
-          </span>
-        </>
-      )}
+        ))}
+    </div>
+  );
+}
+
+/**
+ * Context first, the incident last.
+ *
+ * Boxes overlap, and so do their labels — two vehicles a lane apart at the same
+ * distance is an ordinary frame, not an edge case. When labels collide,
+ * something has to be underneath, and it must never be the object the operator
+ * was called here to look at. Painting the primary last puts it on top without
+ * a z-index, which would be a second ordering to keep in sync with this one.
+ */
+function paintOrder(boxes: readonly OverlayBox[]): OverlayBox[] {
+  return [
+    ...boxes.filter((box) => box.primary !== true),
+    ...boxes.filter((box) => box.primary === true),
+  ];
+}
+
+/**
+ * One box and its label.
+ *
+ * The primary object takes the priority colour; everything else stays on the
+ * neutral component border. That is the same rule the rest of the system
+ * follows — saturation is reserved for severity — and it is what stops a frame
+ * with four cars in it from reading as four incidents.
+ */
+function DetectionBox({
+  box,
+  priority = 'low',
+}: {
+  box: OverlayBox;
+  priority?: Priority;
+}) {
+  const isPrimary = box.primary === true;
+
+  /*
+   * Above the box by default, and below it when the box sits high in the frame.
+   *
+   * Two things live up there: the frame's own overflow, which would clip the
+   * label outright, and the burned-in OSD plate, which the first draft of this
+   * ran a label straight through — two lines of mono type interleaved into
+   * something neither of them said. Below the box is the only placement that
+   * clears both, and it beats setting the label *inside* the box, which would
+   * cover the object the box was drawn to point at.
+   */
+  const labelAbove = box.y > OSD_STRIP;
+  /* Likewise across: a box on the right of the frame anchors its label right. */
+  const labelRight = box.x + box.w > 0.7;
+
+  /*
+   * How far below the box's own top edge the label sits, as a percentage of the
+   * box's height — which is what `top` resolves against inside this wrapper.
+   *
+   * Below the box (100%) is the floor, not the answer: a shallow box high in
+   * the frame ends *inside* the OSD strip, so "just below the box" is still on
+   * the plate. Clearing the strip itself is the actual requirement, and it is
+   * arithmetic rather than a guess.
+   */
+  const labelTop = Math.max(1, (OSD_STRIP - box.y) / box.h) * 100;
+
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute"
+      style={{
+        left: `${box.x * 100}%`,
+        top: `${box.y * 100}%`,
+        width: `${box.w * 100}%`,
+        height: `${box.h * 100}%`,
+      }}
+    >
+      <div
+        className={`rounded-control size-full border-dashed ${
+          isPrimary
+            ? `border-2 ${PRIORITY[priority].border}`
+            : 'border border-border-component'
+        }`}
+      />
+      <span
+        className={`text-mono-micro rounded-control absolute bg-osd-plate px-1 py-0.25 font-mono font-semibold whitespace-nowrap ${
+          isPrimary ? PRIORITY[priority].text : 'text-text-secondary'
+        } ${labelAbove ? 'bottom-full mb-0.5' : 'mt-0.5'} ${
+          labelRight ? 'right-0' : 'left-0'
+        }`}
+        {...(labelAbove ? {} : { style: { top: `${labelTop}%` } })}
+      >
+        {box.label} {Math.round(box.confidence * 100)}%
+      </span>
     </div>
   );
 }

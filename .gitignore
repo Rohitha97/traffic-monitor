@@ -22,3 +22,8 @@ lh*.json
 # pnpm's content-addressable store, created when the visual suite installs
 # inside the Playwright container against the bind-mounted repo.
 .pnpm-store/
+
+# The footage working directory: the 482MB source clip and the master segment
+# cut from it. scripts/prepare-footage.sh downloads the source on demand and
+# writes its committed derivatives to public/footage instead.
+.footage/

@@ -116,8 +116,44 @@ const INCIDENT: IncidentDetailData = {
   },
   confidence: 0.96,
   capturedAt: '02:14:07',
-  snapshotState: 'empty',
-  detection: { x: 0.36, y: 0.28, w: 0.24, h: 0.36, confidence: 0.96 },
+  /*
+   * A real frame from the camera this fixture names, with the boxes on real
+   * vehicles in it. Sample data is lifted from Pass C so a reviewer can diff
+   * this page against the frames — but a detection overlay is the one thing
+   * that cannot be reviewed against a schematic, because the only question
+   * worth asking of it is whether the boxes land on the traffic.
+   */
+  snapshotUrl: '/footage/CAM-014/frames/06.jpg',
+  snapshotState: 'loaded',
+  boundingBoxes: [
+    // The dark car in live lane 2, mid-carriageway — where the priority reason
+    // says the wrong-way driver is.
+    {
+      x: 0.59,
+      y: 0.44,
+      w: 0.1,
+      h: 0.16,
+      label: 'vehicle',
+      confidence: 0.96,
+      primary: true,
+    },
+    {
+      x: 0.567,
+      y: 0.615,
+      w: 0.108,
+      h: 0.195,
+      label: 'vehicle',
+      confidence: 0.9,
+    },
+    {
+      x: 0.575,
+      y: 0.265,
+      w: 0.075,
+      h: 0.135,
+      label: 'vehicle',
+      confidence: 0.84,
+    },
+  ],
   nearbyCameras: [
     { id: 'CAM-011', mileMarker: 41.0 },
     { id: 'CAM-014', mileMarker: 42.3, isIncident: true },
@@ -456,35 +492,106 @@ export default function ComponentStatesPage() {
       </Section>
 
       <Section title="Evidence frame" source="Pass C frames 1, 3, 5">
-        <div className="flex gap-4">
-          <div className="h-50 w-80">
+        <div className="flex flex-col gap-4">
+          <State
+            id="snapshot/empty"
+            label="No snapshot yet"
+            width="h-50 w-80 flex-none"
+            caption="Before the frame arrives — the OSD plate is burned in regardless."
+          >
             <CameraSnapshot
               camera="CAM-014"
               capturedAt="02:14:07"
               state="empty"
             />
-          </div>
-          <div className="h-50 w-80">
+          </State>
+          <State
+            id="snapshot/detected"
+            label="Detector overlay"
+            width="h-50 w-80 flex-none"
+            caption="Primary box takes the priority colour; context traffic stays neutral."
+          >
+            {/*
+             * A real frame, with the boxes on the vehicles actually in it.
+             *
+             * The primary is the car stopped in the layby at frame-left, which
+             * is a genuine hard-shoulder detection rather than a rectangle put
+             * where one would be convenient. That matters here more than
+             * anywhere else on this page: the only question worth asking of a
+             * detection overlay is whether the boxes agree with what the camera
+             * saw, and a schematic road cannot answer it.
+             *
+             * The context boxes exercise the label's two escapes as well as its
+             * default. The car high in the frame sets its label *below* itself,
+             * because above would run through the burned-in OSD plate; the car
+             * at the right edge anchors its label right, because left would run
+             * out of a frame that clips it.
+             */}
             <CameraSnapshot
               camera="CAM-014"
               capturedAt="02:14:07"
-              state="empty"
-              detection={{
-                x: 0.36,
-                y: 0.28,
-                w: 0.24,
-                h: 0.36,
-                confidence: 0.96,
-              }}
+              src="/footage/CAM-014/frames/06.jpg"
+              priority="medium"
+              boundingBoxes={[
+                // Stopped in the layby, clear of the live lanes.
+                {
+                  x: 0.285,
+                  y: 0.385,
+                  w: 0.115,
+                  h: 0.17,
+                  label: 'vehicle',
+                  confidence: 0.93,
+                  primary: true,
+                },
+                {
+                  x: 0.59,
+                  y: 0.44,
+                  w: 0.1,
+                  h: 0.16,
+                  label: 'vehicle',
+                  confidence: 0.88,
+                },
+                {
+                  x: 0.567,
+                  y: 0.615,
+                  w: 0.108,
+                  h: 0.195,
+                  label: 'vehicle',
+                  confidence: 0.91,
+                },
+                // High in the frame — its label goes below, clear of the plate.
+                {
+                  x: 0.475,
+                  y: 0.12,
+                  w: 0.06,
+                  h: 0.08,
+                  label: 'vehicle',
+                  confidence: 0.76,
+                },
+                // Against the right edge — its label anchors right.
+                {
+                  x: 0.835,
+                  y: 0.51,
+                  w: 0.09,
+                  h: 0.17,
+                  label: 'vehicle',
+                  confidence: 0.82,
+                },
+              ]}
             />
-          </div>
-          <div className="h-50 w-80">
+          </State>
+          <State
+            id="snapshot/failed"
+            label="Snapshot unavailable"
+            width="h-50 w-80 flex-none"
+            caption="The feed may be delayed; the description below still stands."
+          >
             <CameraSnapshot
               camera="CAM-091"
               capturedAt="02:19:41"
               state="failed"
             />
-          </div>
+          </State>
         </div>
       </Section>
 

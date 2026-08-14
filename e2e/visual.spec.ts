@@ -53,6 +53,10 @@ const CAPTURED = [
 
   'banner/present',
 
+  'snapshot/empty',
+  'snapshot/detected',
+  'snapshot/failed',
+
   'buffered-bar/neutral',
   'buffered-bar/critical',
 
@@ -113,12 +117,6 @@ test.skip(
  * flip afterwards.
  */
 async function open(page: Page, locale: Locale): Promise<void> {
-  await page
-    .context()
-    .addCookies([
-      { name: 'locale', value: locale, url: 'http://localhost:3000' },
-    ]);
-
   /*
    * Motion off for the whole capture run. A pulsing reconnecting dot or a row
    * mid-transition must never be what decides whether a diff passes — and it

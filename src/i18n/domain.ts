@@ -10,6 +10,7 @@ import {
   type Camera,
   type EventType,
   type LanePosition,
+  type ObjectClass,
   type Priority,
   type Status,
 } from '@/lib/schema';
@@ -36,6 +37,12 @@ export interface DomainLabels {
   priority(priority: Priority): string;
   status(status: Status): string;
   direction(direction: Camera['direction']): string;
+  /**
+   * What a bounding box is drawn around, which is not the event type: a
+   * wrong-way driver and a stopped vehicle are different incidents about the
+   * same class of object, and the box reports what the model saw.
+   */
+  objectClass(objectClass: ObjectClass): string;
   dismissReason(reason: string): string;
   /** The label, never the value: "キロポスト" against an untranslated "MM 42.3". */
   marker(): string;
@@ -81,6 +88,7 @@ export function useDomainLabels(): DomainLabels {
       priority: (priority) => t(`priority.${priority}`),
       status: (status) => t(`status.${status}`),
       direction: (direction) => t(`direction.${direction}`),
+      objectClass: (objectClass) => t(`objectClass.${objectClass}`),
       /*
        * Tolerant of an unknown key rather than throwing. A reason is read back
        * off an event that may predate a change to the list, and a queue row is

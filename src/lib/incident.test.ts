@@ -35,6 +35,7 @@ function event(over: Partial<DetectionEvent> = {}): DetectionEvent {
     confidence: 0.9,
     description: 'Object in carriageway.',
     snapshotUrl: '/snapshots/debris.svg',
+    boundingBoxes: [],
     detectedAt: T0,
     receivedAt: '2026-08-12T09:00:00.600Z',
     priority: 'high',
@@ -219,12 +220,78 @@ describe('toDetailView', () => {
     ]);
   });
 
-  it('passes the detection box through only when the detector sent one', () => {
-    expect('detection' in toDetailView(event())).toBe(false);
-    expect(
-      toDetailView(event({ detectionBox: { x: 0.1, y: 0.2, w: 0.3, h: 0.4 } }))
-        .detection,
-    ).toEqual({ x: 0.1, y: 0.2, w: 0.3, h: 0.4, confidence: 0.9 });
+  it('renders no overlay when the detector localised nothing', () => {
+    // A legitimate answer, not a missing one: congestion is a property of the
+    // whole carriageway, so the frame shows no box rather than one invented to
+    // fill the space.
+    expect(toDetailView(event()).boundingBoxes).toEqual([]);
+  });
+
+  it('resolves each box’s class to a label and keeps its own confidence', () => {
+    /*
+     * Its own, not the event's. The model can be 0.98 sure it is looking at a
+     * vehicle while the incident is a 0.6 "stopped, or just slow?" call, and
+     * printing the event's number on the box would launder the second as the
+     * first.
+     */
+    const view = toDetailView(
+      event({
+        confidence: 0.6,
+        boundingBoxes: [
+          {
+            x: 0.1,
+            y: 0.2,
+            w: 0.14,
+            h: 0.11,
+            label: 'vehicle',
+            confidence: 0.98,
+            primary: true,
+          },
+          {
+            x: 0.5,
+            y: 0.3,
+            w: 0.1,
+            h: 0.08,
+            label: 'debris',
+            confidence: 0.71,
+          },
+        ],
+      }),
+    );
+
+    expect(view.boundingBoxes).toEqual([
+      {
+        x: 0.1,
+        y: 0.2,
+        w: 0.14,
+        h: 0.11,
+        label: 'vehicle',
+        confidence: 0.98,
+        primary: true,
+      },
+      { x: 0.5, y: 0.3, w: 0.1, h: 0.08, label: 'debris', confidence: 0.71 },
+    ]);
+  });
+
+  it('omits `primary` rather than setting it false on context objects', () => {
+    // Spread onto a component under exactOptionalPropertyTypes, where an
+    // explicit undefined and an absent key are not the same thing.
+    const [box] = toDetailView(
+      event({
+        boundingBoxes: [
+          {
+            x: 0.5,
+            y: 0.3,
+            w: 0.1,
+            h: 0.08,
+            label: 'vehicle',
+            confidence: 0.8,
+          },
+        ],
+      }),
+    ).boundingBoxes;
+
+    expect(box && 'primary' in box).toBe(false);
   });
 
   it('formats the seen-before note with its own timestamp', () => {

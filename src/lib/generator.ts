@@ -1,4 +1,6 @@
 import { CAMERAS } from '@/lib/cameras';
+import { boundingBoxesFor } from '@/lib/detection';
+import { frameFor } from '@/lib/footage';
 import { derivePriority } from '@/lib/priority';
 import {
   EVENT_TYPES,
@@ -174,6 +176,7 @@ export function generateEvent(options: GenerateOptions = {}): DetectionEvent {
   // 200–1400ms of model and clip-buffering latency.
   const latencyMs = 200 + Math.floor(random() * 1200);
   const detectedAt = new Date(now.getTime() - latencyMs);
+  const frame = frameFor(camera.id, random);
 
   return {
     id: `${camera.id}-${now.getTime()}-${Math.floor(random() * 1e6)}`,
@@ -187,13 +190,41 @@ export function generateEvent(options: GenerateOptions = {}): DetectionEvent {
     camera,
     lanePosition,
     ...(laneNumber !== undefined ? { laneNumber } : {}),
-    snapshotUrl: `/snapshots/${type}.svg`,
-    detectionBox: {
-      x: Number((0.2 + random() * 0.4).toFixed(3)),
-      y: Number((0.2 + random() * 0.35).toFixed(3)),
-      w: Number((0.15 + random() * 0.2).toFixed(3)),
-      h: Number((0.2 + random() * 0.2).toFixed(3)),
-    },
+    /*
+     * A real still from this camera when one exists, and the per-type schematic
+     * when it does not. Six of the ten cameras have footage; the rest are a
+     * network with cameras that have no feed, which is every network.
+     */
+    snapshotUrl: frame?.src ?? `/snapshots/${type}.svg`,
+    /*
+     * Which frame, and where in the source clip it came from. Present only for
+     * cameras with footage, which is why it is optional rather than a field
+     * that is always absent — the placeholder cameras have no source frame to
+     * point at. It is what makes "the snapshot is near the detection, not at
+     * it" checkable instead of merely stated. (docs/footage.md)
+     */
+    ...(frame
+      ? {
+          sourceFrame: {
+            camera: camera.id,
+            index: frame.index,
+            offsetSeconds: frame.offsetSeconds,
+          },
+        }
+      : {}),
+    /*
+     * Derived from the same fields the priority rules read, not rolled. A box
+     * that contradicts `lanePosition` tells the operator the model cannot see
+     * straight, which is worse than drawing nothing. (src/lib/detection.ts)
+     */
+    boundingBoxes: boundingBoxesFor({
+      type,
+      lanePosition,
+      ...(laneNumber !== undefined ? { laneNumber } : {}),
+      laneCount: camera.laneCount,
+      random,
+      confidence,
+    }),
     description: DESCRIPTIONS[type](laneText),
     history: [
       {

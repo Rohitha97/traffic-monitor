@@ -8,6 +8,8 @@ import {
   EVENT_TYPES,
   LANE_POSITION_LABEL,
   LANE_POSITIONS,
+  OBJECT_CLASS_LABEL,
+  OBJECT_CLASSES,
   PRIORITIES,
   PRIORITY_LABEL,
   STATUS_LABEL,
@@ -124,6 +126,11 @@ describe('the domain vocabulary', () => {
         DISMISS_REASON_LABEL[reason],
       );
     }
+    for (const objectClass of OBJECT_CLASSES) {
+      expect(render('en', `domain.objectClass.${objectClass}`)).toBe(
+        OBJECT_CLASS_LABEL[objectClass],
+      );
+    }
   });
 
   it('covers every value of every enum in both locales', () => {
@@ -136,6 +143,7 @@ describe('the domain vocabulary', () => {
       ['status', STATUSES],
       ['dismissReason', DISMISS_REASONS],
       ['direction', ['NB', 'SB', 'EB', 'WB']],
+      ['objectClass', OBJECT_CLASSES],
     ] as const;
 
     for (const [group, values] of cases) {
