@@ -1,422 +1,692 @@
 # Traffic Incident Monitoring Dashboard
 
-A single-screen operations dashboard for a highway traffic incident monitoring platform. An AI
-video analysis system watches motorway camera feeds and emits detection events; operators sit in a
-control room, watch events arrive, review the evidence, and decide whether to dispatch a safety
-response team.
+A single-screen control-room dashboard for monitoring motorway traffic incidents.
 
-## Design thesis
+An AI video system watches motorway camera feeds and reports what it sees — a stopped vehicle, a
+wrong-way driver, debris in a lane. Each report arrives here as an **incident**. An operator sitting
+in a control room watches incidents arrive, looks at the camera evidence, and decides whether to
+send a safety response team, mark it as a false alarm, or leave it.
 
-This is triage under time pressure, not a table of records. Two numbers matter: **time to
-awareness** (event created → operator notices, target ≤ 2s) and **time to decision** (notices →
-dispatch or dismiss, target ≤ 15s for a critical). The worst realistic path from detection to
-dispatch is 96 seconds, and 62 of those sit in _noticing_ and _orienting_ — the two steps the
-design owns outright. Every implementation choice here is defensible against one of those two
-numbers: snapshots are preloaded so the evidence is already warm, arrivals never move what is being
-read, priority is derived and always shown with its reasoning, and the alert reaches an operator
-who is looking at a different monitor.
+This repository is the operator's screen: the live queue, the evidence panel, the actions, and the
+fake detection feed that keeps it fed with realistic events. There is no real camera network and no
+real dispatch system behind it — the detection side is simulated so the whole thing runs from one
+command.
 
-## Quick start
+---
+
+## Contents
+
+- [What the dashboard does](#what-the-dashboard-does)
+- [The idea behind the design](#the-idea-behind-the-design)
+- [Requirements](#requirements)
+- [Setup](#setup)
+- [Using it](#using-it)
+- [How it works](#how-it-works)
+- [Configuration](#configuration)
+- [Project structure](#project-structure)
+- [Design process](#design-process)
+- [Decisions and trade-offs](#decisions-and-trade-offs)
+- [Testing](#testing)
+- [Docker details](#docker-details)
+- [Running with Redis](#running-with-redis)
+- [Languages](#languages)
+- [What this deliberately does not do](#what-this-deliberately-does-not-do)
+- [Scripts](#scripts)
+- [Documentation map](#documentation-map)
+
+---
+
+## What the dashboard does
+
+- **A live queue of incidents**, newest and most severe first, updating in real time as the
+  detection feed reports new events.
+- **A severity level the dashboard works out itself** from the type of event, where on the road it
+  is, and how confident the detector was — and it always shows the reasoning, not just the label.
+- **An evidence panel** for the selected incident: the camera snapshot with the detected object
+  boxed on it, the location on the road, how long ago it was detected, and the running history of
+  what every operator has done to it.
+- **Four actions**: acknowledge (take ownership), dispatch a response team, dismiss as a false
+  alarm with a reason, and mark resolved.
+- **A loud path for critical events** — a banner, a short tone, the browser tab title, and the
+  favicon all change, because the operator may be looking at a different monitor.
+- **Full keyboard operation.** Every action has a key. Press `?` in the app for the list.
+- **English and Japanese**, switchable from the status bar.
+
+---
+
+## The idea behind the design
+
+This screen is about triage under time pressure, not about browsing a table of records. Two
+measurements drive every choice in it:
+
+| Measurement           | What it means                              | Target                    |
+| --------------------- | ------------------------------------------ | ------------------------- |
+| **Time to awareness** | Incident created → the operator notices it | 2 seconds or less         |
+| **Time to decision**  | Operator notices → dispatch or dismiss     | 15 seconds for a critical |
+
+Mapping the worst realistic path from detection to dispatch gave 96 seconds, and 62 of those were
+spent just _noticing_ the event and _understanding_ it. Those two steps are the ones a user
+interface actually controls, so the build attacks them directly:
+
+- Camera snapshots are loaded into the browser the moment an incident arrives, so opening one never
+  shows a loading spinner.
+- New incidents never move the row you are currently reading. They wait in a bar at the top until
+  you choose to load them.
+- Severity is always shown together with the reason for it, so nobody has to reverse-engineer the
+  ranking.
+- A critical alert reaches an operator who is looking at another screen entirely.
+
+Both numbers are measured live — see [Checking the two numbers](#checking-the-two-numbers).
+
+---
+
+## Requirements
+
+Pick either path. Docker is the simpler one.
+
+| Path       | You need                                    |
+| ---------- | ------------------------------------------- |
+| **Docker** | Docker Desktop (or Docker Engine + Compose) |
+| **Local**  | Node.js 22 or newer, and pnpm 9             |
+
+No API keys, no `.env` file, no database, no accounts. Everything the app needs is in the repository.
+
+---
+
+## Setup
+
+### With Docker (recommended)
 
 ```bash
 docker compose up
 ```
 
-Then open <http://localhost:3000>. That is the whole quick start — no environment file, no API key,
-no database. Two services come up: the dashboard, and a detector simulator that posts observations
-to it over the network.
+Open <http://localhost:3000>.
 
-Locally, without Docker:
+Two containers start:
+
+- `dashboard` — the Next.js app.
+- `detector-sim` — a small Node script standing in for the AI detection system. It posts a new
+  observation to the dashboard every ~20 seconds over the network.
+
+The first build takes a couple of minutes; after that it is cached. Stop it with `Ctrl+C`, or
+`docker compose down` to remove the containers.
+
+For hot reload while editing source:
 
 ```bash
-corepack enable && pnpm install && pnpm dev
+docker compose -f docker-compose.yml -f compose.dev.yml up
 ```
 
-Requires Node 22+. Both paths are verified from a clean clone.
+### Without Docker
 
-## How to see it work
+```bash
+corepack enable
+pnpm install
+pnpm dev
+```
 
-Three ways to get events on screen, because different people reach for different ones.
+Open <http://localhost:3000>. In this mode the detection simulator runs inside the app process
+rather than as a separate container — the behaviour on screen is the same.
 
-**1. Ambient background stream.** `docker compose up` starts `detector-sim`, which posts an
-observation every ~20 seconds on a Poisson-ish interval — clusters and lulls rather than a
-metronome, so the next event is never predictable. Roughly 60% low/medium, 30% high, 10% critical:
-a demo where everything is critical teaches you nothing about triage. Running locally with
-`pnpm dev` instead, the same simulator runs in-process.
+To run a production build locally:
 
-**2. A seeded scenario.** A deterministic two minutes — quiet, a debris call, a stopped vehicle on
-the hard shoulder, then the _same class of event one lane over_ deriving critical, then a wrong-way
-driver, then a low-confidence detection that demotes:
+```bash
+pnpm build
+pnpm start
+```
+
+Both paths are verified from a clean clone.
+
+---
+
+## Using it
+
+### Getting incidents on screen
+
+There are three ways, because different people reach for different ones.
+
+**1. Just wait.** The simulator posts an event every ~20 seconds on an irregular schedule — clusters
+and quiet stretches rather than a steady beat, so the next one is never predictable. The mix is
+roughly 60% low/medium, 30% high, 10% critical. A demo where everything is critical teaches you
+nothing about triage.
+
+**2. Press `G`.** One test event. `Shift+G` forces a critical one. This is the fastest way to see
+the critical alert behaviour on demand.
+
+**3. Run the scripted scenario.** A fixed two-minute sequence: quiet, then a debris call, then a
+stopped vehicle on the hard shoulder, then the _same kind of event one lane over_ — which comes out
+critical — then a wrong-way driver, then a low-confidence detection that gets demoted a level.
 
 ```bash
 pnpm seed
 ```
 
-The last beat needs you. Dismiss the demoted CAM-091 debris call when it lands; twenty-four seconds
-later the camera reports it again and it arrives tagged **seen before**, carrying the reason you
-gave. Leave it alone and the redetect is simply a second incident — the tag records a decision, so
-there is nothing to show until one has been made.
+The last beat of the scenario needs you: dismiss the demoted `CAM-091` debris call when it lands.
+Twenty-four seconds later the camera reports the same thing again, and it arrives tagged **seen
+before**, carrying the reason you gave the first time. If you leave it alone, the second detection
+is simply a second incident — the tag records a _decision_, so there is nothing to show until one
+has been made.
 
-**3. Post an observation yourself.** The ingest route is the boundary a real detection pipeline
-would use. An empty body means "make something up":
+**4. Post one yourself.** `/api/events/ingest` is the boundary a real detection pipeline would use.
+An empty body means "make something plausible up":
 
 ```bash
 curl -X POST -H 'Content-Type: application/json' -d '{}' http://localhost:3000/api/events/ingest
 ```
 
-Note what comes back: an id and a **priority the dashboard decided**. The detector posts what the
-camera saw — type, lane position, confidence — and never a priority.
+Look at what comes back: an id, and a **severity the dashboard decided**. The detector posts what
+the camera saw — event type, lane position, confidence — and never a severity of its own.
 
-### The two numbers, measured
+### Keyboard
 
-The design thesis above argues from time to awareness and time to decision. Both are instrumented:
+Press `?` in the app for the live list. It is generated from a single table in
+[`src/lib/shortcuts.ts`](src/lib/shortcuts.ts), and a test checks the key handler against that table
+in both directions: nothing can be listed but not work, and nothing can work but go unlisted. (That
+test paid for itself immediately — `N` had worked as an alias for `Home` for weeks and the overlay
+had never mentioned it.)
+
+| Key                  | Does                                             |
+| -------------------- | ------------------------------------------------ |
+| `↑` `↓` (or `K` `J`) | Previous / next incident — previews as it moves  |
+| `Enter`              | Acknowledge, and take ownership                  |
+| `D`                  | Dispatch a response — `Enter` confirms           |
+| `X`                  | Dismiss as a false alarm, with a reason          |
+| `R`                  | Mark resolved                                    |
+| `Home` (or `N`)      | Load the incidents waiting at the top            |
+| `Esc`                | Close the detail pane                            |
+| `1`–`4` / `0`        | Filter by severity / clear the filter            |
+| `M`                  | Mute / unmute the alert tone                     |
+| `G`                  | Generate a test event (`Shift+G` for a critical) |
+| `?`                  | Show this list                                   |
+
+`Enter` **acknowledges** rather than opens. Moving the selection with `↑` `↓` already shows the
+incident in the detail pane, so "open" is not an action that needs its own key.
+
+### Taking ownership of an incident
+
+Acknowledging an incident claims it for your workstation, and it is the only action the server is
+allowed to refuse. Everything else you do acts on an incident you already hold, so it applies
+instantly on screen and reports to the server afterwards.
+
+While the claim is in flight the row shows `Claiming…`. If another workstation got there first, the
+row rolls back and says `Taken by position 3` — on the row and in the detail pane, not as a generic
+error. If the request simply failed, it rolls back and names nobody, because "the request did not
+arrive" is a different thing from "somebody else has it".
+
+The server decides the winner with a single atomic check-and-update on the stored record, so two
+browsers cannot both win — including when they are talking to two different app instances. A
+workstation that was not even racing still sees the claim appear, because the result is broadcast to
+everyone.
+
+Each dashboard is given a workstation number when it connects, stored in a cookie. That is all the
+identity an ownership claim needs, and it is deliberately **not** a login — see
+[What this deliberately does not do](#what-this-deliberately-does-not-do).
+
+### When a critical arrives
+
+Four channels carry the same alert, because an operator running three monitors may not be looking at
+this window — and because no single channel is allowed to be the only one.
+
+- **A banner** grows from nothing to a 52px strip and pushes the rest of the app down. It never
+  covers what you are reading, and it never dismisses itself. A critical left unacknowledged for 20
+  seconds re-fires it and writes `Unacknowledged 20s — banner re-fired, pushed to supervisor` into
+  the incident's history.
+- **A two-note tone**, under 400ms, soft. Muted by default, and your choice is remembered.
+  Deliberately not startling: this plays hundreds of times in a 12-hour shift, and an alert people
+  resent is an alert they mute permanently.
+- **The browser tab title** becomes `(1) CRITICAL · Incident Monitor`.
+- **The favicon** swaps its green "live" dot for a critical triangle.
+
+### When a dismissed call comes back
+
+Dismissing an incident is a judgement, and a detector that reports the same thing ninety seconds
+later should not make the operator make that judgement twice.
+
+If a camera re-detects the same kind of event in the same place within three minutes of a dismissal,
+the new incident arrives tagged **seen before**, showing the reason from the first call directly on
+the row rather than buried in the detail pane.
+
+It comes back as a genuinely new incident with its own severity, not as the old one revived. The
+earlier verdict is context for the new decision, not a replacement for making one.
+
+"The same place" is deliberately not "the same camera". Debris on the hard shoulder and debris in a
+live lane are two different calls, and merging them would hide the second one behind the first one's
+dismissal. Within the live lanes, neighbouring lanes _do_ merge — a detector that says lane 2 and
+then lane 3 has seen one object and disagreed with itself. The rules are in
+[`src/lib/correlation.ts`](src/lib/correlation.ts).
+
+### Checking the two numbers
+
+Time to awareness and time to decision are both measured while the app runs:
 
 ```bash
 curl -s http://localhost:3000/api/metrics
 ```
 
-p50 and p95 for each, over the replay buffer, as plain JSON with the sample count included — a p95
-over four samples is noise and the endpoint says so rather than letting you assume otherwise.
+You get the median and the 95th-percentile value for each, as plain JSON, with the number of samples
+included — a 95th percentile over four samples is noise, and the endpoint says so rather than letting
+you read it as a result.
 
-The marks live on the incident's own audit trail, so there is one timeline rather than a parallel
-store. "Seen" is the interesting definition: `↑↓` previews into the detail pane, so selection _is_
-the render — an incident only counts as seen once it has held the pane for 500ms. Cursoring through
-a queue marks nothing, which is asserted both ways in `e2e/metrics.spec.ts`.
-[ADR-0004](docs/adr/0004-instrumenting-the-two-numbers.md) explains why, and carries the baseline
-readings.
+The timestamps live on each incident's own history, so there is one timeline rather than a second
+parallel store. "Noticed" is the interesting definition here: because moving the selection with
+`↑` `↓` already renders the incident, an incident only counts as noticed once it has held the detail
+pane for 500ms. Scrolling through a queue quickly marks nothing, which is asserted in both directions
+in `e2e/metrics.spec.ts`.
 
-### Keyboard
+### The component gallery
 
-Press `?` in the app for the live list. It renders from one table
-([`src/lib/shortcuts.ts`](src/lib/shortcuts.ts)), and a unit test holds the key handler to that same
-table in both directions — no published binding without a case, no working binding left unpublished.
+`/dev/states` renders every component in every state the design draws, with the design's own captions
+beside each one, so the implementation can be compared to the design frames side by side.
 
-That test earned its place immediately: `N` had worked as an alias for `Home` since phase 2 and the
-overlay had never mentioned it.
-
-| Key                  |                                                  |
-| -------------------- | ------------------------------------------------ |
-| `↑` `↓` (or `K` `J`) | Previous / next incident — previews as it moves  |
-| `Enter`              | Acknowledge, and take the lock                   |
-| `D`                  | Dispatch a response — `Enter` confirms           |
-| `X`                  | Dismiss as a false positive, with a reason       |
-| `R`                  | Mark resolved                                    |
-| `Home` (or `N`)      | Load buffered new events                         |
-| `Esc`                | Close the detail pane                            |
-| `1`–`4` / `0`        | Filter by priority / clear                       |
-| `M`                  | Mute / unmute the alert tone                     |
-| `G`                  | Generate a test event (`Shift+G` for a critical) |
-
-`Enter` **acknowledges** rather than opens: `↑↓` already previews, so opening is not an action that
-needs a key. That is Pass A's state machine, and one of eleven places the design and the build
-brief disagree — all enumerated in [`DESIGN_INVENTORY.md`](docs/DESIGN_INVENTORY.md) §6.
-
-### Who owns an incident
-
-Acknowledging takes a lock, and it is the only action the server can refuse. Everything else an
-operator does acts on an incident they already hold, so it applies locally and reports afterwards;
-this is a claim on a shared resource, and Pass A names the failure it prevents — two positions
-dispatching the same call.
-
-So the row shows `Claiming…` and then resolves. If another position got there first it rolls back
-and says `Taken by position 3`, on the row and in the detail pane, rather than a generic error. If
-the request simply failed it rolls back and names nobody: "the request did not arrive" is not
-"somebody else has it".
-
-The decision is a compare-and-set on the stored record — a synchronous check-and-set in memory, a
-Lua script against Redis — so two browsers cannot both win, including when they are talking to
-different instances. A position that was not racing sees the lock appear too, over the stream.
-
-Each dashboard is assigned a workstation number when its stream opens, held in an httpOnly cookie.
-That is as much identity as a lock needs and is explicitly not authentication — see
-[Non-goals](#non-goals).
-
-### Component states
-
-`/dev/states` renders every component in every state Pass C draws, with the design's own captions
-beside each one, so it can be diffed directly against the frames.
-
-It is genuinely excluded from production, not merely hidden: the file is `page.dev.tsx`, and
-`dev.tsx` is only an allowed page extension outside production builds. The route does not exist in
-the production route table and the component is never compiled — verified, `/dev/states` returns
+It is genuinely excluded from production builds rather than merely hidden: the file is named
+`page.dev.tsx`, and `.dev.tsx` is only an allowed page extension outside production. The route does
+not exist in the production route table and its component is never compiled — `/dev/states` returns
 404 from the container and 200 from `pnpm dev`.
 
-### When a critical arrives
+---
 
-Four channels carry the same alert, because an operator on a three-monitor position may not be
-looking at this window — and because none of them is allowed to be the only one.
+## How it works
 
-- **The pinned band** expands from zero to 52px and pushes the app down. It never overlays what is
-  being read, and it **never auto-dismisses**. A critical left unacknowledged for 20 seconds
-  re-fires it and writes `Unacknowledged 20s — banner re-fired, pushed to supervisor` into the
-  audit trail.
-- **A two-note tone**, under 400ms on a soft envelope, muted by default and persisted. Deliberately
-  not startling: this plays hundreds of times a shift, and a resented alert gets muted permanently.
-- **The tab title** becomes `(1) CRITICAL · Incident Monitor`.
-- **The favicon** swaps its live-green dot for the critical triangle.
+### The flow of one event
 
-### When a call comes back
+```
+detector-sim ──POST──► /api/events/ingest ──► derivePriority ──► event log
+ (container or             (the boundary)        (pure fn)       in memory (default)
+  in-process)                                                    or Redis
+                                                                       │
+                                                                       │ Server-Sent Events
+                                                                       ▼
+                     browser store ◄── useEventStream ◄── /api/events/stream
+                          │
+            one shared 1-second tick ─── queue · detail · banner · tab title + favicon
+```
 
-A dismissal is a judgement, and a detector that reports the same thing ninety seconds later should
-not make the operator repeat it. If a camera re-detects the same class of event in the same place
-within three minutes of it being dismissed, the incident arrives tagged **seen before**, carrying
-the reason from the first call — on the row, not buried in the detail pane.
+1. **The detector posts an observation** to `/api/events/ingest`: event type, camera, lane position,
+   confidence, a one-line description. It never posts a severity.
+2. **The server validates it** against a single schema (written once with Zod, in
+   [`src/lib/schema.ts`](src/lib/schema.ts)) and rejects anything malformed.
+3. **`derivePriority` decides the severity** and writes the reasoning sentence that the detail pane
+   shows. It is a pure function — same inputs, same output, no clock, no network — which is why it
+   can be tested exhaustively.
+4. **The incident is appended to the event log**, a fixed-size list that keeps the last 100 entries.
+5. **Every connected browser receives it** over Server-Sent Events (SSE), a one-way stream from
+   server to browser that the browser reconnects by itself.
+6. **The browser store applies it** and the queue, the detail pane, the banner and the tab title all
+   update from that one piece of state.
 
-It comes back as a live incident with its own priority, not as the old one revived. The earlier
-verdict is context for the decision, not a substitute for making one.
+### How severity is decided
 
-"The same place" is deliberately not "the same camera": debris on the hard shoulder and debris in a
-live lane are two calls, and merging them would hide the second behind the first's dismissal.
-Within the live lanes, adjacent lanes _do_ merge — a detector that says lane 2 and then lane 3 has
-seen one object and disagreed with itself. `src/lib/correlation.ts`.
+The full table, before confidence is taken into account:
+
+| Event type       | Live lane    | Hard shoulder | Off carriageway | Lane unknown |
+| ---------------- | ------------ | ------------- | --------------- | ------------ |
+| Wrong-way driver | **critical** | **critical**  | **critical**    | **critical** |
+| Pedestrian       | **critical** | high          | high            | **critical** |
+| Stopped vehicle  | **critical** | medium        | low             | high         |
+| Smoke or fire    | **critical** | high          | high            | high         |
+| Debris           | high         | medium        | medium          | medium       |
+| Congestion       | medium       | medium        | medium          | medium       |
+
+Then two adjustments:
+
+- **Congestion reported again by the same camera within 10 minutes** becomes high. Traffic that is
+  still there ten minutes later is building, not clearing.
+- **Confidence below 0.6 drops the severity one level** and flags the incident `Low confidence —
+verify`. The single exception is a wrong-way driver, which never drops: under-reacting to a
+  wrong-way driver cannot be undone, over-reacting is cheap. A 40%-confidence wrong-way detection is
+  still a wrong-way detection until a person says otherwise.
+
+Where the lane could not be determined, the unknown column follows the same principle — a pedestrian
+is treated as though on a live lane, because that is the one case where being wrong is fatal, while
+debris and congestion do not escalate, because escalating them would only manufacture alert fatigue.
+
+The logic is [`src/lib/priority.ts`](src/lib/priority.ts), with 20 unit tests.
+
+### Why these technical choices
+
+- **Severity is decided by the server and never sent by the detector.** The incoming schema has no
+  severity field at all, so a detection system cannot declare its own importance and the triage
+  rules stay in one auditable place.
+- **Server-Sent Events rather than WebSockets.** Every message travels one way, server to browser.
+  A one-way stream needs no custom server, reconnects itself, and passes through Docker unchanged.
+- **A small bounded event log on the server** means a browser that reconnects fetches only what it
+  missed, and a fresh page load gets the current queue. A monitoring tool must not silently lose an
+  incident. The id sent on the wire _is_ the log's own position marker, so the standard SSE
+  `Last-Event-ID` header is a position to resume from rather than a value to go searching for.
+- **The log has two interchangeable implementations behind one interface** — an in-memory list by
+  default, Redis when asked for. Appending, reading from a position, and dropping the oldest entries
+  were already exactly what the in-memory version did, which is why the Redis version is a thin
+  wrapper and not a redesign. See [Running with Redis](#running-with-redis).
+- **One store, one timer.** Every "3m 12s ago" counter on screen reads from a single shared clock
+  field, so a once-a-second update is one render pass rather than a dozen drifting timers.
+- **New arrivals wait rather than reorder.** Whenever an incident is open, new ones queue up behind a
+  bar at the top instead of pushing the list around. Criticals are the exception: they appear
+  immediately in the banner, but still without moving the selected row.
+
+### Tech stack
+
+| Concern            | Choice                                     |
+| ------------------ | ------------------------------------------ |
+| Framework          | Next.js 15 (App Router), TypeScript strict |
+| UI runtime         | React 19                                   |
+| Styling            | Tailwind CSS v4, tokens from the design    |
+| Accessible widgets | Radix UI primitives, unstyled              |
+| Client state       | Zustand                                    |
+| Validation + types | Zod (one schema, types inferred from it)   |
+| Live updates       | Server-Sent Events                         |
+| Long lists         | TanStack Virtual                           |
+| Translation        | next-intl                                  |
+| Dates              | date-fns                                   |
+| Animation          | Motion (formerly Framer Motion)            |
+| Sound              | Web Audio API, no dependency               |
+| Tests              | Vitest, Playwright, axe-core               |
+| Lint               | oxlint + ESLint + Prettier                 |
+
+---
+
+## Configuration
+
+Everything has a working default; nothing has to be set.
+
+| Variable          | Default                  | What it does                                                                                                                       |
+| ----------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `SIM_MODE`        | `internal`               | `internal` runs the detection simulator inside the app; `external` expects `detector-sim` to post to it (what Docker Compose sets) |
+| `SIM_INTERVAL_MS` | `20000`                  | Average gap between simulated detections, in milliseconds                                                                          |
+| `EVENT_BUS`       | `memory`                 | `memory` for the in-process log, `redis` to use Redis                                                                              |
+| `REDIS_URL`       | `redis://localhost:6379` | Where to find Redis when `EVENT_BUS=redis`                                                                                         |
+| `DASHBOARD_URL`   | `http://localhost:3000`  | Where `detector-sim` and `pnpm seed` post events                                                                                   |
+| `PORT`            | `3000`                   | Server port                                                                                                                        |
+
+---
+
+## Project structure
+
+```
+.
+├─ src/
+│  ├─ app/
+│  │  ├─ page.tsx                      the dashboard
+│  │  ├─ dev/states/page.dev.tsx       component gallery, development only
+│  │  └─ api/
+│  │     ├─ events/ingest/route.ts     detections come in here
+│  │     ├─ events/stream/route.ts     the live stream out to browsers
+│  │     ├─ events/claim/route.ts      taking ownership of an incident
+│  │     ├─ events/mark/route.ts       dispatch / dismiss / resolve
+│  │     ├─ metrics/route.ts           the two timing measurements
+│  │     └─ health/route.ts            container healthcheck
+│  ├─ components/                      one file per component in the design
+│  ├─ hooks/                           stream, keyboard, clock, sound, tab alert
+│  ├─ store/                           the shared client state
+│  ├─ lib/
+│  │  ├─ schema.ts                     the one data contract
+│  │  ├─ priority.ts                   severity rules
+│  │  ├─ correlation.ts                the "seen before" rules
+│  │  ├─ detection.ts                  where to draw the box on the snapshot
+│  │  ├─ metrics.ts                    the two numbers
+│  │  ├─ shortcuts.ts                  the single keyboard table
+│  │  └─ event-bus/                    in-memory and Redis implementations
+│  ├─ styles/                          design tokens, global CSS
+│  └─ i18n/                            locale wiring
+├─ messages/                           en.json, ja.json
+├─ services/detector-sim/              the fake detection system
+├─ e2e/                                Playwright tests
+├─ scripts/                            seed, test runners, footage preparation
+├─ public/                             camera snapshots and stills
+├─ docs/                               design source, decisions, AI log
+└─ Dockerfile, docker-compose.yml, compose.dev.yml
+```
+
+---
 
 ## Design process
 
-The UI was designed before any code was written, in three passes in Claude Design.
+The interface was designed in full before any application code was written, in three passes. Each
+pass is exported to `docs/design/` as a PDF you can open directly:
 
-**Project:** <https://claude.ai/design/p/395265bf-e8ef-4048-bf51-a354b40e2815>
+| Pass                                                                                                                   | What it covers                                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **[Pass A · Flows and wireframes](docs/design/Pass%20A%20%E2%80%94%20Flows%20and%20wireframes.pdf)**                   | Grey boxes only, no colour and no typefaces. A step-by-step journey for one critical event costed in seconds, the incident state machine, and three candidate layouts compared. The winner: a list on the left and detail on the right, with one pinned band for criticals                                                                                   |
+| **[Pass B · Visual system](docs/design/Pass%20B%20%E2%80%94%20Visual%20system.pdf)**                                   | The colour, type and spacing rules. Three background shades lifted off pure black for a dim room and a 12-hour shift; four severity colours that are the _only_ strong colours in the whole system; Public Sans (a descendant of the Interstate highway-signage typeface) with IBM Plex Mono for numbers; a 4px spacing grid and a 3px maximum corner radius |
+| **[Pass C · Screens and component states](docs/design/Pass%20C%20%E2%80%94%20Screens%20and%20component%20states.pdf)** | Five full screens at 1440×900, the arrival animation frame by frame, and every component in every state. One incident — a wrong-way driver on CAM-014 — runs through the first three screens so you can see it detected, reviewed, and dispatched                                                                                                            |
 
-- **Pass A · Flows and wireframes** — greybox only, no colour or type. A journey map for one
-  critical event costed in seconds per step, the incident state machine, and three layouts weighed
-  against each other. Chose master–detail with one pinned critical band borrowed from the
-  priority-lane board: lane B's guarantee that a critical always appears in one fixed place, at a
-  tenth of its cost.
-- **Pass B · Visual system** — the token sheet, as a plan for approval. Three surfaces lifted off
-  true black for a dim room and a 12-hour shift; four priority ramps that are the _only_ saturated
-  tokens in the system; Public Sans (descended from Interstate, the highway-signage letterform)
-  over IBM Plex Mono for tabular figures; a 4px grid and a 3px radius ceiling. Records three visual
-  directions rejected on sight and four moves taken from motorway-signage vernacular.
-- **Pass C · Screens and component states** — five frames at 1440×900 plus the arrival
-  choreography and the component state matrix. One incident, a wrong-way driver on CAM-014, runs
-  through frames 1–3 so it can be seen detected, reviewed and dispatched.
+The original design source files are in [`docs/design/`](docs/design/) alongside the PDFs; they open
+in a browser with no build step (see [`docs/design/README.md`](docs/design/README.md)).
 
-The exported source is in [`docs/design/`](docs/design/) — byte-exact, and it renders standalone in
-a browser. [`docs/DESIGN_INVENTORY.md`](docs/DESIGN_INVENTORY.md) is the design-to-code mapping:
-every token and where it lands, every component and its states, every interaction the frames imply
-but cannot encode, and every place the design and the brief disagreed. It was written and reviewed
-**before** any feature code.
+[`docs/DESIGN_INVENTORY.md`](docs/DESIGN_INVENTORY.md) is the map from design to code: every colour
+and spacing value and where it lands in the stylesheet, every component and its states, every
+interaction the static frames imply but cannot themselves show, and every place where the design and
+the written build brief contradicted each other. It was written and agreed **before** any feature
+code.
 
-## Architecture
-
-```
-detector-sim ──POST──► /api/events/ingest ──► derivePriority ──► event bus
-  (container)              (the boundary)         (pure)          ring buffer (default)
-                                                                  or Redis Streams
-                                                                         │
-                                                                         │ SSE
-                                                                         ▼
-                        Zustand store ◄── useEventStream ◄── /api/events/stream
-                              │
-              one shared 1s tick ─── queue · detail · pinned band · tab + favicon
-```
-
-Ten lines on why:
-
-- **Priority is derived server-side, never sent.** The ingest schema omits it, so a detector cannot
-  set its own severity and the triage rules stay auditable.
-- **SSE, not WebSockets.** Every message flows detector → operator. One-way needs no custom server,
-  reconnects itself, and passes through Docker unchanged.
-- **A small bounded log** on the server means a reconnect fetches the delta it missed and a fresh
-  load gets the current queue — a monitoring tool cannot silently lose an incident. The `id` on the
-  wire is the log's own cursor, so `Last-Event-ID` is a position rather than a value to search for.
-- **The log has two implementations behind one interface** — an in-process ring buffer by default,
-  Redis Streams when asked. Append, read-from-cursor and bounded retention were already the ring
-  buffer's semantics, which is why the swap is a wrapper and not a redesign.
-- **One store, one interval.** Every age counter ticks from a single shared field, so a
-  once-a-second clock is one render pass rather than a dozen drifting timers.
-- **Arrivals buffer rather than reorder** whenever an incident is open, except criticals, which
-  arrive at the pinned band without moving the selected row.
+---
 
 ## Decisions and trade-offs
 
-The full running log is [`docs/DECISIONS.md`](docs/DECISIONS.md) — around sixty entries across six
-phases, each written when the decision was made. The ones worth stating up front:
+The full running log is [`docs/DECISIONS.md`](docs/DECISIONS.md) — around sixty entries, each written
+at the moment the decision was made. The ones worth stating up front:
 
-| Choice                                   | Alternative considered                                       | Why                                                                                                                                                                                                       |
-| ---------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Pass B's tokens as the product theme** | Port `nocturne`, as the brief instructs                      | Nocturne styles the _deck around_ the frames; every pixel _inside_ all five screens is Pass B. Porting nocturne would have produced a purple, Inter-set, 8px-radius dashboard matching none of the frames |
-| **SSE**                                  | WebSockets / socket.io                                       | One-way is the actual shape of the traffic. WebSockets would mean a custom server and a bidirectional channel we never send anything back over                                                            |
-| **Radix, unstyled**                      | shadcn/ui                                                    | shadcn ships its own token layer, which would fight Pass B's. Radix gives the same primitives with no competing values                                                                                    |
-| **Zustand**                              | Context                                                      | One shared, high-frequency slice. Context would re-render every consumer on every one-second tick                                                                                                         |
-| **Derived priority**                     | A `priority` field on the wire                               | A detector that sets its own severity makes the rules unauditable. `derivePriority` is pure and has 20 tests                                                                                              |
-| **Arrivals buffer, never reorder**       | Sort aggressively and always show newest first               | Aggressive sorting reorders the list under the operator's cursor. Loading is an explicit act — `Home`                                                                                                     |
-| **Muted by default, persisted**          | Sound on                                                     | A page that makes noise before consent is hostile — and the unmute click is also the gesture browsers require to unlock audio                                                                             |
-| **A linear mile-marker schematic**       | maplibre-gl on a CARTO basemap, as the stack table specifies | Pass C draws a 120px strip with no basemap or zoom. A map would add ~800KB and a network tile dependency to a surface whose thesis is speed, and still not match the frame                                |
-| **No database**                          | Postgres, or even SQLite                                     | This is a front-end evaluation. State lives in the store; the audit trail is per-session and this README says so                                                                                          |
-| **Adherence rules under ESLint**         | oxlint, as the design system ships them                      | oxlint does not implement `no-restricted-syntax` — verified, the rules were silent no-ops. Both linters still run in `pnpm lint`                                                                          |
+| Choice                                      | Alternative considered                    | Why                                                                                                                                                                                               |
+| ------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **The design's own colour and type system** | The generic starter theme it shipped with | The starter theme styles the _presentation deck around_ the frames, not the product inside them. Adopting it would have produced a purple, 8px-radius dashboard matching none of the five screens |
+| **Server-Sent Events**                      | WebSockets / socket.io                    | One-way is the actual shape of the traffic. WebSockets would mean running a custom server and maintaining a return channel nothing ever sends on                                                  |
+| **Radix primitives, unstyled**              | shadcn/ui                                 | shadcn brings its own colour and spacing values, which would compete with the design's. Radix gives the same accessible behaviour with no opinions about appearance                               |
+| **Zustand for client state**                | React Context                             | One shared slice of state that changes every second. Context would re-render every consumer on every tick                                                                                         |
+| **Severity derived on the server**          | A severity field on the incoming data     | A detector that declares its own importance makes the rules unauditable. The derivation is a pure function with 20 tests                                                                          |
+| **New arrivals wait, never reorder**        | Always sort newest first, immediately     | Aggressive sorting moves the list under the operator's cursor mid-read. Loading is made an explicit act — one key                                                                                 |
+| **Muted by default, choice remembered**     | Sound on from the start                   | A page that makes noise before you agree to it is hostile — and the unmute click doubles as the user gesture browsers require before audio can play at all                                        |
+| **A simple linear road diagram**            | A real map library on a tile basemap      | The design draws a 120px strip with no basemap and no zoom. A map would add ~800KB and a network dependency to a screen whose whole point is speed, and still not match the drawing               |
+| **No database**                             | Postgres, or even SQLite                  | The scope here is the operator's screen. State lives in the event log; the audit trail lasts as long as the session, and this README says so plainly                                              |
+| **Design-adherence rules under ESLint**     | oxlint alone                              | oxlint does not implement the rule type these checks need — verified, they were silently doing nothing. Both linters still run in `pnpm lint`                                                     |
 
-## Verification
+---
 
-|               |                                                                                                   |
-| ------------- | ------------------------------------------------------------------------------------------------- |
-| Unit          | 241 tests across 13 files — every pure module, the store, and the Zod contract itself             |
-| Bus           | one conformance suite run against **both** the ring buffer and Redis Streams (`pnpm test:bus`)    |
-| E2E           | 21 Playwright specs — the journey from the keyboard, correlation, virtualisation, a two-desk race |
-| Accessibility | 4 axe audits at WCAG 2.1 AA across four states, **zero violations**                               |
-| Lighthouse    | performance **100**, accessibility **100**, best practices **100**, SEO **100**                   |
-| Visual        | 31 component states — 30 captured as images, 1 checked dimensionally                              |
+## Testing
+
+| Layer         | What it covers                                                                                                                                      |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit          | 241 tests across 13 files — every pure module, the client store, and the data contract itself                                                       |
+| Event log     | One shared test suite run against **both** implementations, in-memory and Redis (`pnpm test:bus`)                                                   |
+| End to end    | 21 Playwright tests — the full journey by keyboard, the "seen before" rules, long-list rendering, and two workstations racing for the same incident |
+| Accessibility | 4 automated audits at WCAG 2.1 AA across four screen states, **zero violations**                                                                    |
+| Lighthouse    | performance **100**, accessibility **100**, best practices **100**, SEO **100**                                                                     |
+| Visual        | 31 component states — 30 compared as images, 1 checked by measurement                                                                               |
 
 ```bash
 pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e
 ```
 
-`pnpm test:bus` is the one command that wants infrastructure, and it starts and disposes of its own
-broker. Everything above runs on a clean clone with nothing provisioned.
+`pnpm test:bus` is the only command that wants extra infrastructure, and it starts and disposes of
+its own Redis. Everything above runs on a clean clone with nothing provisioned.
 
-Visual regression runs separately, because screenshots are not portable: font rasterisation differs
-enough between platforms that a snapshot taken on a laptop will never match CI. Capture and
-comparison both happen in the Playwright image, pinned to the installed version.
+### Visual regression
+
+Screenshot comparison runs separately, because screenshots are not portable between machines: fonts
+are rasterised differently enough on macOS, Windows and Linux that a reference image taken on a
+laptop will never match one taken in CI. Both the capture and the comparison happen inside a pinned
+Playwright container.
 
 ```bash
 pnpm test:visual
 ```
 
-The suite skips outside Linux rather than diffing, so nobody can commit snapshots their own machine
-produced. `pnpm test:visual:update` regenerates them in the same container. It catches the drift the
-adherence lint cannot see — the lint proves values come from tokens, not that the result still looks
-like the frame.
+Outside Linux the suite skips rather than comparing, so nobody can accidentally commit reference
+images their own machine produced. `pnpm test:visual:update` regenerates them in the same container.
 
-One state is checked by dimension rather than by image: the collapsed critical band is zero-height
-by design, and a photograph of an empty element passes no matter what changes. It is asserted to
-have no height _and no bottom border_ — the second half being the actual bug it exists to catch, a
-permanent red rule across a quiet screen.
+This catches drift the lint rules cannot see: lint proves that values come from the design's token
+list, not that the assembled result still _looks_ like the design.
 
-## Docker
+One state is checked by measurement rather than by image. The collapsed critical banner is
+zero-height by design, and a photograph of an empty element passes no matter what breaks. It is
+asserted to have no height _and no bottom border_ — the second half being the actual bug it exists
+to catch, a permanent red line across an otherwise quiet screen.
 
-Four stages. `deps` is isolated so editing source never invalidates the dependency-install layer;
-`output: 'standalone'` has Next trace only the dependencies the server actually needs; the runner
-drops to a non-root `nextjs` user; and the healthcheck exists because compose cannot order service
-startup without one — `detector-sim` waits on `service_healthy`. Current image: **240MB**.
+---
 
-One detail worth flagging: the healthcheck probes `127.0.0.1`, not `localhost`. The image's
-`/etc/hosts` maps `localhost` to both `127.0.0.1` and `::1`, busybox wget tries `::1` first, and
-Next's standalone server binds IPv4 only. Against `localhost` the container reports unhealthy while
-serving perfectly — and `detector-sim` would wait on it forever.
+## Docker details
 
-`compose.dev.yml` gives hot reload. Its two anonymous volumes on `node_modules` and `.next` are
-load-bearing: without them the host bind mount shadows the container's installed dependencies.
+The `Dockerfile` has four stages:
 
-## Running with a broker
+1. `base` — Node 22 Alpine with pnpm enabled.
+2. `deps` — dependency install, isolated so that editing source code never invalidates it.
+3. `builder` — the Next.js production build.
+4. `runner` — the final image, running as a non-root `nextjs` user.
 
-The event bus has two implementations behind one interface. The default needs nothing:
+`output: 'standalone'` in `next.config.ts` has Next trace only the dependencies the server actually
+needs into the image. Final image size: **240MB**.
+
+The healthcheck exists because Docker Compose cannot order service startup without one —
+`detector-sim` waits for the dashboard to report healthy before it starts posting.
+
+One detail worth knowing if you touch it: the healthcheck probes `127.0.0.1`, not `localhost`. The
+image's `/etc/hosts` maps `localhost` to both the IPv4 and IPv6 loopback addresses, the container's
+`wget` tries IPv6 first, and the Next.js standalone server listens on IPv4 only. Against `localhost`
+the container reports itself unhealthy while serving perfectly — and `detector-sim` would then wait
+for it forever.
+
+`compose.dev.yml` adds hot reload. Its two anonymous volumes on `node_modules` and `.next` are
+load-bearing: without them, mounting your source directory over `/app` hides the dependencies
+installed inside the container.
+
+---
+
+## Running with Redis
+
+The event log has two interchangeable implementations. The default needs nothing installed:
 
 ```bash
 docker compose up
 ```
 
-`EVENT_BUS=memory`, a ring buffer in the dashboard process. `docker compose config --services` on
-that command lists `dashboard` and `detector-sim` and nothing else — Redis is behind a profile and
-there is no `depends_on` edge to it, so the default graph cannot pull in a broker.
+That is the in-memory log inside the dashboard process. Redis is behind an opt-in Compose profile
+and nothing depends on it, so the default setup cannot accidentally pull in a broker —
+`docker compose config --services` on that command lists `dashboard` and `detector-sim` and nothing
+else.
 
-Redis Streams is opt-in:
+To use Redis instead:
 
 ```bash
 EVENT_BUS=redis docker compose --profile redis up
 ```
 
-Now the log survives a dashboard restart. Add the second instance and a round-robin proxy on `:3100`
-to see that it is genuinely shared:
+Now the event log survives a dashboard restart. To prove it is genuinely shared, start a second app
+instance behind a round-robin proxy on port 3100:
 
 ```bash
 EVENT_BUS=redis docker compose --profile redis --profile cluster up
 ```
 
-`XADD` appends, `XRANGE` reads from the cursor, `MAXLEN ~` bounds retention, and the SSE
-`Last-Event-ID` is the stream ID — no second cursor scheme. Stream entries are immutable and
-operator marks are not, so an amended copy of each incident lives in a keyed value beside the
-stream and reads prefer it. `pnpm test:bus` starts a throwaway broker and runs the conformance
-suite against both implementations; `pnpm test` runs it against memory alone, so a clean clone needs
-no infrastructure to test.
+Under the hood this uses Redis Streams: `XADD` to append, `XRANGE` to read from a position, and
+`MAXLEN ~` to cap retention — and the SSE `Last-Event-ID` header _is_ the stream id, so there is no
+second position-tracking scheme to keep in sync. Stream entries are immutable while operator actions
+are not, so an amended copy of each incident is kept in a separate key beside the stream, and reads
+prefer that copy. Ownership claims are settled with a small Lua script so the check and the write
+happen as one indivisible step.
 
-**When the broker is unreachable** the dashboard degrades rather than failing. Every operation falls
-back to the in-process bus, `/api/health` reports `degraded: true` and still returns `ok` — going
-unhealthy would have an orchestrator restart a process that is working — and the status bar shows a
-`HISTORY LOCAL` tag beside the feed count.
+`pnpm test:bus` starts a throwaway Redis and runs the same test suite against both implementations.
+`pnpm test` runs it against the in-memory one alone, so a clean clone needs nothing installed to run
+its tests.
 
-That tag is deliberately not one of the three connection states. The feed is _live_: incidents keep
-arriving. What has stopped is sharing — events published during the outage are visible on this
-instance and nowhere else until the broker returns. Calling that "reconnecting" would be a false
-alarm about the one thing the status bar exists to be trusted about.
+**If Redis becomes unreachable**, the dashboard degrades instead of failing. Every operation falls
+back to the in-process log, `/api/health` reports `degraded: true` while still returning `ok` —
+reporting unhealthy would make an orchestrator restart a process that is working fine — and the
+status bar shows a `HISTORY LOCAL` tag beside the feed count.
+
+That tag is deliberately not one of the three connection states. The feed is still _live_; incidents
+keep arriving. What has stopped is _sharing_ — events published during the outage are visible on this
+instance and nowhere else until Redis returns. Calling that "reconnecting" would be a false alarm
+about the one thing the status bar exists to be trusted about.
+
+---
 
 ## Languages
 
-English and Japanese. Language is a **workstation setting**, not a URL — it lives in a cookie beside
-the mute preference, because a control-room position's language is a property of the desk rather
-than of what is on screen, and a deep link should not impose one operator's language on another.
-There is no `[locale]` route segment.
-[ADR-0009](docs/adr/0009-next-intl-and-cookie-locale.md).
+English and Japanese.
 
-The switcher writes the cookie and refreshes; `<html lang>` follows the resolved locale, which is
-what makes a screen reader switch synthesiser voice.
+Language is a **workstation setting**, not part of the URL. It lives in a cookie beside the mute
+preference, because a control-room position's language belongs to the desk rather than to what is on
+screen, and a link shared between operators should not impose one operator's language on another.
+There is no locale segment in any route.
 
-Domain terms use Japanese expressway vocabulary rather than translated British motorway English —
-逆走 for a wrong-way driver, 落下物 for debris, 路肩 for the hard shoulder. Compass bearings are
-kept and translated literally (北行) rather than mapped to 上り / 下り, because the estate is British
+The switcher writes the cookie and refreshes the page; the `lang` attribute on `<html>` follows the
+resolved language, which is what makes a screen reader switch to the right synthesised voice.
+
+Domain terms use real Japanese expressway vocabulary rather than translated British motorway English
+— 逆走 for a wrong-way driver, 落下物 for debris, 路肩 for the hard shoulder. Compass bearings are
+kept and translated literally (北行) rather than mapped onto 上り / 下り, because these are British
 motorways and 上り / 下り means "toward Tokyo", which is not a fact about the M6.
-[ADR-0012](docs/adr/0012-japanese-domain-vocabulary.md).
 
 > **The Japanese has not been reviewed by a native speaker.** It is researched, internally
-> consistent and asserted by tests, and the terms most likely to be wrong are named in ADR-0012 —
-> but that is not the same as review, and terminology is exactly where a confident non-speaker
-> produces something plausible and wrong. Treat it as a first draft awaiting a road-operations
-> engineer who reads Japanese.
+> consistent, and checked by tests — but that is not the same as review, and specialist terminology
+> is exactly where a confident non-speaker produces something plausible and wrong. Treat it as a
+> first draft awaiting a road-operations engineer who reads Japanese.
 
-Two strings are still English in both locales: the derived priority reason on the detail pane, and
-the audit trail's action lines. Both are computed server-side for an event several positions read,
-so localising them is a contract change rather than a translation — roadmap #10.
+Two strings stay in English in both languages: the severity reasoning sentence in the detail pane,
+and the action lines in the audit trail. Both are computed on the server for an incident that several
+workstations read at once, so translating them is a change to the data contract rather than a
+translation job.
 
-## Non-goals
+---
 
-Things this does not do, and the reason each is a boundary rather than an omission.
+## What this deliberately does not do
 
-- **Authentication.** The ownership lock needs to know which _desk_ is asking, not who the person
-  is. The server assigns a workstation number when the stream opens and keeps it in an httpOnly
-  cookie — enough for a compare-and-set and enough for the audit trail. It is **not proof of
-  identity**: anything that can send a request can send a cookie. That is an accurate description of
-  an internal tool on an internal network, and it is the wrong answer for anything facing a hostile
-  one. [ADR-0008](docs/adr/0008-position-identity-and-the-ownership-lock.md) records the decision
-  rather than leaving a half-built login behind.
-- **Persistence beyond the replay window.** `EVENT_BUS=redis` makes the log survive a dashboard
-  restart and be shared across instances, but retention is still a hundred events. A shift log that
-  outlives a deployment is a different problem, and a database is backend work the brief scoped out.
-- **Camera coverage is partial.** Six of the ten cameras carry real footage, derived from one
-  Creative Commons clip by [`scripts/prepare-footage.sh`](scripts/prepare-footage.sh). The other four
-  keep the committed SVG still for their event type, because every derived crop frames three lanes
-  and those cameras do not all watch three.
-  [docs/footage.md](docs/footage.md), [ATTRIBUTION.md](ATTRIBUTION.md).
-- **The detection boxes are not calibrated to those frames.** Box geometry is derived from the same
-  fields the priority rules read, so it agrees with the record — a hard-shoulder call sits at the
-  frame edge. But the frames are a real road at an oblique angle, and the frame edge is not where a
-  given camera's hard shoulder actually is. Closing it means per-camera calibration in the manifest.
-  [ADR-0017](docs/adr/0017-six-cameras-from-one-clip.md).
-- **Releasing a lock.** Acknowledging takes an incident and nothing gives it back. Deliberate — an
-  incident does not become unowned because an operator walked away, and a timeout nobody sees fire
-  would be worse — but it does mean a mistaken claim is permanent.
+Each of these is a boundary with a reason, not an oversight.
 
-## What I would do next
+- **No authentication.** The ownership claim needs to know which _desk_ is asking, not which person.
+  The server assigns a workstation number when the stream opens and keeps it in a cookie — enough for
+  a claim and enough for the audit trail. It is **not proof of identity**: anything that can send a
+  request can send a cookie. That is an accurate description of an internal tool on an internal
+  network, and it is the wrong answer for anything exposed to a hostile one.
+- **No storage beyond the last 100 events.** Running with Redis makes the log survive a restart and
+  be shared between instances, but retention is still bounded. A shift log that outlives a deployment
+  is a different problem and needs a real database.
+- **Camera coverage is partial.** Six of the ten cameras carry real video stills, derived from a
+  single Creative Commons clip by [`scripts/prepare-footage.sh`](scripts/prepare-footage.sh). The
+  other four keep a committed illustration for their event type, because every derived crop frames
+  three lanes and those four cameras do not all watch three.
+- **The detection boxes are not calibrated to the real frames.** The box position is derived from the
+  same fields the severity rules read, so it always agrees with the record — a hard-shoulder call
+  sits at the edge of the frame. But the stills are a real road at an oblique angle, and the edge of
+  the frame is not where any particular camera's hard shoulder actually is. Fixing it means
+  per-camera calibration data.
+- **Ownership cannot be released.** Acknowledging takes an incident and nothing gives it back. That
+  is deliberate — an incident does not become unowned just because an operator walked away, and a
+  silent timeout would be worse — but it does mean a mistaken claim is permanent.
 
-[`docs/roadmap.md`](docs/roadmap.md) is the live list, with Now / Next / Later and a record of what
-each shipped item added to it. The short version: real camera frames have landed, which unblocks the
-snapshot filmstrip — each camera now has twenty stills with the source second of each recorded, so
-picking the five nearest a trigger is a lookup rather than a fabrication.
+### What would come next
 
-## AI log
+Real camera stills have landed, which unblocks the snapshot filmstrip: each camera now has twenty
+stills with the source second of each recorded, so picking the five nearest to a detection is a
+lookup rather than a fabrication. After that: per-camera calibration for the detection boxes, and
+moving the two server-computed English strings into the translation files.
 
-[`docs/ai-log/`](docs/ai-log/) — how the work was structured, the three decisions escalated for a
-human call, and an honest list of what the AI got wrong and how each was caught.
+---
 
 ## Scripts
 
-| Command                     |                                                       |
-| --------------------------- | ----------------------------------------------------- |
-| `pnpm dev`                  | Development server, with the simulator in-process     |
-| `pnpm build` / `pnpm start` | Production build and serve                            |
-| `pnpm lint`                 | oxlint + ESLint, including the design-adherence rules |
-| `pnpm typecheck`            | `tsc --noEmit`                                        |
-| `pnpm test`                 | Vitest — the Redis conformance block skips            |
-| `pnpm test:bus`             | Bus conformance against both implementations          |
-| `pnpm test:e2e`             | Playwright — journey, accessibility, metrics          |
-| `pnpm test:visual`          | Visual regression, in the pinned Playwright container |
-| `pnpm seed`                 | The two-minute scenario                               |
-| `pnpm baseline`             | Measurement run — produces a reading, not a pass/fail |
-| `pnpm format`               | Prettier                                              |
+| Command                     | Does                                                             |
+| --------------------------- | ---------------------------------------------------------------- |
+| `pnpm dev`                  | Development server, with the detection simulator in-process      |
+| `pnpm build` / `pnpm start` | Production build, then serve it                                  |
+| `pnpm lint`                 | oxlint + ESLint, including the design-adherence rules            |
+| `pnpm typecheck`            | TypeScript, no emit                                              |
+| `pnpm test`                 | Unit tests (the Redis block skips)                               |
+| `pnpm test:bus`             | Event-log tests against both implementations, with its own Redis |
+| `pnpm test:e2e`             | Playwright — journey, accessibility, timing measurements         |
+| `pnpm test:visual`          | Screenshot comparison, inside the pinned Playwright container    |
+| `pnpm seed`                 | The scripted two-minute scenario                                 |
+| `pnpm baseline`             | A measurement run — produces readings, not a pass or fail        |
+| `pnpm format`               | Prettier                                                         |
+
+---
+
+## Documentation map
+
+| File                                                   | What it is                                                                                                                                                   |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`docs/design/`](docs/design/)                         | The three design passes as PDFs, plus the original exported source                                                                                           |
+| [`docs/DESIGN_INVENTORY.md`](docs/DESIGN_INVENTORY.md) | Design → code mapping, written before any feature code                                                                                                       |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md)               | Running log of every trade-off, written as each was made                                                                                                     |
+| [`docs/design-system.md`](docs/design-system.md)       | How the tokens, typography and interaction rules work in the implementation                                                                                  |
+| [`docs/BUILD_PROMPT.md`](docs/BUILD_PROMPT.md)         | The implementation brief the build was written against                                                                                                       |
+| [`docs/ai-log/`](docs/ai-log/)                         | How the work was structured with AI assistance, what was escalated for a human decision, and an honest list of what the AI got wrong and how each was caught |

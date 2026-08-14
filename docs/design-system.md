@@ -8,8 +8,8 @@ them.
 ## Localization
 
 Two locales, English and Japanese. Language is a **workstation setting**, not a route — it lives in
-a cookie beside the mute preference, and [ADR-0009](adr/0009-next-intl-and-cookie-locale.md) says
-why there is no `[locale]` segment.
+a cookie beside the mute preference. A desk's language belongs to the desk, not to the URL, so there
+is no `[locale]` route segment and a shared link never imposes one operator's language on another.
 
 ### How to add a string
 
@@ -72,7 +72,6 @@ live in `domain` beside the terms rather than in a separate formatting layer.
 - **The live age counter is `mm:ss` and stays that way.** Not `2分14秒`: a counter whose width
   changes as it ticks makes the column beside it twitch, which is the reason it is set in tabular
   figures. Digits and a colon need no translation.
-  [ADR-0013](adr/0013-locale-aware-formatting.md).
 
 ### Do not translate
 
@@ -92,8 +91,8 @@ Japanese typography is handled at the token layer, in a `[lang="ja"]` block, **n
 Line height up, tracking to zero, dense row text one size down.
 
 The binding constraint is the 40px queue row: a flat line-height increase overflows it and costs a
-row of the density the whole layout is built on. [ADR-0011](adr/0011-japanese-typography.md) has the
-arithmetic, and `e2e/typography.spec.ts` holds it — twelve rows at 1440×900, in both locales.
+row of the density the whole layout is built on. `e2e/typography.spec.ts` holds the line — twelve
+rows at 1440×900, in both locales.
 
 ## Keyboard
 
@@ -102,7 +101,7 @@ both directions that the handler and the `?` overlay agree.
 
 **Every binding sits behind the IME composition guard.** Typing 渋滞 is `j-u-u-t-a-i`, and every one
 of those keystrokes fires a `keydown` — without the guard, an operator typing a Japanese note fires
-dispatch actions mid-word. [ADR-0010](adr/0010-ime-composition-and-single-key-shortcuts.md).
+dispatch actions mid-word.
 
 ## Colour
 
@@ -139,7 +138,6 @@ Boxes are absolutely-positioned elements at percentage offsets, not SVG. The fra
 container-fit, so an SVG would need `preserveAspectRatio="none"` to stay aligned to the crop, which
 distorts strokes and text — and labels have to set in the tabular numeric face, which SVG `<text>`
 can only reach by restating the type scale outside the tokens.
-[ADR-0015](adr/0015-detection-overlay-without-footage.md).
 
 Geometry is not a rendering concern. `src/lib/detection.ts` derives it from the same fields the
 priority rules read, because **an incoherent box is worse than no box** — a "hard shoulder" call

@@ -1,21 +1,21 @@
 # Build prompt — Traffic Incident Monitoring Dashboard
 
-Paste this into Claude Code as the opening brief. The UI design is already finished in Claude Design; this prompt is an **implementation** brief, not a design brief. Keep it in the repo at `docs/BUILD_PROMPT.md` — it doubles as evidence of process for the AI-log requirement.
+This is the opening brief the build was written against. The UI design was finished before any code existed; this prompt is an **implementation** brief, not a design brief. It stays in the repo at `docs/BUILD_PROMPT.md` as the written record of what was asked for.
 
 ---
 
 ## 0. Role and standing instructions
 
-You are a senior front-end engineer implementing a finished design for a take-home evaluation project. The reviewers are judging four things:
+You are a senior front-end engineer implementing a finished design. Four qualities matter in the result:
 
-1. Ability to execute UIs with strong UX considerations, using modern frameworks and CSS methods.
-2. Process and capability on UX design tasks.
-3. How problems are approached and trade-offs made.
-4. Clarity of code and documentation.
+1. UIs executed with strong UX considerations, using modern frameworks and CSS methods.
+2. A visible, deliberate UX design process behind the screens.
+3. Problems approached explicitly, with trade-offs stated rather than buried.
+4. Clear code and clear documentation.
 
 Standing rules for the whole build:
 
-- **The design is authoritative.** Colour, type, spacing, radii, elevation, iconography, copy, and component states all come from the Claude Design project described in section 1. You are translating it, not reinterpreting it. If something in the design cannot be built as drawn, say so and propose the closest faithful alternative — do not silently improvise.
+- **The design is authoritative.** Colour, type, spacing, radii, elevation, iconography, copy, and component states all come from the design project described in section 1. You are translating it, not reinterpreting it. If something in the design cannot be built as drawn, say so and propose the closest faithful alternative — do not silently improvise.
 - **Work in phases.** Stop at the end of each phase, summarise what you did and any trade-off you made, and wait for me before continuing.
 - **Log trade-offs as you go.** Every time you pick one approach over another, write a one-line rationale into `docs/DECISIONS.md`. That file is a deliverable.
 - **No dead code, no TODO stubs, no commented-out experiments** in the final tree.
@@ -26,11 +26,9 @@ Standing rules for the whole build:
 
 ## 1. Read the design first
 
-The Claude Design MCP is already connected. Before writing any code, read the project:
+The finished design project is exported into `docs/design/`. Before writing any code, read it — starting with `Pass C - Screens and component states.dc.html`, the primary implementation target.
 
-`https://claude.ai/design/p/395265bf-e8ef-4048-bf51-a354b40e2815?file=Pass+C+-+Screens+and+component+states.dc.html`
-
-The whole project is readable. Read these files, in this order — the order matters, because the design system defines the vocabulary that the screens are written in:
+Read these files, in this order — the order matters, because the design system defines the vocabulary that the screens are written in:
 
 1. `_ds/nocturne-ce7bd6a7-39e4-4917-bbec-e38bf6d4ee6c/readme.md` — how the design system is meant to be consumed
 2. `_ds/nocturne-ce7bd6a7-39e4-4917-bbec-e38bf6d4ee6c/_ds_manifest.json` — the component and token inventory
@@ -56,9 +54,9 @@ I will review that inventory before you write feature code. It is also a deliver
 
 - **Tokens are consumed, never re-authored.** Port `styles.css` into a Tailwind v4 `@theme` block, keeping the token names from the design system. Do not rename them to Tailwind defaults and do not add new values. If you need a value that does not exist, that is a signal the design needs a decision, not that you should pick one.
 - **No arbitrary Tailwind values in feature code.** `p-[13px]` and `text-[#1a1d21]` are both bugs. Every utility resolves to a token.
-- **Wire up the adherence lint config.** Add `_adherence.oxlintrc.json` to the repo and run oxlint in CI and in the `pnpm lint` script. It exists precisely to catch drift between the design system and the implementation, and having it enforced is a strong signal to the reviewers.
-- **Component names match the design.** If `Pass C` calls it an incident card, the React component is `IncidentCard`, not `EventListItem`. A reviewer with both artefacts open should be able to trace a name straight across.
-- **Build the whole state matrix, not just the happy path.** Every state drawn in `Pass C` gets built and gets a Storybook-style demo route at `/dev/states` (dev-only, excluded from the production build). This is the fastest way for a reviewer to verify you implemented the design completely, and it takes about twenty minutes.
+- **Wire up the adherence lint config.** Add `_adherence.oxlintrc.json` to the repo and run oxlint in CI and in the `pnpm lint` script. It exists precisely to catch drift between the design system and the implementation, and enforcing it in CI stops that drift accumulating silently.
+- **Component names match the design.** If `Pass C` calls it an incident card, the React component is `IncidentCard`, not `EventListItem`. Anyone with both artefacts open should be able to trace a name straight across.
+- **Build the whole state matrix, not just the happy path.** Every state drawn in `Pass C` gets built and gets a Storybook-style demo route at `/dev/states` (dev-only, excluded from the production build). This is the fastest way to verify the design was implemented completely, and it takes about twenty minutes.
 
 ---
 
@@ -89,13 +87,13 @@ Do not substitute without asking.
 | Time                | date-fns                                                                     | `formatDistanceToNowStrict` for live age counters                                                                                                                                                              |
 | Motion              | `motion` (Framer Motion)                                                     | List enter/exit and banner choreography only, gated on `prefers-reduced-motion`                                                                                                                                |
 | Icons               | Whatever `Pass C` uses                                                       | Match the design; only fall back to lucide-react if the design's icons are not extractable                                                                                                                     |
-| Map                 | maplibre-gl + react-map-gl, CARTO basemap                                    | No API key, so reviewers can run it with zero setup. Style the map to nocturne's dark surface tokens                                                                                                           |
+| Map                 | maplibre-gl + react-map-gl, CARTO basemap                                    | No API key, so it runs with zero setup. Style the map to nocturne's dark surface tokens                                                                                                                        |
 | Sound               | Native Web Audio API                                                         | One short tone for critical events; a dependency would be overkill                                                                                                                                             |
 | Lint                | oxlint with the project's `_adherence.oxlintrc.json`, plus ESLint + Prettier | Design adherence enforced in CI                                                                                                                                                                                |
 | Unit tests          | Vitest + React Testing Library                                               | Test the priority logic and the store, not the pixels                                                                                                                                                          |
 | E2E                 | Playwright, one spec                                                         | The full journey: event arrives → detail opens → dispatch                                                                                                                                                      |
 
-Explicitly rejected, and say why in `DECISIONS.md`: WebSockets and socket.io (custom server, bidirectional plumbing we do not use), shadcn/ui (competing token layer), a real database (this is a front-end evaluation), Redux Toolkit (ceremony without benefit at this size), CSS-in-JS (runtime cost on a surface that re-renders every second).
+Explicitly rejected, and say why in `DECISIONS.md`: WebSockets and socket.io (custom server, bidirectional plumbing we do not use), shadcn/ui (competing token layer), a real database (this is a front-end project; the backend is deliberately faked), Redux Toolkit (ceremony without benefit at this size), CSS-in-JS (runtime cost on a surface that re-renders every second).
 
 ---
 
@@ -143,7 +141,7 @@ interface DetectionEvent {
 }
 ```
 
-If `Pass C` displays a field this schema does not have, add it. If the schema has a field no frame displays, either surface it or delete it — an unused field is a question at interview you would rather not be asked.
+If `Pass C` displays a field this schema does not have, add it. If the schema has a field no frame displays, either surface it or delete it — an unused field is dead weight in the contract.
 
 **Priority is derived, not random.** Write `derivePriority(type, lanePosition, confidence)` as a pure, unit-tested function, and render its reasoning as `priorityReason`. This is the highest-value logic in the submission: it shows the domain was modelled rather than decorated.
 
@@ -180,7 +178,7 @@ New events must never move what the operator is currently reading.
 
 - Live age counter on every row, ticking once a second from a **single shared interval in the store** — not one timer per row. Tabular-lining numerals so digits do not jitter.
 - Age thresholds tied to priority: a critical event unhandled past 60s takes the ageing treatment from the state matrix; past 120s it escalates again. This turns the queue into a self-sorting attention map.
-- Detail pane shows `detected → received` latency explicitly. One line of text, and it answers the brief's "speed matters" line directly.
+- Detail pane shows `detected → received` latency explicitly. One line of text, and it answers the "speed matters" requirement directly.
 
 ### 5.4 Comprehension in under two seconds
 
@@ -228,13 +226,13 @@ Focus visible at all times, focus trapped in the dismiss modal, detail pane as a
 
 ## 6. Fake event generation
 
-Three routes in, because different reviewers reach for different ones:
+Three routes in, because different people reach for different ones:
 
-1. **Ambient background stream.** A route handler emitting on a Poisson-ish interval (default mean 20s, `SIM_INTERVAL_MS`), weighted roughly 60% low/medium, 30% high, 10% critical. A demo where everything is critical teaches the reviewer nothing about triage.
-2. **Keypress `G`** for one event, `Shift+G` for a critical one. This is what you use during the interview walkthrough.
+1. **Ambient background stream.** A route handler emitting on an irregular interval (default mean 20s, `SIM_INTERVAL_MS`), weighted roughly 60% low/medium, 30% high, 10% critical. A demo where everything is critical teaches nothing about triage.
+2. **Keypress `G`** for one event, `Shift+G` for a critical one. This is what you use when walking someone through the app live.
 3. **A seeded script**, `pnpm seed`, playing a deterministic 90-second scenario: quiet → debris call → stopped vehicle escalating to critical → wrong-way driver.
 
-Snapshots: committed placeholder stills per event type in `public/snapshots/`, with camera ID and timestamp overlaid at render time. Do not hotlink external images — the reviewer may be offline.
+Snapshots: committed placeholder stills per event type in `public/snapshots/`, with camera ID and timestamp overlaid at render time. Do not hotlink external images — the app must work offline.
 
 ---
 
@@ -274,7 +272,7 @@ HEALTHCHECK --interval=15s --timeout=3s --start-period=10s \
 CMD ["node", "server.js"]
 ```
 
-Explain the "why" in the README, because that is what is being marked: a separate `deps` stage so a source-only change does not reinvalidate the dependency install layer; a non-root `nextjs` user because a container running as root is a finding in any real security review; a healthcheck because compose dependency ordering needs one; `standalone` for image size.
+Explain the "why" in the README, because the reasoning is the part worth reading: a separate `deps` stage so a source-only change does not reinvalidate the dependency install layer; a non-root `nextjs` user because a container running as root is a finding in any real security review; a healthcheck because compose dependency ordering needs one; `standalone` for image size.
 
 **`docker-compose.yml`** — two services, because splitting them makes the architecture legible:
 
@@ -300,7 +298,7 @@ services:
       dashboard: { condition: service_healthy }
 ```
 
-`services/detector-sim` is a ~60-line Node script POSTing generated events to `/api/events/ingest`. It exists to make the boundary the brief describes — _the layer between the detection system and the people_ — visible in the architecture rather than only in prose. If time is short, cut it and run the simulator in-process behind `SIM_MODE=internal`, and note the trade-off.
+`services/detector-sim` is a ~60-line Node script POSTing generated events to `/api/events/ingest`. It exists to make the boundary this brief describes — _the layer between the detection system and the people_ — visible in the architecture rather than only in prose. If time is short, cut it and run the simulator in-process behind `SIM_MODE=internal`, and note the trade-off.
 
 **`compose.dev.yml`** for hot reload:
 
@@ -328,8 +326,8 @@ The anonymous volumes on `node_modules` and `.next` are the detail that trips pe
 │  ├─ BUILD_PROMPT.md          # this file
 │  ├─ DESIGN_INVENTORY.md      # design → code mapping, produced in phase 0
 │  ├─ DECISIONS.md             # running trade-off log
-│  ├─ ai-log/                  # exported prompts + conversations (required by the brief)
-│  └─ design/                  # exported frames from the Claude Design project + the link
+│  ├─ ai-log/                  # exported prompts + conversations, and how the work was structured
+│  └─ design/                  # the exported design source and the three pass PDFs
 ├─ services/detector-sim/
 ├─ src/
 │  ├─ app/
@@ -365,18 +363,18 @@ Stop and summarise after each.
 5. **Real-time layer** — critical banner choreography, sound with persisted mute, tab title and favicon badging, motion with `prefers-reduced-motion`, degradation states.
 6. **Polish and proof** — Playwright journey spec, README, `DECISIONS.md`, AI log export, keyboard-only pass then a screen-reader pass, Lighthouse run.
 
-If time runs out, ship phases 0–4 finished rather than 0–6 half-done, and write a specific "what I would do next and why" section. The brief explicitly says compromises are fine and will be discussed — an honest, specific list of cuts reads as senior judgement; a silent gap reads as an oversight.
+If time runs out, ship phases 0–4 finished rather than 0–6 half-done, and write a specific "what I would do next and why" section. Compromises are fine as long as they are stated: an honest, specific list of cuts reads as judgement; a silent gap reads as an oversight.
 
 ---
 
 ## 10. README requirements
 
-The README is graded. It must contain, in this order:
+The README is the front door to the repository. It must contain, in this order:
 
 1. One-paragraph design thesis (time to awareness, time to decision).
 2. Quick start: `docker compose up` and the local `pnpm` path, both verified from a clean clone.
 3. How to see it work: the three ways to generate events, the `?` shortcut list, and the `/dev/states` route.
-4. **Design process**: a link to the Claude Design project, the three passes summarised in a few lines each, exported frames in `docs/design/`, and a pointer to `DESIGN_INVENTORY.md` as the design-to-code mapping. The brief asks for visibility on design thinking done before coding — this section is where you get those marks, so make the Pass A → B → C progression legible.
+4. **Design process**: the three passes summarised in a few lines each, links to the exported passes in `docs/design/`, and a pointer to `DESIGN_INVENTORY.md` as the design-to-code mapping. The design thinking happened before the coding, so make the Pass A → B → C progression legible.
 5. Architecture, about ten lines plus one diagram.
 6. Decisions and trade-offs as a table of _choice → alternative considered → why_. At minimum: SSE over WebSockets, Radix over shadcn (to avoid a competing token layer), Zustand over Context, derived priority, the non-reordering buffer, muted-by-default audio, no database.
 7. What I deliberately did not build, and what I would do next.

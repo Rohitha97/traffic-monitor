@@ -1,11 +1,22 @@
-# Exported design source
+# The design source
 
-A byte-exact export of the Claude Design project this dashboard implements, taken at the start of
-phase 0. File sizes match the project's own listing exactly.
+The finished UI design this dashboard implements, exported unmodified before any application code
+was written.
 
-**Live project:** <https://claude.ai/design/p/395265bf-e8ef-4048-bf51-a354b40e2815>
+## Read the design (PDF)
 
-## The three passes
+The quickest way to read the design is the three PDFs. They need nothing installed and open
+anywhere.
+
+| Pass | PDF |
+| --- | --- |
+| **A · Flows and wireframes** | [Pass A — Flows and wireframes.pdf](Pass%20A%20%E2%80%94%20Flows%20and%20wireframes.pdf) |
+| **B · Visual system** | [Pass B — Visual system.pdf](Pass%20B%20%E2%80%94%20Visual%20system.pdf) |
+| **C · Screens and component states** | [Pass C — Screens and component states.pdf](Pass%20C%20%E2%80%94%20Screens%20and%20component%20states.pdf) |
+
+## What each pass establishes
+
+The `.dc.html` files are the original source the PDFs were produced from.
 
 | File | Pass | What it establishes |
 | --- | --- | --- |
@@ -13,28 +24,26 @@ phase 0. File sizes match the project's own listing exactly.
 | `Pass B - Visual system.dc.html` | **B · Visual system** | The token sheet, as a plan for approval — three surfaces lifted off true black for a dim room, four priority ramps that are the only saturated tokens in the system, Public Sans over IBM Plex Mono, a 4px grid, a 3px radius ceiling, and four motion tokens. Also records three visual directions rejected on sight and four moves taken from motorway-signage vernacular |
 | `Pass C - Screens and component states.dc.html` | **C · Screens** | The implementation target. Five frames at 1440×900 — default monitoring, critical arrival, incident under review, the component state matrix, and degradation states — plus the arrival choreography as a filmstrip. One incident (a wrong-way driver on CAM-014) runs through frames 1–3 |
 
-## Opening them
+## Opening the source files
 
-These are Claude Design documents: `<x-dc>` templates with a `DCLogic` class supplying the data.
-They need `support.js` to render, which is why it and `image-slot.js` are exported alongside, and
-why the `_ds/` folder came with them. Open any `.dc.html` directly from this directory in a
-browser — no server and no build step, it renders from `file://`.
+The `.dc.html` files are templates with a small JavaScript class supplying their data. They need
+`support.js` to render, which is why it and `image-slot.js` are exported alongside them, and why the
+`_ds/` folder came with them. Open any `.dc.html` directly from this directory in a browser — no
+server and no build step, it renders straight from the filesystem.
 
-One caveat: `support.js` injects React from unpkg at runtime, and the frames load Public Sans and
-IBM Plex Mono from Google Fonts, so **rendering the exported frames needs a network connection**.
-Vendoring those locally would mean editing `support.js`, which would cost the byte-exactness that
-makes this export worth keeping. The *application* has no such dependency — its snapshots are
-committed stills and its fonts are self-hosted, so `docker compose up` works offline.
+One caveat: `support.js` loads React from a CDN at runtime, and the frames load Public Sans and
+IBM Plex Mono from Google Fonts, so **rendering the source files needs a network connection**.
+Bundling those locally would mean editing `support.js`, which would cost the exactness that makes
+this export worth keeping — the PDFs above exist precisely so nobody has to. The *application* has no
+such dependency: its snapshots are committed images and its fonts are self-hosted, so
+`docker compose up` works offline.
 
-Verified on export: all five frames render, `<x-dc>` fully consumed, no unresolved `{{ }}`,
-ground `#15181C`, hairline `#23272B`, 2px radius, 52px critical banner on `#262B30`, both type
-families active.
+Checked on export: all five frames render, no unresolved template placeholders, background `#15181C`,
+divider `#23272B`, 2px corner radius, 52px critical banner on `#262B30`, and both typefaces active.
 
 ## `_ds/nocturne-…/`
 
-The nocturne design system. **It styles the deck, not the product** — the page ground, section
-eyebrows and annotation cards around the frames. Every pixel inside the frames is Pass B's token
-sheet. Retained here as provenance and as the record of where the process started.
-
-See [`../DESIGN_INVENTORY.md`](../DESIGN_INVENTORY.md) §0 for the evidence, and §1.1 for the
-disposition of all 50 nocturne tokens.
+The generic design system the design project was started from. **It styles the presentation deck,
+not the product** — the page background, section headings and annotation cards *around* the frames.
+Every pixel inside the frames comes from Pass B instead. Kept here as a record of where the process
+started.

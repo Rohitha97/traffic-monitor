@@ -1,12 +1,10 @@
 # Design inventory — design → code mapping
 
 Produced in phase 0, before any application code. This is the artefact that proves the design
-and the build correspond. Every claim here is traceable to a file in [`docs/design/`](design/),
-which is a byte-exact export of the Claude Design project.
+and the build correspond. Every claim here is traceable to a file in [`docs/design/`](design/), an
+unmodified export of the finished design project — including the three passes as PDFs.
 
-**Design project:** <https://claude.ai/design/p/395265bf-e8ef-4048-bf51-a354b40e2815>
-
-**Source files read, in the order the brief specifies:**
+**Source files read, in this order:**
 
 | #   | File                                            | What it contributed                                                  |
 | --- | ----------------------------------------------- | -------------------------------------------------------------------- |
